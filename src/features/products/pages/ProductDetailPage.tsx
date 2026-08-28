@@ -89,7 +89,7 @@ export function ProductDetailPage() {
       <div className="space-y-5">
         <ProductImageGallery images={product.images} title={product.title} />
 
-        <div className="p-4 sm:p-5 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-4">
+        <div className="p-4 sm:p-5 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-4 min-w-0">
           <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
             <span className="rounded-full bg-brand-soft-pink px-3 py-1 text-xs font-semibold text-brand-burgundy border border-brand-burgundy/20">
               {product.category.name}
@@ -106,7 +106,7 @@ export function ProductDetailPage() {
             )}
           </div>
 
-          <h1 className="text-lg sm:text-xl font-extrabold text-brand-text leading-snug">
+          <h1 className="text-lg sm:text-xl font-extrabold text-brand-text leading-snug min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
             {product.title}
           </h1>
 

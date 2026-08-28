@@ -55,7 +55,10 @@ export function ProductForm(props: ProductFormProps) {
       category_id: initialData?.category.category_id || undefined,
       title: initialData?.title || '',
       description: initialData?.description || '',
-      price: initialData?.price ? Number(initialData.price) : undefined,
+      price:
+        initialData?.price !== undefined && initialData?.price !== null
+          ? Number(initialData.price)
+          : undefined,
       stock: initialData?.available_stock ?? 1,
       status: (initialData?.status as 'AVAILABLE' | 'HIDDEN') || 'AVAILABLE',
     },
@@ -67,7 +70,10 @@ export function ProductForm(props: ProductFormProps) {
         category_id: initialData.category.category_id,
         title: initialData.title,
         description: initialData.description || '',
-        price: Number(initialData.price),
+        price:
+          initialData.price !== undefined && initialData.price !== null
+            ? Number(initialData.price)
+            : undefined,
         stock: initialData.available_stock,
         status: (initialData.status as 'AVAILABLE' | 'HIDDEN') || 'AVAILABLE',
       });
@@ -158,6 +164,9 @@ export function ProductForm(props: ProductFormProps) {
             {...register('price')}
             className="w-full rounded-2xl bg-white border border-brand-border px-4 py-3 text-sm text-brand-text placeholder:text-brand-text-muted focus:border-brand-burgundy focus:outline-hidden"
           />
+          <span className="text-[11px] text-brand-text-secondary mt-1 block">
+            Nhập 0 nếu muốn cho miễn phí.
+          </span>
           {errors.price && (
             <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" /> {errors.price.message}

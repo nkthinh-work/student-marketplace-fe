@@ -34,7 +34,7 @@ export function CategoryBar({
       <button
         type="button"
         onClick={() => onSelectCategory(undefined)}
-        className={`chip-interactive flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all ${
+        className={`chip-interactive flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
           selectedCategoryId === undefined
             ? 'bg-brand-burgundy text-white chip-interactive--selected font-semibold'
             : 'bg-brand-warm-white text-brand-text-secondary border border-brand-border hover:bg-brand-soft-pink hover:border-brand-burgundy/20'
@@ -52,7 +52,7 @@ export function CategoryBar({
             key={cat.category_id}
             type="button"
             onClick={() => onSelectCategory(cat.category_id)}
-            className={`chip-interactive flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all ${
+            className={`chip-interactive flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
               isSelected
                 ? 'bg-brand-burgundy text-white chip-interactive--selected font-semibold'
                 : 'bg-brand-warm-white text-brand-text-secondary border border-brand-border hover:bg-brand-soft-pink hover:border-brand-burgundy/20'

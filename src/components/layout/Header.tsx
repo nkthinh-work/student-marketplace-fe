@@ -92,7 +92,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-brand-burgundy px-4 shadow-header">
+      <header className="fixed top-0 inset-x-0 z-50 flex h-[56px] w-full items-center justify-between bg-brand-burgundy px-4 shadow-header">
         {!isSearchOpen ? (
           <>
             <button
@@ -123,11 +123,11 @@ export function Header() {
                 />
 
                 {/* Wordmark */}
-                <div className="-ml-1 flex flex-col justify-center leading-[0.8] font-['Plus_Jakarta_Sans']">
-                  <span className="text-[10px] font-medium tracking-[0.01em] text-[#D9A55D]">
+                <div className="-ml-1 flex flex-col justify-center font-['Plus_Jakarta_Sans'] select-none">
+                  <span className="text-[10px] font-medium tracking-[0.01em] text-[#D9A55D] leading-none">
                     Chợ
                   </span>
-                  <span className="mt-[1px] text-[15px] font-semibold tracking-[-0.04em] text-[#E0AE67]">
+                  <span className="text-[15px] font-semibold tracking-[-0.04em] text-[#E0AE67] leading-none pt-0.5">
                     TITers
                   </span>
                 </div>
@@ -203,6 +203,9 @@ export function Header() {
         )}
       </header>
 
+      {/* Document flow spacer preserving exact 56px height */}
+      <div className="h-[56px] w-full shrink-0" aria-hidden="true" />
+
       {/* Mobile slide-out menu */}
       {menuOpen && (
         <>
@@ -235,11 +238,11 @@ export function Header() {
                     className="h-9 w-9 shrink-0 object-contain"
                   />
 
-                  <div className="-ml-1 flex flex-col justify-center leading-[0.8] font-['Plus_Jakarta_Sans']">
-                    <span className="text-[10px] font-medium tracking-[-0.02em] text-[#E3B566]">
+                  <div className="-ml-1 flex flex-col justify-center font-['Plus_Jakarta_Sans'] select-none">
+                    <span className="text-[10px] font-medium tracking-[-0.02em] text-[#E3B566] leading-none">
                       Chợ
                     </span>
-                    <span className="mt-[1px] text-[15px] font-semibold tracking-[-0.05em] text-[#E3B566]">
+                    <span className="text-[15px] font-semibold tracking-[-0.05em] text-[#E3B566] leading-none pt-0.5">
                       PTITers
                     </span>
                   </div>

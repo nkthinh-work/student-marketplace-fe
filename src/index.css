@@ -117,7 +117,7 @@ body {
   transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease, background-color 250ms ease;
 }
 .chip-interactive {
-  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  transition: box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease;
 }
 .chip-interactive--selected {
   box-shadow:
@@ -159,10 +159,7 @@ body {
   }
 
   .chip-interactive:hover {
-    transform: translateY(-1px);
-  }
-  .chip-interactive:active {
-    transform: translateY(0) scale(0.97);
+    opacity: 0.95;
   }
 
   .icon-btn-interactive:hover {
@@ -198,8 +195,7 @@ body {
   }
 
   .chip-interactive:active {
-    transform: scale(0.95);
-    background-color: var(--color-brand-soft-pink);
+    opacity: 0.9;
   }
 
   .icon-btn-interactive:active {

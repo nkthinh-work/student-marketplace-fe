@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ProductImageResponse } from '../types';
 import {
-  useUploadProductImage,
   useDeleteProductImage,
   useSetThumbnail,
   useReorderImages,
+  productKeys,
 } from '../hooks';
+import { uploadProductImage } from '../api';
 import {
   Upload,
   Trash2,
@@ -40,9 +42,9 @@ export function ProductImageManager({
 }: ProductImageManagerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadingQueueItem[]>([]);
-  const isProcessingRef = useRef(false);
+  const activeUploadsRef = useRef<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
-  const uploadMutation = useUploadProductImage(productId);
   const deleteMutation = useDeleteProductImage(productId);
   const setThumbnailMutation = useSetThumbnail(productId);
   const reorderMutation = useReorderImages(productId);
@@ -58,80 +60,84 @@ export function ProductImageManager({
     };
   }, [uploadQueue]);
 
-  // Xử lý hàng đợi upload song song (tối đa 2 file cùng lúc)
-  const processUploadQueue = useCallback(async () => {
-    if (isProcessingRef.current) return;
-    isProcessingRef.current = true;
+  // Upload một file đơn lẻ lên server
+  const uploadSingleFile = useCallback(
+    async (item: UploadingQueueItem) => {
+      try {
+        await uploadProductImage(productId, item.file);
 
-    try {
-      while (true) {
-        let currentQueue: UploadingQueueItem[] = [];
-        setUploadQueue((prev) => {
-          currentQueue = prev;
-          return prev;
-        });
-
-        const uploadingCount = currentQueue.filter(
-          (item) => item.status === 'uploading',
-        ).length;
-        const nextQueued = currentQueue.find((item) => item.status === 'queued');
-
-        if (!nextQueued || uploadingCount >= 2) {
-          break;
+        if (item.previewUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(item.previewUrl);
         }
 
         setUploadQueue((prev) =>
-          prev.map((item) =>
-            item.tempId === nextQueued.tempId
-              ? { ...item, status: 'uploading' }
-              : item,
+          prev.map((i) =>
+            i.tempId === item.tempId
+              ? { ...i, status: 'success', errorMessage: undefined }
+              : i,
           ),
         );
 
-        uploadMutation.mutate(nextQueued.file, {
-          onSuccess: () => {
-            if (nextQueued.previewUrl?.startsWith('blob:')) {
-              URL.revokeObjectURL(nextQueued.previewUrl);
-            }
+        // Làm mới cache chi tiết sản phẩm và danh sách tin của seller
+        queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
+        queryClient.invalidateQueries({ queryKey: productKeys.myLists() });
+        queryClient.invalidateQueries({ queryKey: productKeys.publicLists() });
 
-            setUploadQueue((prev) =>
-              prev.map((item) =>
-                item.tempId === nextQueued.tempId
-                  ? { ...item, status: 'success' }
-                  : item,
-              ),
-            );
-            onImagesChange?.();
-            isProcessingRef.current = false;
-            processUploadQueue();
-          },
-          onError: (err) => {
-            const errorMsg =
-              (err as { response?: { data?: { detail?: string } } })?.response
-                ?.data?.detail || 'Upload thất bại';
+        onImagesChange?.();
+      } catch (err: unknown) {
+        const errorMsg =
+          (err as { response?: { data?: { detail?: string } } })?.response?.data
+            ?.detail || 'Upload ảnh thất bại. Vui lòng thử lại.';
 
-            setUploadQueue((prev) =>
-              prev.map((item) =>
-                item.tempId === nextQueued.tempId
-                  ? { ...item, status: 'error', errorMessage: errorMsg }
-                  : item,
-              ),
-            );
-            isProcessingRef.current = false;
-            processUploadQueue();
-          },
-        });
+        setUploadQueue((prev) =>
+          prev.map((i) =>
+            i.tempId === item.tempId
+              ? { ...i, status: 'error', errorMessage: errorMsg }
+              : i,
+          ),
+        );
+      } finally {
+        activeUploadsRef.current.delete(item.tempId);
       }
-    } finally {
-      isProcessingRef.current = false;
-    }
-  }, [uploadMutation, onImagesChange]);
+    },
+    [productId, queryClient, onImagesChange],
+  );
 
+  // Điều phối hàng đợi tải lên song song với giới hạn concurrency = 2
   useEffect(() => {
-    if (uploadQueue.some((item) => item.status === 'queued')) {
-      processUploadQueue();
+    if (!productId || isNaN(productId)) return;
+
+    const queuedItems = uploadQueue.filter(
+      (item) => item.status === 'queued' && !activeUploadsRef.current.has(item.tempId),
+    );
+    const uploadingCount = uploadQueue.filter(
+      (item) => item.status === 'uploading' || activeUploadsRef.current.has(item.tempId),
+    ).length;
+
+    const availableSlots = 2 - uploadingCount;
+    if (availableSlots > 0 && queuedItems.length > 0) {
+      const itemsToUpload = queuedItems.slice(0, availableSlots);
+
+      // Đánh dấu vào activeUploadsRef ngay để chống duplicate dispatch
+      itemsToUpload.forEach((item) => {
+        activeUploadsRef.current.add(item.tempId);
+      });
+
+      // Cập nhật trạng thái uploading trên UI
+      setUploadQueue((prev) =>
+        prev.map((item) =>
+          itemsToUpload.some((target) => target.tempId === item.tempId)
+            ? { ...item, status: 'uploading' }
+            : item,
+        ),
+      );
+
+      // Thực thi upload cho từng item trong batch
+      itemsToUpload.forEach((item) => {
+        uploadSingleFile(item);
+      });
     }
-  }, [uploadQueue, processUploadQueue]);
+  }, [uploadQueue, productId, uploadSingleFile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

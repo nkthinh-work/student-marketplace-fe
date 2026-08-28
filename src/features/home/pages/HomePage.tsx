@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { CategoryBar } from '../components/CategoryBar';
@@ -37,28 +37,6 @@ export function HomePage() {
       q,
     };
   }, [searchParams]);
-
-  // Sticky detection via IntersectionObserver for shadow enhancement
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [isSticky, setIsSticky] = useState(false);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry) {
-          setIsSticky(!entry.isIntersecting);
-        }
-      },
-      { threshold: 0, rootMargin: '-56px 0px 0px 0px' }, // 56px = Header height
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
 
   const revealRef = useScrollReveal();
 
@@ -111,19 +89,8 @@ export function HomePage() {
         <HeroCarousel />
       </div>
 
-      {/* Sentinel — invisible marker for sticky detection, exactly at sticky container top */}
-      <div
-        ref={sentinelRef}
-        className="h-0 w-0 pointer-events-none opacity-0"
-        aria-hidden="true"
-      />
-
-      {/* Sticky CategoryBar ONLY — top-14 pt-0: 0px gap directly flush under Header */}
-      <div
-        className={`sticky top-14 z-40 bg-brand-cream isolate -mx-4 px-4 pt-0 pb-2 transition-shadow duration-200 ${
-          isSticky ? 'border-b border-brand-border/70 shadow-sticky' : ''
-        }`}
-      >
+      {/* Sticky CategoryBar — top-[56px] with invariant geometry (0px gap directly under fixed 56px Header) */}
+      <div className="sticky top-[56px] z-40 bg-brand-cream isolate -mx-4 px-4 pt-0 pb-2 border-b border-brand-border/60">
         <section>
           <CategoryBar
             selectedCategoryId={filters.category_id}

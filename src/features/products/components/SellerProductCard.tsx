@@ -75,7 +75,7 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
 
           <Link
             to={`/products/${product.product_id}`}
-            className="text-sm font-bold text-brand-text hover:text-brand-burgundy transition-colors line-clamp-1 no-underline"
+            className="text-sm font-bold text-brand-text hover:text-brand-burgundy transition-colors line-clamp-1 no-underline break-words [overflow-wrap:anywhere]"
           >
             {product.title}
           </Link>

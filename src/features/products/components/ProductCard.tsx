@@ -66,7 +66,7 @@ export function ProductCard({ product, staggerIndex = 1 }: ProductCardProps) {
           </div>
 
           {/* Title */}
-          <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-brand-text group-hover:text-brand-burgundy transition-colors leading-snug">
+          <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-brand-text group-hover:text-brand-burgundy transition-colors leading-snug break-words [overflow-wrap:anywhere]">
             {product.title}
           </h3>
         </div>

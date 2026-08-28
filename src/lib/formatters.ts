@@ -1,10 +1,11 @@
 import type { ListingType, ProductStatus } from '@/features/products/types';
 
-// Format số/chuỗi sang định dạng tiền tệ VND
+// Format số/chuỗi sang định dạng tiền tệ VND (giá 0 hiển thị "Miễn phí")
 export function formatVND(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return '0 ₫';
   const num = typeof value === 'string' ? parseFloat(value) : Number(value);
   if (isNaN(num)) return '0 ₫';
+  if (num === 0) return 'Miễn phí';
 
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
