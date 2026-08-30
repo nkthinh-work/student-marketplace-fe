@@ -16,7 +16,28 @@ export interface UserResponse {
 export interface UserUpdate {
   full_name?: string;
   phone?: string;
-  avatar_url?: string;
   bio?: string;
   default_meetup_area?: string;
+}
+
+export interface SupportedBank {
+  bin: string;
+  code: string;
+  short_name: string;
+  name: string;
+}
+
+export interface BankAccount {
+  bank_bin: string;
+  bank_code: string;
+  bank_name: string;
+  bank_short_name: string;
+  account_number: string;
+  account_name: string;
+}
+
+export interface BankAccountInput {
+  bank_bin: string;
+  account_number: string;
+  account_name: string;
 }

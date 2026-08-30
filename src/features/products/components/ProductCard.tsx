@@ -6,6 +6,8 @@ import {
   formatRelativeTime,
 } from '@/lib/formatters';
 import { Heart, User, Image as ImageIcon } from 'lucide-react';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useFavoriteIds, useToggleFavorite } from '@/features/favorites/hooks';
 
 interface ProductCardProps {
   product: ProductSummaryResponse;
@@ -14,6 +16,32 @@ interface ProductCardProps {
 
 export function ProductCard({ product, staggerIndex = 1 }: ProductCardProps) {
   const listingMeta = getListingTypeMeta(product.listing_type);
+  const { firebaseUser } = useAuth();
+  const { data: favoriteIds } = useFavoriteIds();
+  const toggleFavorite = useToggleFavorite();
+
+  const isFavorited = favoriteIds?.has(product.product_id) ?? false;
+
+  const handleHeartClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!firebaseUser) {
+      const authCard = document.getElementById('auth-card');
+      if (authCard) {
+        authCard.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+      return;
+    }
+
+    toggleFavorite.mutate({
+      productId: product.product_id,
+      isFavorited,
+    });
+  };
 
   return (
     <Link
@@ -47,13 +75,29 @@ export function ProductCard({ product, staggerIndex = 1 }: ProductCardProps) {
           </div>
         )}
 
-        {/* Favorite heart — visual only, no fake persistence */}
-        <div
-          aria-hidden="true"
-          className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-brand-text-muted pointer-events-none"
+        {/* Favorite heart button */}
+        <button
+          type="button"
+          onClick={handleHeartClick}
+          disabled={toggleFavorite.isPending}
+          className={`heart-btn absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/85 backdrop-blur-sm transition-all hover:scale-110 active:scale-90 shadow-xs ${
+            isFavorited
+              ? 'text-brand-price fill-brand-price'
+              : 'text-brand-text-muted hover:text-brand-price'
+          }`}
+          aria-label={
+            isFavorited
+              ? `Bỏ lưu ${product.title}`
+              : `Lưu tin ${product.title}`
+          }
+          title={isFavorited ? 'Bỏ lưu tin' : 'Lưu tin'}
         >
-          <Heart className="h-3.5 w-3.5" />
-        </div>
+          <Heart
+            className={`h-3.5 w-3.5 transition-colors ${
+              isFavorited ? 'fill-current text-brand-price' : ''
+            }`}
+          />
+        </button>
       </div>
 
       {/* Content Info */}

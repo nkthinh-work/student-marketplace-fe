@@ -127,8 +127,9 @@ body {
 .icon-btn-interactive {
   transition: transform 180ms ease, background-color 180ms ease;
 }
-.heart-preview {
-  transition: transform 200ms ease, color 200ms ease;
+.heart-preview,
+.heart-btn {
+  transition: transform 200ms ease, color 200ms ease, background-color 200ms ease;
 }
 
 /* Desktop hover */
@@ -169,11 +170,12 @@ body {
     transform: scale(0.93);
   }
 
-  .heart-preview:hover {
+  .heart-preview:hover,
+  .heart-btn:hover {
     transform: scale(1.15);
-    color: var(--color-brand-price);
   }
-  .heart-preview:active {
+  .heart-preview:active,
+  .heart-btn:active {
     transform: scale(0.9);
   }
 }
@@ -202,9 +204,9 @@ body {
     transform: scale(0.88);
   }
 
-  .heart-preview:active {
+  .heart-preview:active,
+  .heart-btn:active {
     transform: scale(0.85);
-    color: var(--color-brand-price);
   }
 }
 

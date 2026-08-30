@@ -11,6 +11,9 @@ import {
   PlusCircle,
   Package,
   ArrowLeft,
+  Heart,
+  ShoppingBag,
+  Store,
 } from 'lucide-react';
 
 export function Header() {
@@ -260,49 +263,91 @@ export function Header() {
             </div>
 
             {/* Navigation Links */}
-            <div className="flex flex-1 flex-col gap-1 p-4 overflow-y-auto">
-              <Link
-                to="/"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
-              >
-                <span>🏠</span> Trang chủ
-              </Link>
+            <div className="flex flex-1 flex-col gap-4 p-4 overflow-y-auto">
+              {/* MUA HÀNG */}
+              <div className="space-y-1">
+                <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-brand-text-muted">
+                  Mua hàng
+                </span>
+                <Link
+                  to="/"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                >
+                  <span className="text-base">🏠</span> Trang chủ
+                </Link>
+                {firebaseUser && (
+                  <>
+                    <Link
+                      to="/favorites"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                    >
+                      <Heart className="h-4 w-4 text-brand-price" /> Tin đã lưu
+                    </Link>
+                    <Link
+                      to="/orders/buying"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                    >
+                      <ShoppingBag className="h-4 w-4 text-brand-burgundy" /> Đơn mua
+                    </Link>
+                  </>
+                )}
+              </div>
 
+              {/* BÁN HÀNG */}
               {firebaseUser && (
-                <>
+                <div className="space-y-1 pt-2 border-t border-brand-border/60">
+                  <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-brand-text-muted">
+                    Bán hàng
+                  </span>
                   <Link
                     to="/products/new"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-brand-burgundy no-underline transition-colors hover:bg-brand-soft-pink"
+                    className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-burgundy no-underline transition-colors hover:bg-brand-soft-pink bg-brand-soft-pink/40"
                   >
                     <PlusCircle className="h-4 w-4" /> Đăng tin bán
                   </Link>
-
                   <Link
                     to="/my-products"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                    className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
                   >
-                    <Package className="h-4 w-4" /> Quản lý tin đăng
+                    <Package className="h-4 w-4 text-brand-text-secondary" /> Quản lý tin đăng
                   </Link>
+                  <Link
+                    to="/orders/selling"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                  >
+                    <Store className="h-4 w-4 text-brand-text-secondary" /> Đơn bán
+                  </Link>
+                </div>
+              )}
 
+              {/* TÀI KHOẢN */}
+              {firebaseUser && (
+                <div className="space-y-1 pt-2 border-t border-brand-border/60">
+                  <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-brand-text-muted">
+                    Tài khoản
+                  </span>
                   <Link
                     to="/profile"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                    className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
                   >
-                    <span>👤</span> Hồ sơ cá nhân
+                    <User className="h-4 w-4 text-brand-text-secondary" /> Hồ sơ cá nhân
                   </Link>
-                </>
+                </div>
               )}
 
               {firebaseUser && (
-                <div className="mt-auto pt-4 border-t border-brand-border/60">
+                <div className="mt-auto pt-3 border-t border-brand-border/60">
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-bold text-brand-price transition-colors hover:bg-red-50"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left text-xs sm:text-sm font-bold text-brand-price transition-colors hover:bg-red-50"
                   >
                     <LogOut className="h-4 w-4" />
                     Đăng xuất

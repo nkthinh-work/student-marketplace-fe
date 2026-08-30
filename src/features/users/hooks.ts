@@ -1,9 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchCurrentUser, updateCurrentUser } from './api';
-import type { UserUpdate } from './types';
+import {
+  fetchCurrentUser,
+  fetchMyBankAccount,
+  fetchSupportedBanks,
+  updateCurrentUser,
+  updateMyBankAccount,
+  deleteMyBankAccount,
+} from './api';
+import type { BankAccountInput, UserUpdate } from './types';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
-const CURRENT_USER_KEY = ['currentUser'] as const;
+export const CURRENT_USER_KEY = ['currentUser'] as const;
+export const MY_BANK_ACCOUNT_KEY = ['myBankAccount'] as const;
+export const SUPPORTED_BANKS_KEY = ['supportedBanks'] as const;
 
 // Hook lấy thông tin user hiện tại từ backend (chỉ fetch khi đã auth qua Firebase)
 export function useCurrentUser() {
@@ -34,6 +43,51 @@ export function useUpdateProfile() {
     mutationFn: (data: UserUpdate) => updateCurrentUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
+    },
+  });
+}
+
+// Hook lấy danh sách ngân hàng Việt Nam hỗ trợ
+export function useSupportedBanks() {
+  return useQuery({
+    queryKey: SUPPORTED_BANKS_KEY,
+    queryFn: fetchSupportedBanks,
+    staleTime: 60 * 60 * 1000, // 1 hour cache
+  });
+}
+
+// Hook lấy tài khoản nhận tiền của người dùng hiện tại
+export function useMyBankAccount() {
+  const { firebaseUser } = useAuth();
+
+  return useQuery({
+    queryKey: MY_BANK_ACCOUNT_KEY,
+    queryFn: fetchMyBankAccount,
+    enabled: !!firebaseUser,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Mutation cập nhật tài khoản nhận tiền
+export function useUpdateMyBankAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BankAccountInput) => updateMyBankAccount(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MY_BANK_ACCOUNT_KEY });
+    },
+  });
+}
+
+// Mutation xóa tài khoản nhận tiền
+export function useDeleteMyBankAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => deleteMyBankAccount(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MY_BANK_ACCOUNT_KEY });
     },
   });
 }

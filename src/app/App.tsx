@@ -9,6 +9,10 @@ import { ProductDetailPage } from '@/features/products/pages/ProductDetailPage';
 import { CreateProductPage } from '@/features/products/pages/CreateProductPage';
 import { EditProductPage } from '@/features/products/pages/EditProductPage';
 import { MyProductsPage } from '@/features/products/pages/MyProductsPage';
+import { FavoritesPage } from '@/features/favorites/pages/FavoritesPage';
+import { BuyingOrdersPage } from '@/features/orders/pages/BuyingOrdersPage';
+import { SellingOrdersPage } from '@/features/orders/pages/SellingOrdersPage';
+import { OrderDetailPage } from '@/features/orders/pages/OrderDetailPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,12 +68,52 @@ export function App() {
                   }
                 />
 
+                {/* Favorites Page (Protected) */}
+                <Route
+                  path="/favorites"
+                  element={
+                    <ProtectedRoute>
+                      <FavoritesPage />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Seller My Products (Protected) */}
                 <Route
                   path="/my-products"
                   element={
                     <ProtectedRoute>
                       <MyProductsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Buying Orders (Protected) */}
+                <Route
+                  path="/orders/buying"
+                  element={
+                    <ProtectedRoute>
+                      <BuyingOrdersPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Selling Orders (Protected) */}
+                <Route
+                  path="/orders/selling"
+                  element={
+                    <ProtectedRoute>
+                      <SellingOrdersPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Order Detail (Protected) */}
+                <Route
+                  path="/orders/:orderId"
+                  element={
+                    <ProtectedRoute>
+                      <OrderDetailPage />
                     </ProtectedRoute>
                   }
                 />

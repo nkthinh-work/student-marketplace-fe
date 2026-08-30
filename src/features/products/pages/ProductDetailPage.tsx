@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProduct } from '../hooks';
 import { useCurrentUser } from '@/features/users/hooks';
@@ -8,6 +9,9 @@ import {
   formatDate,
   formatRelativeTime,
 } from '@/lib/formatters';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useFavoriteIds, useToggleFavorite } from '@/features/favorites/hooks';
+import { DirectPurchaseModal } from '@/features/orders/components/DirectPurchaseModal';
 import {
   ArrowLeft,
   User,
@@ -19,6 +23,8 @@ import {
   ShieldCheck,
   Edit,
   AlertCircle,
+  Heart,
+  ShoppingBag,
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
@@ -27,8 +33,31 @@ export function ProductDetailPage() {
   const navigate = useNavigate();
   const numericId = productId ? parseInt(productId, 10) : undefined;
 
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+
   const { data: product, isLoading, isError, error } = useProduct(numericId);
   const { data: currentUser } = useCurrentUser();
+  const { firebaseUser } = useAuth();
+  const { data: favoriteIds } = useFavoriteIds();
+  const toggleFavorite = useToggleFavorite();
+
+  const isFavorited = product
+    ? (favoriteIds?.has(product.product_id) ?? false)
+    : false;
+
+  const handleFavoriteToggle = () => {
+    if (!product) return;
+
+    if (!firebaseUser) {
+      navigate('/?auth=login');
+      return;
+    }
+
+    toggleFavorite.mutate({
+      productId: product.product_id,
+      isFavorited,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -67,7 +96,7 @@ export function ProductDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6 space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -76,14 +105,36 @@ export function ProductDetailPage() {
           <ArrowLeft className="h-4 w-4" /> Quay lại
         </button>
 
-        {isOwner && (
-          <Link
-            to={`/products/${product.product_id}/edit`}
-            className="btn-interactive flex items-center gap-1.5 rounded-xl bg-brand-burgundy px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-brand-burgundy-dark no-underline"
+        <div className="flex items-center gap-2">
+          {/* Favorite button */}
+          <button
+            type="button"
+            onClick={handleFavoriteToggle}
+            disabled={toggleFavorite.isPending}
+            className={`btn-interactive flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition-colors ${
+              isFavorited
+                ? 'bg-red-50 text-brand-price border-brand-price/30 shadow-xs'
+                : 'bg-white text-brand-text-secondary border-brand-border hover:bg-brand-soft-pink'
+            }`}
+            aria-label={isFavorited ? 'Bỏ lưu tin' : 'Lưu tin'}
           >
-            <Edit className="h-3.5 w-3.5" /> Quản lý tin
-          </Link>
-        )}
+            <Heart
+              className={`h-4 w-4 transition-colors ${
+                isFavorited ? 'fill-current text-brand-price' : ''
+              }`}
+            />
+            <span>{isFavorited ? 'Đã lưu' : 'Lưu tin'}</span>
+          </button>
+
+          {isOwner && (
+            <Link
+              to={`/products/${product.product_id}/edit`}
+              className="btn-interactive flex items-center gap-1.5 rounded-xl bg-brand-burgundy px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-brand-burgundy-dark no-underline"
+            >
+              <Edit className="h-3.5 w-3.5" /> Quản lý tin
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="space-y-5">
@@ -131,6 +182,37 @@ export function ProductDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Action button for purchasing */}
+          {!isOwner && product.status === 'AVAILABLE' && product.listing_type === 'FIXED_PRICE' && (
+            <div className="pt-1">
+              {product.available_stock > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!firebaseUser) {
+                      navigate('/?auth=login');
+                      return;
+                    }
+                    setIsPurchaseModalOpen(true);
+                  }}
+                  className="w-full py-3 px-6 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.99] text-white text-sm font-bold shadow-lg shadow-rose-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  Mua ngay
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-3 px-6 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  Tạm hết hàng (đang trong giao dịch)
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-4 text-xs text-brand-text-muted pt-1">
             <span className="flex items-center gap-1">
@@ -195,6 +277,13 @@ export function ProductDetailPage() {
           </p>
         </div>
       </div>
+
+      {/* Direct Purchase Modal */}
+      <DirectPurchaseModal
+        product={product}
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+      />
     </div>
   );
 }
