@@ -57,6 +57,7 @@ export const EditTransactionTermsModal: React.FC<
       meetup_place: order.meetup_place || "",
       meetup_time: order.meetup_time ? order.meetup_time.slice(0, 16) : "",
       shipping_address: order.shipping_address || "",
+      shipping_expected_at: order.shipping_expected_at ? order.shipping_expected_at.slice(0, 16) : "",
       payment_note: order.payment_note || "",
     },
   });
@@ -92,12 +93,16 @@ export const EditTransactionTermsModal: React.FC<
             : undefined,
         meetup_time:
           values.fulfillment_method === "MEETUP"
-            ? values.meetup_time || undefined
-            : undefined,
+            ? values.meetup_time || null
+            : null,
         shipping_address:
           values.fulfillment_method === "SHIPPING"
             ? values.shipping_address?.trim() || undefined
             : undefined,
+        shipping_expected_at:
+          values.fulfillment_method === "SHIPPING"
+            ? values.shipping_expected_at || null
+            : null,
         payment_note: values.payment_note?.trim() || undefined,
       };
 
@@ -216,21 +221,34 @@ export const EditTransactionTermsModal: React.FC<
               </div>
             </div>
           ) : (
-            <div>
-              <label className="block text-xs font-bold text-brand-text mb-1">
-                Địa chỉ giao hàng <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                rows={2}
-                {...register("shipping_address")}
-                placeholder="VD: Phòng 402 KTX PTIT, Nguyễn Trãi, Hà Đông..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy focus:outline-none resize-none"
-              />
-              {errors.shipping_address && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.shipping_address.message}
-                </p>
-              )}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-brand-text mb-1">
+                  Địa chỉ giao hàng <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  {...register("shipping_address")}
+                  placeholder="VD: Phòng 402 KTX PTIT, Nguyễn Trãi, Hà Đông..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy focus:outline-none resize-none"
+                />
+                {errors.shipping_address && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.shipping_address.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-brand-text mb-1">
+                  Thời gian giao dự kiến (không bắt buộc)
+                </label>
+                <input
+                  type="datetime-local"
+                  {...register("shipping_expected_at")}
+                  className="w-full px-3.5 py-2 rounded-xl border border-brand-border bg-white text-brand-text text-xs focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy focus:outline-none"
+                />
+              </div>
             </div>
           )}
 

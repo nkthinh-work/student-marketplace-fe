@@ -39,7 +39,7 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
       quantity: 1,
       payment_method: isFree ? undefined : "CASH_ON_MEETUP",
       fulfillment_method: "MEETUP",
-      meetup_place: currentUser?.default_meetup_area || "Cổng trường PTIT Hà Đông",
+      meetup_place: "",
       contact_name: currentUser?.full_name || "",
       contact_phone: currentUser?.phone || "",
       buyer_note: "",

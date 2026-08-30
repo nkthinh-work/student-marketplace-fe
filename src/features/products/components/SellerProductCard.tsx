@@ -14,6 +14,7 @@ import {
   EyeOff,
   Image as ImageIcon,
   Package,
+  Gavel,
 } from 'lucide-react';
 
 interface SellerProductCardProps {
@@ -27,14 +28,31 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
   const statusMeta = getProductStatusMeta(product.status);
   const listingMeta = getListingTypeMeta(product.listing_type);
 
+  const isWaitingWinnerCheckout =
+    product.listing_type === 'AUCTION' &&
+    product.status === 'AVAILABLE' &&
+    product.reserved_stock > 0;
+
+  const displayStatusMeta = isWaitingWinnerCheckout
+    ? {
+        label: 'Chờ người thắng đặt mua',
+        bgClass: 'bg-amber-50 border-amber-300',
+        textClass: 'text-amber-800 font-bold',
+      }
+    : statusMeta;
+
   const handleToggleStatus = () => {
-    // Không thay đổi trạng thái khi đã bán hết
-    if (product.status === 'SOLD_OUT') return;
+    // Không thay đổi trạng thái khi đã bán hết hoặc đang giữ hàng đấu giá
+    if (product.status === 'SOLD_OUT' || isWaitingWinnerCheckout) return;
     const newStatus = product.status === 'AVAILABLE' ? 'HIDDEN' : 'AVAILABLE';
     updateMutation.mutate({ status: newStatus });
   };
 
   const handleDelete = () => {
+    if (isWaitingWinnerCheckout) {
+      alert("Không thể xóa tin khi người thắng đấu giá vẫn còn thời hạn đặt mua.");
+      return;
+    }
     if (
       window.confirm(
         `Bạn có chắc chắn muốn xóa tin "${product.title}"? Thao tác này không thể hoàn tác.`,
@@ -60,9 +78,9 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
         )}
 
         <span
-          className={`absolute top-2 left-2 rounded-md px-2 py-0.5 text-[10px] font-bold border ${statusMeta.bgClass} ${statusMeta.textClass} backdrop-blur-xs shadow-xs`}
+          className={`absolute top-2 left-2 rounded-md px-2 py-0.5 text-[10px] font-bold border ${displayStatusMeta.bgClass} ${displayStatusMeta.textClass} backdrop-blur-xs shadow-xs`}
         >
-          {statusMeta.label}
+          {displayStatusMeta.label}
         </span>
       </div>
 
@@ -136,6 +154,15 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
           )}
 
           <div className="flex items-center gap-2 ml-auto">
+            {listingMeta.isAuction && (
+              <Link
+                to={`/products/${product.product_id}`}
+                className="btn-interactive flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600 text-white shadow-xs hover:bg-purple-700 no-underline"
+              >
+                <Gavel className="h-3.5 w-3.5" /> Xem đấu giá
+              </Link>
+            )}
+
             <Link
               to={`/products/${product.product_id}/edit`}
               className="btn-interactive flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-burgundy text-white shadow-xs hover:bg-brand-burgundy-dark no-underline"
@@ -146,9 +173,17 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
             <button
               type="button"
               onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-              className="btn-interactive flex items-center justify-center p-2 rounded-xl text-brand-price bg-red-50 hover:bg-red-100 border border-red-200"
-              title="Xóa tin đăng"
+              disabled={deleteMutation.isPending || isWaitingWinnerCheckout}
+              className={`btn-interactive flex items-center justify-center p-2 rounded-xl border ${
+                isWaitingWinnerCheckout
+                  ? 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed opacity-60'
+                  : 'text-brand-price bg-red-50 hover:bg-red-100 border-red-200'
+              }`}
+              title={
+                isWaitingWinnerCheckout
+                  ? 'Không thể xóa khi đang chờ người thắng đặt mua.'
+                  : 'Xóa tin đăng'
+              }
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

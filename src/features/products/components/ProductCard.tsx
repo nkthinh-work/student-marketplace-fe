@@ -80,11 +80,10 @@ export function ProductCard({ product, staggerIndex = 1 }: ProductCardProps) {
           type="button"
           onClick={handleHeartClick}
           disabled={toggleFavorite.isPending}
-          className={`heart-btn absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/85 backdrop-blur-sm transition-all hover:scale-110 active:scale-90 shadow-xs ${
-            isFavorited
+          className={`heart-btn absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/85 backdrop-blur-sm transition-all hover:scale-110 active:scale-90 shadow-xs ${isFavorited
               ? 'text-brand-price fill-brand-price'
               : 'text-brand-text-muted hover:text-brand-price'
-          }`}
+            }`}
           aria-label={
             isFavorited
               ? `Bỏ lưu ${product.title}`
@@ -93,9 +92,8 @@ export function ProductCard({ product, staggerIndex = 1 }: ProductCardProps) {
           title={isFavorited ? 'Bỏ lưu tin' : 'Lưu tin'}
         >
           <Heart
-            className={`h-3.5 w-3.5 transition-colors ${
-              isFavorited ? 'fill-current text-brand-price' : ''
-            }`}
+            className={`h-3.5 w-3.5 transition-colors ${isFavorited ? 'fill-current text-brand-price' : ''
+              }`}
           />
         </button>
       </div>

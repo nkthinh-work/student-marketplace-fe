@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { HomePage } from '@/features/home/pages/HomePage';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
+import { PublicProfilePage } from '@/features/users/pages/PublicProfilePage';
 import { ProductDetailPage } from '@/features/products/pages/ProductDetailPage';
 import { CreateProductPage } from '@/features/products/pages/CreateProductPage';
 import { EditProductPage } from '@/features/products/pages/EditProductPage';
@@ -13,6 +14,7 @@ import { FavoritesPage } from '@/features/favorites/pages/FavoritesPage';
 import { BuyingOrdersPage } from '@/features/orders/pages/BuyingOrdersPage';
 import { SellingOrdersPage } from '@/features/orders/pages/SellingOrdersPage';
 import { OrderDetailPage } from '@/features/orders/pages/OrderDetailPage';
+import { usePrivateRealtime } from '@/features/orders/usePrivateRealtime';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,10 +25,16 @@ const queryClient = new QueryClient({
   },
 });
 
+function PrivateRealtimeBridge() {
+  usePrivateRealtime();
+  return null;
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <PrivateRealtimeBridge />
         <BrowserRouter>
           <div className="min-h-screen bg-brand-cream text-brand-text flex flex-col">
             <Header />
@@ -44,6 +52,9 @@ export function App() {
                     </ProtectedRoute>
                   }
                 />
+
+                {/* Public User Profile (Public) */}
+                <Route path="/users/:userId" element={<PublicProfilePage />} />
 
                 {/* Product Detail (Public / Optional Auth) */}
                 <Route path="/products/:productId" element={<ProductDetailPage />} />

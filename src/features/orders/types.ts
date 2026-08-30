@@ -77,6 +77,7 @@ export interface OrderDetailResponse {
   meetup_place: string | null;
   meetup_time: string | null;
   shipping_address: string | null;
+  shipping_expected_at: string | null;
   contact_name: string;
   contact_phone: string;
   buyer_note: string | null;
@@ -107,6 +108,7 @@ export interface CreateOrderRequest {
   meetup_place?: string;
   meetup_time?: string;
   shipping_address?: string;
+  shipping_expected_at?: string;
   contact_name: string;
   contact_phone: string;
   buyer_note?: string;
@@ -124,7 +126,8 @@ export interface UpdateOrderTransactionTermsRequest {
   fulfillment_method?: FulfillmentMethod;
   payment_method?: PaymentMethod;
   meetup_place?: string;
-  meetup_time?: string;
+  meetup_time?: string | null;
   shipping_address?: string;
+  shipping_expected_at?: string | null;
   payment_note?: string;
 }

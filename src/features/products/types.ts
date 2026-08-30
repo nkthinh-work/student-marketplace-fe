@@ -11,6 +11,7 @@ export interface SellerSummary {
 }
 
 export interface SellerDetailSummary extends SellerSummary {
+  delivery_area?: string | null;
   default_meetup_area?: string | null;
   created_at: string;
 }
@@ -93,6 +94,7 @@ export interface SellerProductListResponse {
 
 export interface ProductFilterParams {
   category_id?: number;
+  seller_id?: number;
   listing_type?: ListingType;
   min_price?: number;
   max_price?: number;

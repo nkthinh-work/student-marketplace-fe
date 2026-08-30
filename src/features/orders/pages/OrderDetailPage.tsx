@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   AlertCircle,
   ArrowLeft,
   Check,
   CheckCircle,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Copy,
   CreditCard,
@@ -39,6 +40,22 @@ import { CancelOrderModal } from "../components/CancelOrderModal";
 import { EditTransactionTermsModal } from "../components/EditTransactionTermsModal";
 import { useCurrentUser } from "@/features/users/hooks";
 import { getFulfillmentMethodLabel } from "@/lib/orderDisplay";
+
+function formatFulfillmentTime(isoString: string | null | undefined): string | null {
+  if (!isoString) return null;
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return null;
+    const hours = String(d.getHours()).padStart(2, "0");
+    const mins = String(d.getMinutes()).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${hours}:${mins}, ${day}/${month}/${year}`;
+  } catch {
+    return null;
+  }
+}
 
 export const OrderDetailPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -249,17 +266,6 @@ export const OrderDetailPage: React.FC = () => {
 
         {/* Action Buttons Bar */}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {/* Seller Edit Transaction Terms */}
-          {canSellerEditTerms && (
-            <button
-              onClick={() => setIsEditTermsModalOpen(true)}
-              className="btn-interactive px-3.5 py-2 rounded-2xl border border-brand-border bg-white text-brand-text hover:bg-brand-soft-pink text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            >
-              <Edit3 className="w-4 h-4 text-brand-burgundy" />
-              Điều chỉnh giao nhận & TT
-            </button>
-          )}
-
           {/* Seller Confirm Order */}
           {canSellerConfirmOrder && (
             <button
@@ -268,17 +274,6 @@ export const OrderDetailPage: React.FC = () => {
             >
               <CheckCircle2 className="w-4 h-4" />
               Xác nhận đơn hàng
-            </button>
-          )}
-
-          {/* Buyer Upload Receipt */}
-          {canBuyerUploadReceipt && (
-            <button
-              onClick={() => setIsReceiptModalOpen(true)}
-              className="btn-interactive px-4 py-2 rounded-2xl bg-brand-burgundy hover:bg-brand-burgundy-dark text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <UploadCloud className="w-4 h-4" />
-              Tải lên biên nhận thanh toán
             </button>
           )}
 
@@ -396,16 +391,20 @@ export const OrderDetailPage: React.FC = () => {
           <h4 className="text-xs font-bold text-brand-text-muted uppercase tracking-wider">
             {isBuyer ? "Thông tin người bán" : "Thông tin người mua"}
           </h4>
-          <div className="flex items-center gap-3">
+          <Link
+            to={`/users/${isBuyer ? order.seller_id : order.buyer_id}`}
+            className="group flex items-center gap-3 p-2 -m-2 rounded-2xl hover:bg-brand-soft-pink/50 transition-colors cursor-pointer"
+            aria-label={`Xem hồ sơ của ${isBuyer ? order.seller_name : order.buyer_name}`}
+          >
             {isBuyer ? (
               order.seller_avatar_url ? (
                 <img
                   src={order.seller_avatar_url}
                   alt={order.seller_name}
-                  className="w-12 h-12 rounded-full object-cover border border-brand-border"
+                  className="w-12 h-12 rounded-full object-cover border border-brand-border group-hover:border-brand-burgundy/40 transition-colors shrink-0"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-brand-soft-pink flex items-center justify-center text-brand-burgundy">
+                <div className="w-12 h-12 rounded-full bg-brand-soft-pink flex items-center justify-center text-brand-burgundy group-hover:bg-brand-burgundy/10 transition-colors shrink-0">
                   <User className="w-6 h-6" />
                 </div>
               )
@@ -413,27 +412,29 @@ export const OrderDetailPage: React.FC = () => {
               <img
                 src={order.buyer_avatar_url}
                 alt={order.buyer_name}
-                className="w-12 h-12 rounded-full object-cover border border-brand-border"
+                className="w-12 h-12 rounded-full object-cover border border-brand-border group-hover:border-brand-burgundy/40 transition-colors shrink-0"
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-brand-soft-pink flex items-center justify-center text-brand-burgundy">
+              <div className="w-12 h-12 rounded-full bg-brand-soft-pink flex items-center justify-center text-brand-burgundy group-hover:bg-brand-burgundy/10 transition-colors shrink-0">
                 <User className="w-6 h-6" />
               </div>
             )}
 
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-brand-text text-sm sm:text-base truncate">
+              <p className="font-bold text-brand-text text-sm sm:text-base truncate group-hover:text-brand-burgundy transition-colors">
                 {isBuyer ? order.seller_name : order.buyer_name}
               </p>
               <p className="text-xs text-brand-text-muted">
                 {isBuyer ? "Người bán sản phẩm" : "Người đặt mua"}
               </p>
             </div>
-          </div>
+
+            <ChevronRight className="w-4 h-4 text-brand-text-muted/60 group-hover:text-brand-burgundy group-hover:translate-x-0.5 transition-all shrink-0" />
+          </Link>
         </div>
 
         {/* Fulfillment Info */}
-        <div className="bg-brand-warm-white rounded-3xl p-5 shadow-card border border-brand-border space-y-2.5">
+        <div className="bg-brand-warm-white rounded-3xl p-5 shadow-card border border-brand-border space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold text-brand-text-muted uppercase tracking-wider">
               Giao nhận
@@ -450,46 +451,62 @@ export const OrderDetailPage: React.FC = () => {
             )}
           </div>
 
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between text-brand-text-secondary">
-              <span className="text-brand-text-muted">Người nhận:</span>
-              <span className="font-semibold text-brand-text">
-                {order.contact_name} ({order.contact_phone})
-              </span>
+          <div className="space-y-2.5 text-xs">
+            <div>
+              <span className="text-brand-text-muted block text-[11px] mb-0.5">Người nhận</span>
+              <p className="font-semibold text-brand-text text-xs sm:text-sm">{order.contact_name}</p>
+              <p className="text-brand-text-secondary text-xs">{order.contact_phone}</p>
             </div>
 
             <div>
-              <span className="text-brand-text-muted block mb-0.5">Hình thức nhận hàng:</span>
-              <div className="flex items-center gap-1.5 font-bold text-brand-text">
+              <span className="text-brand-text-muted block text-[11px] mb-0.5">Hình thức nhận hàng</span>
+              <div className="flex items-center gap-1.5 font-bold text-brand-text text-xs sm:text-sm">
                 {order.fulfillment_method === "MEETUP" ? (
                   <>
-                    <MapPin className="w-4 h-4 text-brand-price" />
+                    <MapPin className="w-4 h-4 text-brand-price shrink-0" />
                     <span>{getFulfillmentMethodLabel("MEETUP")}</span>
                   </>
                 ) : (
                   <>
-                    <Truck className="w-4 h-4 text-blue-600" />
+                    <Truck className="w-4 h-4 text-blue-600 shrink-0" />
                     <span>{getFulfillmentMethodLabel("SHIPPING")}</span>
                   </>
                 )}
               </div>
             </div>
 
-            {order.meetup_place && (
+            {order.fulfillment_method === "MEETUP" && order.meetup_place && (
               <div>
-                <span className="text-brand-text-muted block mb-0.5">Địa điểm hẹn:</span>
-                <p className="font-medium text-brand-text">
+                <span className="text-brand-text-muted block text-[11px] mb-0.5">Địa điểm hẹn</span>
+                <p className="font-medium text-brand-text text-xs sm:text-sm leading-relaxed">
                   {order.meetup_place}
-                  {order.meetup_time && ` (${order.meetup_time})`}
                 </p>
               </div>
             )}
 
-            {order.shipping_address && (
+            {order.fulfillment_method === "MEETUP" && formatFulfillmentTime(order.meetup_time) && (
               <div>
-                <span className="text-brand-text-muted block mb-0.5">Địa chỉ nhận hàng:</span>
-                <p className="font-medium text-brand-text">
+                <span className="text-brand-text-muted block text-[11px] mb-0.5">Thời gian hẹn</span>
+                <p className="font-medium text-brand-text text-xs sm:text-sm">
+                  {formatFulfillmentTime(order.meetup_time)}
+                </p>
+              </div>
+            )}
+
+            {order.fulfillment_method === "SHIPPING" && order.shipping_address && (
+              <div>
+                <span className="text-brand-text-muted block text-[11px] mb-0.5">Địa chỉ nhận hàng</span>
+                <p className="font-medium text-brand-text text-xs sm:text-sm leading-relaxed">
                   {order.shipping_address}
+                </p>
+              </div>
+            )}
+
+            {order.fulfillment_method === "SHIPPING" && formatFulfillmentTime(order.shipping_expected_at) && (
+              <div>
+                <span className="text-brand-text-muted block text-[11px] mb-0.5">Thời gian giao dự kiến</span>
+                <p className="font-medium text-brand-text text-xs sm:text-sm">
+                  {formatFulfillmentTime(order.shipping_expected_at)}
                 </p>
               </div>
             )}
@@ -607,8 +624,8 @@ export const OrderDetailPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Right: VietQR Code Box */}
-                  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white border border-brand-border">
+                  {/* Right: VietQR Code Box & Receipt Upload CTA */}
+                  <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white border border-brand-border space-y-2">
                     <div
                       className="relative group cursor-pointer"
                       onClick={() => setViewQrModal(true)}
@@ -626,11 +643,23 @@ export const OrderDetailPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setViewQrModal(true)}
-                      className="text-[11px] font-bold text-brand-burgundy mt-2 hover:underline inline-flex items-center gap-1"
+                      className="text-[11px] font-bold text-brand-burgundy hover:underline inline-flex items-center gap-1"
                     >
                       <QrCode className="w-3 h-3" />
                       <span>Xem mã VietQR lớn</span>
                     </button>
+
+                    {/* Buyer Upload Receipt Button directly below VietQR */}
+                    {canBuyerUploadReceipt && (
+                      <button
+                        type="button"
+                        onClick={() => setIsReceiptModalOpen(true)}
+                        className="btn-interactive w-full mt-1.5 px-3 py-2 rounded-xl bg-brand-burgundy hover:bg-brand-burgundy-dark text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <UploadCloud className="w-4 h-4" />
+                        <span>{order.payment_receipt_url ? "Thay biên nhận thanh toán" : "Tải lên biên nhận thanh toán"}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (

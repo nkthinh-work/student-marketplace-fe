@@ -2,6 +2,8 @@ import { apiClient } from '@/services/apiClient';
 import type {
   BankAccount,
   BankAccountInput,
+  PublicUserProfileResponse,
+  SoldProductListResponse,
   SupportedBank,
   UserResponse,
   UserUpdate,
@@ -9,6 +11,24 @@ import type {
 
 export async function fetchCurrentUser(): Promise<UserResponse> {
   const { data } = await apiClient.get<UserResponse>('/api/v1/users/me');
+  return data;
+}
+
+export async function fetchPublicUserProfile(
+  userId: number,
+): Promise<PublicUserProfileResponse> {
+  const { data } = await apiClient.get<PublicUserProfileResponse>(
+    `/api/v1/users/${userId}`,
+  );
+  return data;
+}
+
+export async function fetchUserSoldProducts(
+  userId: number,
+): Promise<SoldProductListResponse> {
+  const { data } = await apiClient.get<SoldProductListResponse>(
+    `/api/v1/users/${userId}/sold-products`,
+  );
   return data;
 }
 

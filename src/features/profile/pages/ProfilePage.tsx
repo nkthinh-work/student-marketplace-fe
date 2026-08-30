@@ -13,9 +13,12 @@ import {
 import {
   userUpdateSchema,
   bankAccountSchema,
+  validateSocialUrl,
   type UserUpdateForm,
   type BankAccountFormValues,
 } from '@/features/users/schemas';
+import type { SocialPlatform } from '@/features/users/types';
+import { SOCIAL_OPTIONS, formatSocialDisplay } from '@/features/users/socialUtils';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
   User,
@@ -30,8 +33,10 @@ import {
   LogOut,
   Link2,
   Facebook,
-  Github,
+  Instagram,
   Linkedin,
+  Share2,
+  MessageCircle,
   Globe2,
   X,
   Landmark,
@@ -44,39 +49,30 @@ import {
   Info,
 } from 'lucide-react';
 
-type SocialLinkType = 'facebook' | 'github' | 'linkedin' | 'website';
-
-interface SocialLink {
+interface LocalSocialLink {
   id: string;
-  type: SocialLinkType;
-  label: string;
+  platform: SocialPlatform;
   url: string;
 }
 
-const SOCIAL_OPTIONS: Array<{
-  type: SocialLinkType;
-  label: string;
-}> = [
-  { type: 'facebook', label: 'Facebook' },
-  { type: 'github', label: 'GitHub' },
-  { type: 'linkedin', label: 'LinkedIn' },
-  { type: 'website', label: 'Website' },
-];
-
 function SocialIcon({
-  type,
+  platform,
   className = 'h-4 w-4',
 }: {
-  type: SocialLinkType;
+  platform: SocialPlatform;
   className?: string;
 }) {
-  switch (type) {
-    case 'facebook':
+  switch (platform) {
+    case 'FACEBOOK':
       return <Facebook className={className} />;
-    case 'github':
-      return <Github className={className} />;
-    case 'linkedin':
+    case 'INSTAGRAM':
+      return <Instagram className={className} />;
+    case 'LINKEDIN':
       return <Linkedin className={className} />;
+    case 'TIKTOK':
+      return <Share2 className={className} />;
+    case 'ZALO':
+      return <MessageCircle className={className} />;
     default:
       return <Globe2 className={className} />;
   }
@@ -102,10 +98,12 @@ export function ProfilePage() {
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
-  // UI foundation cho social links (chưa có API backend)
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  const [socialType, setSocialType] = useState<SocialLinkType>('facebook');
-  const [socialUrl, setSocialUrl] = useState('');
+  // Social Links state
+  const [socialLinks, setSocialLinks] = useState<LocalSocialLink[]>([]);
+  const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>('FACEBOOK');
+  const [socialUrlInput, setSocialUrlInput] = useState('');
+  const [socialInputError, setSocialInputError] = useState<string | null>(null);
+  const [socialDirty, setSocialDirty] = useState(false);
 
   const {
     register,
@@ -117,8 +115,9 @@ export function ProfilePage() {
     defaultValues: {
       full_name: '',
       phone: '',
+      show_phone_publicly: false,
       bio: '',
-      default_meetup_area: '',
+      delivery_area: '',
     },
   });
 
@@ -143,9 +142,23 @@ export function ProfilePage() {
     reset({
       full_name: user.full_name || '',
       phone: user.phone || '',
+      show_phone_publicly: user.show_phone_publicly ?? false,
       bio: user.bio || '',
-      default_meetup_area: user.default_meetup_area || '',
+      delivery_area: user.delivery_area || '',
     });
+
+    if (user.social_links && user.social_links.length > 0) {
+      setSocialLinks(
+        user.social_links.map((s, idx) => ({
+          id: `${s.platform}-${idx}-${Date.now()}`,
+          platform: s.platform,
+          url: s.url,
+        })),
+      );
+    } else {
+      setSocialLinks([]);
+    }
+    setSocialDirty(false);
   }, [user, reset]);
 
   const handleOpenBankModal = () => {
@@ -200,7 +213,15 @@ export function ProfilePage() {
   const onSubmit = async (values: UserUpdateForm) => {
     setSuccessMessage(null);
     try {
-      await updateProfileMutation.mutateAsync(values);
+      const payload = {
+        ...values,
+        social_links: socialLinks.map((s) => ({
+          platform: s.platform,
+          url: s.url,
+        })),
+      };
+      await updateProfileMutation.mutateAsync(payload);
+      setSocialDirty(false);
       setSuccessMessage('Cập nhật hồ sơ thành công!');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (error) {
@@ -209,25 +230,30 @@ export function ProfilePage() {
   };
 
   const handleAddSocialLink = () => {
-    const trimmed = socialUrl.trim();
+    const trimmed = socialUrlInput.trim();
     if (!trimmed) return;
 
-    const matchedOption = SOCIAL_OPTIONS.find((item) => item.type === socialType);
-    const label = matchedOption ? matchedOption.label : 'Website';
+    const validation = validateSocialUrl(selectedPlatform, trimmed);
+    if (!validation.valid) {
+      setSocialInputError(validation.error || 'Liên kết không hợp lệ.');
+      return;
+    }
 
-    const newLink: SocialLink = {
-      id: `${socialType}-${Date.now()}`,
-      type: socialType,
-      label,
+    setSocialInputError(null);
+    const newLink: LocalSocialLink = {
+      id: `${selectedPlatform}-${Date.now()}`,
+      platform: selectedPlatform,
       url: trimmed,
     };
 
     setSocialLinks((prev) => [...prev, newLink]);
-    setSocialUrl('');
+    setSocialUrlInput('');
+    setSocialDirty(true);
   };
 
   const handleRemoveSocialLink = (id: string) => {
     setSocialLinks((prev) => prev.filter((item) => item.id !== id));
+    setSocialDirty(true);
   };
 
   const handleSignOut = async () => {
@@ -502,23 +528,35 @@ export function ProfilePage() {
             {errors.phone && (
               <p className="mt-1.5 text-xs text-red-500">{errors.phone.message}</p>
             )}
+
+            <label className="mt-2.5 flex items-center gap-2 text-xs text-brand-text cursor-pointer select-none">
+              <input
+                type="checkbox"
+                {...register('show_phone_publicly')}
+                className="h-4 w-4 rounded border-brand-border text-brand-burgundy focus:ring-brand-burgundy"
+              />
+              <span>Hiển thị số điện thoại trên hồ sơ công khai</span>
+            </label>
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-brand-text-muted">
-              Khu vực hẹn gặp mặc định
+              Phạm vi giao / nhận hàng
             </label>
             <div className="relative">
               <input
                 type="text"
-                {...register('default_meetup_area')}
-                placeholder="VD: Canteen A2, Sân bóng PTIT, KTX..."
+                {...register('delivery_area')}
+                placeholder="VD: Hà Đông, Thanh Xuân, Cầu Giấy..."
                 className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-burgundy"
               />
               <MapPin className="absolute right-3.5 top-3.5 h-4 w-4 text-brand-text-muted" />
             </div>
-            {errors.default_meetup_area && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.default_meetup_area.message}</p>
+            <p className="mt-1 text-[11px] text-brand-text-muted">
+              Cho người khác biết khu vực bạn có thể giao dịch hoặc giao/nhận hàng.
+            </p>
+            {errors.delivery_area && (
+              <p className="mt-1.5 text-xs text-red-500">{errors.delivery_area.message}</p>
             )}
           </div>
 
@@ -553,65 +591,100 @@ export function ProfilePage() {
 
             {socialLinks.length > 0 && (
               <div className="mb-3 space-y-2">
-                {socialLinks.map((link) => (
-                  <div
-                    key={link.id}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-brand-border bg-white px-3 py-2 text-xs"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <SocialIcon type={link.type} className="h-4 w-4 text-brand-burgundy" />
-                      <div className="truncate font-semibold text-brand-text">{link.label}:</div>
-                      <div className="truncate text-brand-text-muted">{link.url}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSocialLink(link.id)}
-                      className="rounded p-1 text-brand-text-muted hover:bg-red-50 hover:text-red-600"
+                {socialLinks.map((link) => {
+                  const opt = SOCIAL_OPTIONS.find((o) => o.platform === link.platform);
+                  const displayUrl = formatSocialDisplay(link.url);
+                  return (
+                    <div
+                      key={link.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-brand-border bg-white p-2.5 sm:p-3 text-xs"
                     >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex min-w-0 items-center gap-2.5 flex-1">
+                        <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-brand-soft-pink text-brand-burgundy shrink-0">
+                          <SocialIcon platform={link.platform} className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-brand-text truncate">
+                            {opt?.label || link.platform}
+                          </p>
+                          <p className="text-[11px] text-brand-text-muted truncate font-mono">
+                            {displayUrl}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSocialLink(link.id)}
+                        className="rounded-lg p-1.5 text-brand-text-muted hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                        aria-label="Xóa liên kết"
+                        title="Xóa liên kết"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
-              <select
-                value={socialType}
-                onChange={(e) => setSocialType(e.target.value as SocialLinkType)}
-                className="rounded-xl border border-brand-border bg-white px-2.5 py-2 text-xs text-brand-text outline-none focus:border-brand-burgundy"
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="w-full sm:w-44 shrink-0">
+                  <select
+                    value={selectedPlatform}
+                    onChange={(e) => {
+                      setSelectedPlatform(e.target.value as SocialPlatform);
+                      setSocialInputError(null);
+                    }}
+                    className="w-full rounded-xl border border-brand-border bg-white px-3 py-2.5 text-xs font-semibold text-brand-text outline-none focus:border-brand-burgundy"
+                  >
+                    {SOCIAL_OPTIONS.map((item) => (
+                      <option key={item.platform} value={item.platform}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex-1 relative">
+                  <input
+                    type="url"
+                    value={socialUrlInput}
+                    onChange={(e) => {
+                      setSocialUrlInput(e.target.value);
+                      setSocialInputError(null);
+                    }}
+                    placeholder={
+                      SOCIAL_OPTIONS.find((o) => o.platform === selectedPlatform)?.placeholder ||
+                      'https://...'
+                    }
+                    className={`w-full rounded-xl border ${
+                      socialInputError ? 'border-red-500' : 'border-brand-border'
+                    } bg-white px-3 py-2.5 text-xs text-brand-text outline-none focus:border-brand-burgundy`}
+                  />
+                </div>
+              </div>
+
+              {socialInputError && (
+                <p className="text-xs text-red-500 font-medium">{socialInputError}</p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleAddSocialLink}
+                disabled={!socialUrlInput.trim()}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-burgundy/25 bg-white px-3 py-2.5 text-xs font-semibold text-brand-burgundy transition-colors hover:bg-brand-soft-pink disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {SOCIAL_OPTIONS.map((item) => (
-                  <option key={item.type} value={item.type}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="url"
-                value={socialUrl}
-                onChange={(e) => setSocialUrl(e.target.value)}
-                placeholder="https://..."
-                className="rounded-xl border border-brand-border bg-white px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-burgundy"
-              />
+                <Link2 className="h-3.5 w-3.5" />
+                Thêm liên kết
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={handleAddSocialLink}
-              disabled={!socialUrl.trim()}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-burgundy/25 px-3 py-2 text-xs font-semibold text-brand-burgundy transition-colors hover:bg-brand-soft-pink disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Link2 className="h-3.5 w-3.5" />
-              Thêm liên kết
-            </button>
           </div>
 
           <div className="pt-2">
             <button
               type="submit"
-              disabled={updateProfileMutation.isPending || !isDirty}
+              disabled={updateProfileMutation.isPending || (!isDirty && !socialDirty)}
               className="btn-interactive flex w-full items-center justify-center gap-2 rounded-xl bg-brand-burgundy px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-burgundy-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               {updateProfileMutation.isPending ? (

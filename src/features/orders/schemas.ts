@@ -9,6 +9,7 @@ export const createOrderSchema = z
     meetup_place: z.string().max(255).optional().or(z.literal("")),
     meetup_time: z.string().optional().or(z.literal("")),
     shipping_address: z.string().max(500).optional().or(z.literal("")),
+    shipping_expected_at: z.string().optional().or(z.literal("")),
     contact_name: z.string().min(1, "Vui lòng nhập tên người liên hệ").max(100),
     contact_phone: z
       .string()
@@ -43,6 +44,7 @@ export const updateTransactionTermsSchema = z
     meetup_place: z.string().max(255).optional().or(z.literal("")),
     meetup_time: z.string().optional().or(z.literal("")),
     shipping_address: z.string().max(500).optional().or(z.literal("")),
+    shipping_expected_at: z.string().optional().or(z.literal("")),
     payment_note: z.string().max(255).optional().or(z.literal("")),
   })
   .superRefine((data, ctx) => {

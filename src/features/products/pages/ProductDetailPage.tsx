@@ -12,6 +12,8 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useFavoriteIds, useToggleFavorite } from '@/features/favorites/hooks';
 import { DirectPurchaseModal } from '@/features/orders/components/DirectPurchaseModal';
+import { AuctionPanel } from '@/features/auctions/components/AuctionPanel';
+import { SellerAuctionModal } from '@/features/auctions/components/SellerAuctionModal';
 import {
   ArrowLeft,
   User,
@@ -25,6 +27,8 @@ import {
   AlertCircle,
   Heart,
   ShoppingBag,
+  Gavel,
+  ChevronRight,
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
@@ -34,6 +38,7 @@ export function ProductDetailPage() {
   const numericId = productId ? parseInt(productId, 10) : undefined;
 
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isSellerAuctionModalOpen, setIsSellerAuctionModalOpen] = useState(false);
 
   const { data: product, isLoading, isError, error } = useProduct(numericId);
   const { data: currentUser } = useCurrentUser();
@@ -41,193 +46,204 @@ export function ProductDetailPage() {
   const { data: favoriteIds } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
 
-  const isFavorited = product
-    ? (favoriteIds?.has(product.product_id) ?? false)
-    : false;
+  const isFavorite = product ? (favoriteIds?.has(product.product_id) ?? false) : false;
 
-  const handleFavoriteToggle = () => {
-    if (!product) return;
-
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (!firebaseUser) {
       navigate('/?auth=login');
       return;
     }
-
-    toggleFavorite.mutate({
-      productId: product.product_id,
-      isFavorited,
-    });
+    if (product) {
+      toggleFavorite.mutate({ productId: product.product_id, isFavorited: isFavorite });
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60dvh] items-center justify-center">
-        <LoadingSpinner message="Đang tải chi tiết sản phẩm..." />
+      <div className="flex h-96 items-center justify-center">
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (isError || !product) {
-    const status = (error as { response?: { status?: number } })?.response?.status;
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12 text-center space-y-4">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft-pink text-brand-burgundy">
-          <AlertCircle className="h-8 w-8" />
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 mb-4">
+          <AlertCircle className="h-7 w-7" />
         </div>
-        <h2 className="text-lg font-bold text-brand-text">
-          {status === 404 ? 'Sản phẩm không tồn tại hoặc đã bị ẩn' : 'Không thể tải thông tin sản phẩm'}
-        </h2>
-        <p className="text-xs sm:text-sm text-brand-text-secondary">
-          Sản phẩm có thể đã được người bán gỡ xuống hoặc xóa khỏi hệ thống.
+        <h2 className="text-xl font-bold text-brand-text mb-2">Không tìm thấy sản phẩm</h2>
+        <p className="text-sm text-brand-text-secondary mb-6">
+          {(error as any)?.response?.data?.detail || 'Sản phẩm không tồn tại hoặc đã bị ẩn/xóa.'}
         </p>
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="btn-interactive inline-flex items-center gap-2 rounded-2xl bg-brand-burgundy px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-brand-burgundy-dark"
+        <Link
+          to="/products"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-burgundy text-white font-medium text-sm hover:bg-brand-burgundy/90 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Quay lại trang chủ
-        </button>
+          <ArrowLeft className="h-4 w-4" /> Về danh sách sản phẩm
+        </Link>
       </div>
     );
   }
 
-  const listingMeta = getListingTypeMeta(product.listing_type);
   const isOwner = currentUser?.user_id === product.seller.user_id;
+  const listingMeta = getListingTypeMeta(product.listing_type);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6 space-y-5">
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="btn-interactive flex items-center gap-1.5 rounded-xl border border-brand-border bg-white px-3 py-1.5 text-xs font-semibold text-brand-text-secondary hover:bg-brand-soft-pink"
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 space-y-6">
+      {/* Top navigation */}
+      <div className="flex items-center justify-between">
+        <Link
+          to="/products"
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-brand-text-secondary hover:text-brand-burgundy transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Quay lại
-        </button>
+        </Link>
 
-        <div className="flex items-center gap-2">
-          {/* Favorite button */}
-          <button
-            type="button"
-            onClick={handleFavoriteToggle}
-            disabled={toggleFavorite.isPending}
-            className={`btn-interactive flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition-colors ${
-              isFavorited
-                ? 'bg-red-50 text-brand-price border-brand-price/30 shadow-xs'
-                : 'bg-white text-brand-text-secondary border-brand-border hover:bg-brand-soft-pink'
-            }`}
-            aria-label={isFavorited ? 'Bỏ lưu tin' : 'Lưu tin'}
-          >
-            <Heart
-              className={`h-4 w-4 transition-colors ${
-                isFavorited ? 'fill-current text-brand-price' : ''
-              }`}
-            />
-            <span>{isFavorited ? 'Đã lưu' : 'Lưu tin'}</span>
-          </button>
-
-          {isOwner && (
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            {product.listing_type === 'FIXED_PRICE' && product.status === 'AVAILABLE' && product.available_stock === 1 && (
+              <button
+                type="button"
+                onClick={() => setIsSellerAuctionModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shadow-sm"
+              >
+                <Gavel className="h-3.5 w-3.5" /> Bật đấu giá
+              </button>
+            )}
             <Link
               to={`/products/${product.product_id}/edit`}
-              className="btn-interactive flex items-center gap-1.5 rounded-xl bg-brand-burgundy px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-brand-burgundy-dark no-underline"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-soft-pink text-brand-burgundy font-bold text-xs hover:bg-brand-burgundy hover:text-white transition-colors"
             >
-              <Edit className="h-3.5 w-3.5" /> Quản lý tin
+              <Edit className="h-3.5 w-3.5" /> Chỉnh sửa sản phẩm
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-5">
-        <ProductImageGallery images={product.images} title={product.title} />
-
-        <div className="p-4 sm:p-5 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-4 min-w-0">
-          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-            <span className="rounded-full bg-brand-soft-pink px-3 py-1 text-xs font-semibold text-brand-burgundy border border-brand-burgundy/20">
-              {product.category.name}
-            </span>
-
-            {listingMeta.isAuction && (
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${listingMeta.badgeClass}`}
-                >
-                  Đấu giá
-                </span>
-              </div>
-            )}
-          </div>
-
-          <h1 className="text-lg sm:text-xl font-extrabold text-brand-text leading-snug min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
-            {product.title}
-          </h1>
-
-          <div className="flex items-baseline justify-between p-3.5 rounded-2xl bg-brand-soft-pink/30 border border-brand-border/60">
-            <div>
-              {listingMeta.isAuction && (
-                <span className="block text-xs font-medium text-purple-700 mb-0.5">
-                  {listingMeta.priceLabel}
-                </span>
-              )}
-              <span className="text-xl sm:text-2xl font-black text-brand-price">
-                {formatVND(product.price)}
-              </span>
-            </div>
-
-            <div className="text-right text-xs text-brand-text-secondary">
-              <div className="flex items-center gap-1 justify-end font-semibold text-emerald-700">
-                <Package className="h-3.5 w-3.5" /> Có sẵn: {product.available_stock}
-              </div>
-              <div className="flex items-center gap-1 justify-end text-brand-text-muted mt-0.5">
-                <Eye className="h-3.5 w-3.5" /> {product.view_count} lượt xem
-              </div>
-            </div>
-          </div>
-
-          {/* Action button for purchasing */}
-          {!isOwner && product.status === 'AVAILABLE' && product.listing_type === 'FIXED_PRICE' && (
-            <div className="pt-1">
-              {product.available_stock > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!firebaseUser) {
-                      navigate('/?auth=login');
-                      return;
-                    }
-                    setIsPurchaseModalOpen(true);
-                  }}
-                  className="w-full py-3 px-6 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.99] text-white text-sm font-bold shadow-lg shadow-rose-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  Mua ngay
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled
-                  className="w-full py-3 px-6 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-not-allowed"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  Tạm hết hàng (đang trong giao dịch)
-                </button>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center gap-4 text-xs text-brand-text-muted pt-1">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" /> Đăng {formatRelativeTime(product.created_at)}
-            </span>
-          </div>
+      {/* Main Product Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        {/* Left Column: Image Gallery (5 cols) */}
+        <div className="lg:col-span-6 space-y-4">
+          <ProductImageGallery
+            images={product.images}
+            title={product.title}
+          />
         </div>
 
-        <div className="p-4 sm:p-5 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-2">
-          <h3 className="text-sm font-bold text-brand-text flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4 text-brand-burgundy" />
-            Mô tả sản phẩm
-          </h3>
-          <div className="text-xs sm:text-sm text-brand-text-secondary whitespace-pre-line leading-relaxed pt-1">
-            {product.description || 'Người bán chưa cung cấp mô tả chi tiết cho sản phẩm này.'}
+        {/* Right Column: Product Info & Buy/Auction Box (6 cols) */}
+        <div className="lg:col-span-6 space-y-5">
+          <div className="p-5 sm:p-6 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-block rounded-lg bg-brand-burgundy/10 px-2.5 py-1 text-xs font-bold text-brand-burgundy">
+                {product.category.name}
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFavoriteClick}
+                  disabled={toggleFavorite.isPending}
+                  className={`p-2 rounded-xl border transition-all ${isFavorite
+                      ? 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-100'
+                      : 'bg-white border-brand-border text-brand-text-muted hover:text-rose-500 hover:border-rose-200'
+                    }`}
+                  title={isFavorite ? 'Bỏ lưu' : 'Lưu tin'}
+                >
+                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-rose-500' : ''}`} />
+                </button>
+
+                {listingMeta.isAuction && (
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${listingMeta.badgeClass}`}
+                  >
+                    Đấu giá
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <h1 className="text-lg sm:text-xl font-extrabold text-brand-text leading-snug min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+              {product.title}
+            </h1>
+
+            {product.listing_type === 'FIXED_PRICE' && (
+              <div className="flex items-baseline justify-between p-3.5 rounded-2xl bg-brand-soft-pink/30 border border-brand-border/60">
+                <div>
+                  <span className="text-xl sm:text-2xl font-black text-brand-price">
+                    {formatVND(product.price)}
+                  </span>
+                </div>
+
+                <div className="text-right text-xs text-brand-text-secondary">
+                  <div className="flex items-center gap-1 justify-end font-semibold text-emerald-700">
+                    <Package className="h-3.5 w-3.5" /> Có sẵn: {product.available_stock}
+                  </div>
+                  <div className="flex items-center gap-1 justify-end text-brand-text-muted mt-0.5">
+                    <Eye className="h-3.5 w-3.5" /> {product.view_count} lượt xem
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action button for direct purchasing when FIXED_PRICE */}
+            {!isOwner && product.status === 'AVAILABLE' && product.listing_type === 'FIXED_PRICE' && (
+              <div className="pt-1">
+                {product.available_stock > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!firebaseUser) {
+                        navigate('/?auth=login');
+                        return;
+                      }
+                      setIsPurchaseModalOpen(true);
+                    }}
+                    className="w-full py-3 px-6 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.99] text-white text-sm font-bold shadow-lg shadow-rose-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Mua ngay
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-3 px-6 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    <AlertCircle className="w-4 h-4" />
+                    Tạm hết hàng (đang trong giao dịch)
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 text-xs text-brand-text-muted pt-1">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" /> Đăng {formatRelativeTime(product.created_at)}
+              </span>
+            </div>
+          </div>
+
+          {/* Interactive Auction Panel when AUCTION */}
+          {product.listing_type === 'AUCTION' && (
+            <AuctionPanel
+              productId={product.product_id}
+              product={product}
+              isSeller={isOwner}
+              isAuthenticated={!!firebaseUser}
+              onRequireAuth={() => navigate('/?auth=login')}
+            />
+          )}
+
+          <div className="p-4 sm:p-5 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-2">
+            <h3 className="text-sm font-bold text-brand-text flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-brand-burgundy" />
+              Mô tả sản phẩm
+            </h3>
+            <div className="text-xs sm:text-sm text-brand-text-secondary whitespace-pre-line leading-relaxed pt-1">
+              {product.description || 'Người bán chưa cung cấp mô tả chi tiết cho sản phẩm này.'}
+            </div>
           </div>
         </div>
 
@@ -237,12 +253,16 @@ export function ProductDetailPage() {
             Thông tin người bán
           </h3>
 
-          <div className="flex items-center gap-3.5 pt-1">
+          <Link
+            to={`/users/${product.seller.user_id}`}
+            className="group flex items-center gap-3.5 pt-1 p-2 -mx-2 -mt-1 rounded-2xl hover:bg-brand-soft-pink/50 transition-colors cursor-pointer"
+            aria-label={`Xem hồ sơ của ${product.seller.full_name}`}
+          >
             {product.seller.avatar_url ? (
               <img
                 src={product.seller.avatar_url}
                 alt={product.seller.full_name}
-                className="h-12 w-12 rounded-full object-cover border-2 border-brand-burgundy/20"
+                className="h-12 w-12 rounded-full object-cover border-2 border-brand-burgundy/20 group-hover:border-brand-burgundy/50 transition-colors"
               />
             ) : (
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-burgundy/10 text-brand-burgundy">
@@ -251,20 +271,22 @@ export function ProductDetailPage() {
             )}
 
             <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-bold text-brand-text truncate">
+              <h4 className="text-sm font-bold text-brand-text truncate group-hover:text-brand-burgundy transition-colors">
                 {product.seller.full_name}
               </h4>
               <p className="text-xs text-brand-text-muted">
                 Thành viên từ {formatDate(product.seller.created_at)}
               </p>
             </div>
-          </div>
 
-          {product.seller.default_meetup_area && (
+            <ChevronRight className="h-4 w-4 text-brand-text-muted/60 group-hover:text-brand-burgundy group-hover:translate-x-0.5 transition-all shrink-0" />
+          </Link>
+
+          {product.seller.delivery_area && (
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-brand-border/60 text-xs text-brand-text-secondary">
               <MapPin className="h-4 w-4 text-brand-burgundy shrink-0" />
               <span>
-                Khu vực giao dịch: <strong>{product.seller.default_meetup_area}</strong>
+                Phạm vi giao / nhận: <strong>{product.seller.delivery_area}</strong>
               </span>
             </div>
           )}
@@ -283,6 +305,13 @@ export function ProductDetailPage() {
         product={product}
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
+      />
+
+      {/* Seller Auction Setup Modal */}
+      <SellerAuctionModal
+        isOpen={isSellerAuctionModalOpen}
+        onClose={() => setIsSellerAuctionModalOpen(false)}
+        product={product}
       />
     </div>
   );
