@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useCurrentUser } from '@/features/users/hooks';
+import { Avatar } from '@/components/common/Avatar';
 import {
   Menu,
   Search,
@@ -14,11 +15,17 @@ import {
   Heart,
   ShoppingBag,
   Store,
+  MessageSquare,
+  Bell,
 } from 'lucide-react';
+import { useUnreadCount } from '@/features/notifications/hooks';
+
 
 export function Header() {
   const { firebaseUser, signOut } = useAuth();
   const { data: user } = useCurrentUser();
+  const { data: unreadData } = useUnreadCount(!!firebaseUser);
+  const unreadCount = unreadData?.count ?? 0;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,11 +35,26 @@ export function Header() {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isComposingRef = useRef(false);
 
-  // Đồng bộ searchTerm khi param 'q' trên URL thay đổi
+  const clearDebounceTimer = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  };
+
+  // Đồng bộ searchTerm khi param 'q' trên URL thay đổi (bao gồm Back/Forward)
   useEffect(() => {
     setSearchTerm(searchParams.get('q') || '');
   }, [searchParams]);
+
+  useEffect(() => {
+    return () => {
+      clearDebounceTimer();
+    };
+  }, []);
 
   useEffect(() => {
     if (isSearchOpen) {
@@ -63,15 +85,19 @@ export function Header() {
     navigate('/');
   };
 
-  // Cập nhật tìm kiếm qua URL search params
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
+  // Commit query tìm kiếm lên URL mà không làm mất các filter khác (category, min_price,...)
+  const commitSearch = (value: string) => {
+    const trimmed = value.trim().normalize('NFC');
     if (location.pathname !== '/') {
-      navigate(`/?q=${encodeURIComponent(value.trim())}`);
+      const targetParams = new URLSearchParams();
+      if (trimmed.length >= 2) {
+        targetParams.set('q', trimmed);
+      }
+      navigate(targetParams.toString() ? `/?${targetParams.toString()}` : '/');
     } else {
       const newParams = new URLSearchParams(searchParams);
-      if (value.trim()) {
-        newParams.set('q', value.trim());
+      if (trimmed.length >= 2) {
+        newParams.set('q', trimmed);
       } else {
         newParams.delete('q');
       }
@@ -79,17 +105,53 @@ export function Header() {
     }
   };
 
-  const handleClearSearch = () => {
-    setSearchTerm('');
-    if (location.pathname === '/') {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('q');
-      setSearchParams(newParams, { replace: true });
+  const scheduleSearch = (value: string) => {
+    clearDebounceTimer();
+    debounceTimerRef.current = setTimeout(() => {
+      commitSearch(value);
+    }, 300);
+  };
+
+  // Cập nhật tìm kiếm: hiển thị input lập tức, debounce commit 300ms
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (isComposingRef.current) {
+      return;
     }
+    scheduleSearch(value);
+  };
+
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+    clearDebounceTimer();
+  };
+
+  const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
+    isComposingRef.current = false;
+    const finalValue = e.currentTarget.value;
+    setSearchTerm(finalValue);
+    scheduleSearch(finalValue);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      if (isComposingRef.current || e.nativeEvent.isComposing) {
+        return;
+      }
+      clearDebounceTimer();
+      commitSearch(searchTerm);
+    }
+  };
+
+  const handleClearSearch = () => {
+    clearDebounceTimer();
+    setSearchTerm('');
+    commitSearch('');
     searchInputRef.current?.focus();
   };
 
   const handleCloseSearch = () => {
+    clearDebounceTimer();
     setIsSearchOpen(false);
   };
 
@@ -137,7 +199,7 @@ export function Header() {
               </div>
             </Link>
 
-            {/* Right: Search + Profile */}
+            {/* Right: Search + Messages + Profile */}
             <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
@@ -149,6 +211,33 @@ export function Header() {
                 <Search className="h-5 w-5" />
               </button>
 
+              {firebaseUser && (
+                <>
+                  <Link
+                    to="/messages"
+                    className="icon-btn-interactive flex h-10 w-10 items-center justify-center rounded-lg text-white/90 transition-colors hover:bg-white/10 active:bg-white/15"
+                    aria-label="Tin nhắn"
+                    id="header-messages-btn"
+                  >
+                    <MessageSquare className="h-5 w-5" />
+                  </Link>
+
+                  <Link
+                    to="/notifications"
+                    className="relative icon-btn-interactive flex h-10 w-10 items-center justify-center rounded-lg text-white/90 transition-colors hover:bg-white/10 active:bg-white/15"
+                    aria-label="Thông báo"
+                    id="header-notifications-btn"
+                  >
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-xs">
+                        {unreadCount >= 100 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                </>
+              )}
+
               <button
                 type="button"
                 onClick={handleProfileClick}
@@ -156,11 +245,13 @@ export function Header() {
                 aria-label={firebaseUser ? 'Mở hồ sơ' : 'Đăng nhập'}
                 id="header-profile-btn"
               >
-                {user?.avatar_url ? (
-                  <img
-                    src={user.avatar_url}
-                    alt={user.full_name || 'Ảnh đại diện'}
-                    className="h-8 w-8 rounded-full border-2 border-white/30 object-cover"
+
+                {firebaseUser ? (
+                  <Avatar
+                    src={user?.avatar_url}
+                    name={user?.full_name || firebaseUser.displayName}
+                    size="sm"
+                    className="border-2 border-white/30"
                   />
                 ) : (
                   <User className="h-5 w-5" />
@@ -188,6 +279,9 @@ export function Header() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
+                onKeyDown={handleKeyDown}
                 placeholder="Tìm sách, máy tính, phòng trọ..."
                 className="w-full rounded-full bg-brand-warm-white py-2 pl-9 pr-8 text-xs sm:text-sm text-brand-text placeholder:text-brand-text-muted focus:outline-hidden shadow-inner"
               />
@@ -279,6 +373,27 @@ export function Header() {
                 {firebaseUser && (
                   <>
                     <Link
+                      to="/messages"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                    >
+                      <MessageSquare className="h-4 w-4 text-brand-burgundy" /> Tin nhắn
+                    </Link>
+                    <Link
+                      to="/notifications"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Bell className="h-4 w-4 text-brand-burgundy" /> Thông báo
+                      </div>
+                      {unreadCount > 0 && (
+                        <span className="flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-xs">
+                          {unreadCount >= 100 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                    <Link
                       to="/favorites"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-text no-underline transition-colors hover:bg-brand-soft-pink"
@@ -292,6 +407,7 @@ export function Header() {
                     >
                       <ShoppingBag className="h-4 w-4 text-brand-burgundy" /> Đơn mua
                     </Link>
+
                   </>
                 )}
               </div>

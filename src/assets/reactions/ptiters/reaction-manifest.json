@@ -1,0 +1,62 @@
+[
+  {
+    "key": "THICH",
+    "label": "Thích",
+    "file": "thich.png"
+  },
+  {
+    "key": "HAHA",
+    "label": "Haha",
+    "file": "haha.png"
+  },
+  {
+    "key": "WOW",
+    "label": "Wow",
+    "file": "wow.png"
+  },
+  {
+    "key": "CAM_ON",
+    "label": "Cảm ơn",
+    "file": "cam-on.png"
+  },
+  {
+    "key": "CHOT_DEAL",
+    "label": "Chốt deal",
+    "file": "chot-deal.png"
+  },
+  {
+    "key": "UY_TIN",
+    "label": "Uy tín",
+    "file": "uy-tin.png"
+  },
+  {
+    "key": "DANG_TOI",
+    "label": "Đang tới",
+    "file": "dang-toi.png"
+  },
+  {
+    "key": "DOI_CHUT",
+    "label": "Đợi chút",
+    "file": "doi-chut.png"
+  },
+  {
+    "key": "QUAN_TAM",
+    "label": "Quan tâm",
+    "file": "quan-tam.png"
+  },
+  {
+    "key": "HET_TIEN",
+    "label": "Hết tiền",
+    "file": "het-tien.png"
+  },
+  {
+    "key": "HOC_BAI",
+    "label": "Học bài",
+    "file": "hoc-bai.png"
+  },
+  {
+    "key": "KHA_NGHI",
+    "label": "Khả nghi",
+    "file": "kha-nghi.png"
+  }
+]

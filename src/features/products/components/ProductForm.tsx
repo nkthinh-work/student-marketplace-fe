@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCategories } from '@/features/categories/hooks';
+import { getCategoryMeta, sortCategories } from '@/features/categories/categoryMeta';
 import {
   productCreateSchema,
   productUpdateSchema,
@@ -42,10 +43,13 @@ export function ProductForm(props: ProductFormProps) {
   const { mode, initialData, onSubmit, isSubmitting = false, submitLabel } = props;
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
 
+  const sortedCategories = useMemo(() => sortCategories(categories), [categories]);
+
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<ProductCreateForm & ProductUpdateForm>({
     resolver: zodResolver(
@@ -63,6 +67,16 @@ export function ProductForm(props: ProductFormProps) {
       status: (initialData?.status as 'AVAILABLE' | 'HIDDEN') || 'AVAILABLE',
     },
   });
+
+  const selectedCategoryId = watch('category_id');
+  const selectedCategory = useMemo(() => {
+    if (!selectedCategoryId) return undefined;
+    return categories.find((c) => String(c.category_id) === String(selectedCategoryId));
+  }, [categories, selectedCategoryId]);
+
+  const selectedMeta = useMemo(() => {
+    return selectedCategory ? getCategoryMeta(selectedCategory) : undefined;
+  }, [selectedCategory]);
 
   useEffect(() => {
     if (initialData) {
@@ -101,12 +115,18 @@ export function ProductForm(props: ProductFormProps) {
           className="w-full rounded-2xl bg-white border border-brand-border px-4 py-3 text-sm text-brand-text focus:border-brand-burgundy focus:outline-hidden disabled:opacity-50"
         >
           <option value="">-- Chọn danh mục phù hợp --</option>
-          {categories.map((cat) => (
+          {sortedCategories.map((cat) => (
             <option key={cat.category_id} value={cat.category_id}>
               {cat.name}
             </option>
           ))}
         </select>
+        {selectedMeta?.helper && !errors.category_id && (
+          <p className="text-xs text-brand-text-muted mt-1.5 flex items-center gap-1.5 leading-relaxed">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-burgundy/60 shrink-0" />
+            <span>{selectedMeta.helper}</span>
+          </p>
+        )}
         {errors.category_id && (
           <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
             <AlertCircle className="h-3 w-3" /> {errors.category_id.message}

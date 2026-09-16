@@ -35,6 +35,15 @@ export interface PublicUserProfileResponse {
   created_at: string;
   active_listing_count: number;
   completed_sold_count: number;
+  rating_average?: number | null;
+  review_count?: number;
+}
+
+export interface SoldProductTransactionReview {
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  verified_transaction: boolean;
 }
 
 export interface SoldProductSummary {
@@ -43,6 +52,9 @@ export interface SoldProductSummary {
   product_image_url: string | null;
   total_sold_quantity: number;
   last_sold_at: string | null;
+  rating_average?: number | null;
+  review_count?: number;
+  recent_reviews?: SoldProductTransactionReview[];
 }
 
 export interface SoldProductListResponse {

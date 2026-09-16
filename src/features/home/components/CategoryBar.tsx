@@ -1,22 +1,12 @@
+import { useMemo } from 'react';
+import { Sparkles } from 'lucide-react';
 import { useCategories } from '@/features/categories/hooks';
-import type { CategoryResponse } from '@/features/categories/types';
+import { getCategoryMeta, sortCategories } from '@/features/categories/categoryMeta';
 
 interface CategoryBarProps {
   selectedCategoryId?: number;
   onSelectCategory: (id?: number) => void;
 }
-
-const CATEGORY_ICON_MAP: Record<string, string> = {
-  'giao-trinh-sach': '📚',
-  'sach-giao-trinh': '📚',
-  'thiet-bi-dien-tu': '💻',
-  'do-dien-tu': '💻',
-  'phong-tro-ktx': '🏢',
-  'xe-co': '🏍️',
-  'do-sinh-hoat': '🧺',
-  'thoi-trang': '👕',
-  'dung-cu-hoc-tap': '✏️',
-};
 
 export function CategoryBar({
   selectedCategoryId,
@@ -24,9 +14,7 @@ export function CategoryBar({
 }: CategoryBarProps) {
   const { data: categories = [] } = useCategories();
 
-  const getCategoryIcon = (cat: CategoryResponse) => {
-    return CATEGORY_ICON_MAP[cat.slug] || '🏷️';
-  };
+  const sortedCategories = useMemo(() => sortCategories(categories), [categories]);
 
   return (
     <div className="flex gap-2 overflow-x-auto py-1 hide-scrollbar">
@@ -40,13 +28,15 @@ export function CategoryBar({
             : 'bg-brand-warm-white text-brand-text-secondary border border-brand-border hover:bg-brand-soft-pink hover:border-brand-burgundy/20'
         }`}
       >
-        <span>🏠</span>
+        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
         <span>Dành cho bạn</span>
       </button>
 
       {/* Backend Categories */}
-      {categories.map((cat) => {
+      {sortedCategories.map((cat) => {
         const isSelected = selectedCategoryId === cat.category_id;
+        const { icon: CategoryIcon } = getCategoryMeta(cat);
+
         return (
           <button
             key={cat.category_id}
@@ -58,7 +48,7 @@ export function CategoryBar({
                 : 'bg-brand-warm-white text-brand-text-secondary border border-brand-border hover:bg-brand-soft-pink hover:border-brand-burgundy/20'
             }`}
           >
-            <span>{getCategoryIcon(cat)}</span>
+            <CategoryIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
             <span>{cat.name}</span>
           </button>
         );
@@ -66,3 +56,4 @@ export function CategoryBar({
     </div>
   );
 }
+

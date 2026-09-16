@@ -119,33 +119,27 @@ export const WinnerCheckoutModal: React.FC<WinnerCheckoutModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFulfillmentMethod('MEETUP')}
-                className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
+                className={`flex items-center justify-center sm:justify-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
                   fulfillmentMethod === 'MEETUP'
                     ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
                     : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                 }`}
               >
                 <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Gặp mặt trực tiếp</div>
-                  <div className="text-[10px] text-gray-500">Giao dịch trong trường</div>
-                </div>
+                <span className="text-xs font-bold">Gặp mặt trực tiếp</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFulfillmentMethod('SHIPPING')}
-                className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
+                className={`flex items-center justify-center sm:justify-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
                   fulfillmentMethod === 'SHIPPING'
                     ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
                     : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                 }`}
               >
                 <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Giao hàng tận nơi</div>
-                  <div className="text-[10px] text-gray-500">Ship qua bưu điện</div>
-                </div>
+                <span className="text-xs font-bold">Giao hàng tận nơi</span>
               </button>
             </div>
           </div>

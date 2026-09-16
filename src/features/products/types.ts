@@ -14,6 +14,8 @@ export interface SellerDetailSummary extends SellerSummary {
   delivery_area?: string | null;
   default_meetup_area?: string | null;
   created_at: string;
+  rating_average?: number | null;
+  review_count?: number;
 }
 
 export interface ProductImageResponse {

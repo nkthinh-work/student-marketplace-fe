@@ -34,11 +34,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, role = "buyer" }) =
     <div className="bg-brand-warm-white rounded-3xl p-4 sm:p-5 border border-brand-border shadow-card hover:shadow-card-hover transition-all">
       {/* Header: Order Code & Primary Actionable Status */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-brand-border/60">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-mono text-xs font-bold text-brand-text truncate">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 flex-1">
+          <span className="font-mono text-xs font-bold text-brand-text shrink-0">
             {order.order_code}
           </span>
-          <span className="text-brand-border">|</span>
+          <span className="text-brand-border hidden xs:inline">|</span>
           <span className="text-xs text-brand-text-secondary flex items-center gap-1 shrink-0">
             <Calendar className="w-3.5 h-3.5 text-brand-burgundy" />
             {formattedDate}
@@ -50,8 +50,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, role = "buyer" }) =
       </div>
 
       {/* Item summary */}
-      <div className="py-3.5 flex gap-3.5 items-center">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-brand-soft-pink/30 flex-shrink-0 border border-brand-border/60">
+      <div className="py-3.5 flex gap-3 sm:gap-3.5 items-center min-w-0">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-brand-soft-pink/30 flex-none border border-brand-border/60">
           {order.item.product_image_url ? (
             <img
               src={order.item.product_image_url}
@@ -67,14 +67,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, role = "buyer" }) =
         </div>
 
         <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-brand-text text-sm sm:text-base truncate mb-1">
+          <h4 className="font-bold text-brand-text text-sm sm:text-base line-clamp-2 break-words mb-1">
             {order.item.product_title}
           </h4>
-          <p className="text-xs text-brand-text-secondary mb-1.5 truncate">
-            Số lượng: <span className="font-semibold text-brand-text">x{order.item.quantity}</span> • Đơn giá: {itemPrice}
+          <p className="text-xs text-brand-text-secondary mb-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+            <span>Số lượng: <span className="font-semibold text-brand-text">x{order.item.quantity}</span></span>
+            <span className="text-brand-border/60">•</span>
+            <span>Đơn giá: <span className="whitespace-nowrap tabular-nums font-medium">{itemPrice}</span></span>
           </p>
           {!isFree && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center min-w-0">
               <PaymentStatusBadge
                 paymentStatus={order.payment_status}
                 paymentMethod={order.payment_method}
@@ -87,34 +89,34 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, role = "buyer" }) =
       </div>
 
       {/* Footer: Fulfillment method, total, and link */}
-      <div className="pt-3 border-t border-brand-border/60 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-brand-text-secondary">
+      <div className="pt-3 border-t border-brand-border/60 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-1.5 text-xs text-brand-text-secondary min-w-0">
           {order.fulfillment_method === "MEETUP" ? (
             <>
-              <MapPin className="w-3.5 h-3.5 text-brand-price" />
-              <span>{getFulfillmentMethodLabel("MEETUP")}</span>
+              <MapPin className="w-3.5 h-3.5 text-brand-price shrink-0" />
+              <span className="truncate">{getFulfillmentMethodLabel("MEETUP")}</span>
             </>
           ) : (
             <>
-              <Truck className="w-3.5 h-3.5 text-blue-600" />
-              <span>{getFulfillmentMethodLabel("SHIPPING")}</span>
+              <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="truncate">{getFulfillmentMethodLabel("SHIPPING")}</span>
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="text-right">
+        <div className="flex items-center gap-2.5 sm:gap-4 ml-auto">
+          <div className="text-right whitespace-nowrap">
             <span className="text-xs text-brand-text-secondary mr-1.5">
               Tổng tiền:
             </span>
-            <span className={`text-base sm:text-lg font-black ${isFree ? 'text-emerald-700' : 'text-brand-price'}`}>
+            <span className={`text-base sm:text-lg font-black tabular-nums ${isFree ? 'text-emerald-700' : 'text-brand-price'}`}>
               {formattedTotal}
             </span>
           </div>
 
           <Link
             to={`/orders/${order.order_id}`}
-            className="btn-interactive inline-flex items-center gap-1 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-soft-pink text-brand-burgundy hover:bg-brand-burgundy hover:text-white transition-colors no-underline"
+            className="btn-interactive inline-flex items-center gap-1 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-soft-pink text-brand-burgundy hover:bg-brand-burgundy hover:text-white transition-colors no-underline shrink-0"
           >
             <span>Chi tiết</span>
             <ArrowRight className="w-3.5 h-3.5" />

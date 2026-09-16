@@ -9,6 +9,7 @@ interface PaymentStatusBadgeProps {
   fulfillmentMethod?: FulfillmentMethod;
   totalAmount?: number | string | null;
   className?: string;
+  showMethod?: boolean;
 }
 
 const statusConfig: Record<
@@ -42,6 +43,7 @@ export const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
   fulfillmentMethod,
   totalAmount,
   className = "",
+  showMethod = true,
 }) => {
   // If free order, never render payment badges
   if (totalAmount !== undefined && totalAmount !== null && Number(totalAmount) === 0) {
@@ -62,15 +64,16 @@ export const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
   const methodText = getPaymentMethodLabel(paymentMethod, fulfillmentMethod, totalAmount);
 
   return (
-    <div className={`inline-flex items-center gap-1.5 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 ${className}`}>
       <span
-        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${config.bg} ${config.text} ${config.border}`}
+        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap flex-none ${config.bg} ${config.text} ${config.border}`}
       >
         {config.label}
       </span>
-      {methodText && (
-        <span className="text-[11px] font-medium text-brand-text-muted">
-          • {methodText}
+      {showMethod && methodText && (
+        <span className="text-[11px] font-medium text-brand-text-muted min-w-0 break-words">
+          <span className="hidden sm:inline mr-1 text-brand-border">•</span>
+          {methodText}
         </span>
       )}
     </div>

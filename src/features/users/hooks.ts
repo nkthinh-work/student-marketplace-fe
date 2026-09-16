@@ -72,6 +72,9 @@ export function useUpdateProfile() {
     onSuccess: (updatedUser) => {
       queryClient.setQueryData(currentUserQueryKey(firebaseUser?.uid), updatedUser);
       queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
+      if (updatedUser?.user_id) {
+        queryClient.invalidateQueries({ queryKey: publicUserProfileQueryKey(updatedUser.user_id) });
+      }
     },
   });
 }

@@ -73,7 +73,7 @@ export function ProductFeedSection({
         <div className="flex items-center gap-2 min-w-0">
           <ShoppingBag className="h-5 w-5 text-brand-burgundy shrink-0" />
           <h2 className="text-base sm:text-lg font-bold text-brand-text truncate">
-            {filters.q ? `Kết quả cho "${filters.q}"` : 'Mặt hàng nổi bật'}
+            {filters.q ? `Kết quả cho "${filters.q}"` : 'Mặt hàng gần đây'}
           </h2>
         </div>
 

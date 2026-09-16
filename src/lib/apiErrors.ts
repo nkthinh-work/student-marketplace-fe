@@ -79,3 +79,23 @@ export function getApiErrorMessage(
 
   return defaultFallback;
 }
+
+/**
+ * Returns HTTP status code if error is an AxiosError with response, else undefined.
+ */
+export function getApiErrorStatus(error: unknown): number | undefined {
+  if (axios.isAxiosError(error)) {
+    return error.response?.status;
+  }
+  return undefined;
+}
+
+/**
+ * Checks whether an error represents deterministic loss of conversation/group access (403 or 404).
+ * Network failures, timeouts, 401s, and 5xx errors return false to preserve normal error/retry UX.
+ */
+export function isAccessRevokedError(error: unknown): boolean {
+  const status = getApiErrorStatus(error);
+  return status === 403 || status === 404;
+}
+

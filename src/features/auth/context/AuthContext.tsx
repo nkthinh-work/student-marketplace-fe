@@ -17,6 +17,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { auth } from '@/lib/firebase';
 import { CURRENT_USER_KEY, MY_BANK_ACCOUNT_KEY } from '@/features/users/hooks';
+import { NOTIFICATION_QUERY_KEYS } from '@/features/notifications/hooks';
 import type { AuthState } from '../types';
 
 export const AuthContext = createContext<AuthState | null>(null);
@@ -48,13 +49,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setFirebaseUser(user);
       setInitializing(false);
+
+      if (user) {
+        // Reconcile current user query cache with fresh backend data after auth sync
+        queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
+      }
     });
     return unsubscribe;
   }, [queryClient]);
 
   const signInWithGoogle = useCallback(async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result?.user) {
+        // Force refresh ID token to get latest provider profile claims
+        await result.user.getIdToken(true).catch(() => {});
+        // Invalidate canonical current user query so running SPA receives fresh snapshot immediately
+        await queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
+      }
     } catch (error: unknown) {
       // User closed the popup or other error
       const code =
@@ -67,17 +79,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw error;
     }
-  }, []);
+  }, [queryClient]);
 
   const signOut = useCallback(async () => {
     try {
       await Promise.allSettled([
         queryClient.cancelQueries({ queryKey: CURRENT_USER_KEY }),
         queryClient.cancelQueries({ queryKey: MY_BANK_ACCOUNT_KEY }),
+        queryClient.cancelQueries({ queryKey: NOTIFICATION_QUERY_KEYS.all }),
       ]);
 
       queryClient.removeQueries({ queryKey: CURRENT_USER_KEY });
       queryClient.removeQueries({ queryKey: MY_BANK_ACCOUNT_KEY });
+      queryClient.removeQueries({ queryKey: NOTIFICATION_QUERY_KEYS.all });
     } finally {
       await firebaseSignOut(auth);
     }

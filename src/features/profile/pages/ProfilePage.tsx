@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   useCurrentUser,
+  usePublicUserProfile,
   useUpdateProfile,
   useMyBankAccount,
   useSupportedBanks,
@@ -13,13 +14,13 @@ import {
 import {
   userUpdateSchema,
   bankAccountSchema,
-  validateSocialUrl,
   type UserUpdateForm,
   type BankAccountFormValues,
 } from '@/features/users/schemas';
 import type { SocialPlatform } from '@/features/users/types';
 import { SOCIAL_OPTIONS, formatSocialDisplay } from '@/features/users/socialUtils';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { Avatar } from '@/components/common/Avatar';
 import {
   User,
   Mail,
@@ -47,6 +48,10 @@ import {
   Edit2,
   QrCode,
   Info,
+  Eye,
+  Star,
+  Package,
+  Calendar,
 } from 'lucide-react';
 
 interface LocalSocialLink {
@@ -78,9 +83,21 @@ function SocialIcon({
   }
 }
 
+function formatMemberSince(isoString?: string | null): string {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `Thành viên từ ${month}/${d.getFullYear()}`;
+  } catch {
+    return '';
+  }
+}
+
 export function ProfilePage() {
   const { signOut } = useAuth();
   const { data: user, isLoading, isError } = useCurrentUser();
+  const { data: publicProfile, isLoading: isPublicProfileLoading } = usePublicUserProfile(user?.user_id || 0);
   const updateProfileMutation = useUpdateProfile();
   const navigate = useNavigate();
 
@@ -149,17 +166,22 @@ export function ProfilePage() {
 
     if (user.social_links && user.social_links.length > 0) {
       setSocialLinks(
-        user.social_links.map((s, idx) => ({
-          id: `${s.platform}-${idx}-${Date.now()}`,
-          platform: s.platform,
-          url: s.url,
+        user.social_links.map((link, index) => ({
+          id: `${link.platform}-${index}-${Date.now()}`,
+          platform: link.platform,
+          url: link.url,
         })),
       );
     } else {
       setSocialLinks([]);
     }
-    setSocialDirty(false);
   }, [user, reset]);
+
+  const handleCopy = (text: string, fieldKey: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldKey);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   const handleOpenBankModal = () => {
     if (bankAccount) {
@@ -170,26 +192,22 @@ export function ProfilePage() {
       });
     } else {
       resetBank({
-        bank_bin: supportedBanks[0]?.bin || '',
+        bank_bin: '',
         account_number: '',
-        account_name: user?.full_name?.toUpperCase() || '',
+        account_name: '',
       });
     }
     setIsBankModalOpen(true);
   };
 
-  const handleSaveBankAccount = async (values: BankAccountFormValues) => {
+  const handleSaveBankAccount = async (data: BankAccountFormValues) => {
     try {
-      await updateBankMutation.mutateAsync({
-        bank_bin: values.bank_bin.trim(),
-        account_number: values.account_number.trim(),
-        account_name: values.account_name.trim().toUpperCase(),
-      });
+      await updateBankMutation.mutateAsync(data);
       setIsBankModalOpen(false);
-      setBankSuccessMessage('Đã lưu thông tin tài khoản nhận tiền thành công.');
+      setBankSuccessMessage('Cập nhật tài khoản nhận tiền thành công!');
       setTimeout(() => setBankSuccessMessage(null), 4000);
     } catch (err: unknown) {
-      // Error handled by react-query / form
+      console.error('Lỗi lưu tài khoản ngân hàng:', err);
     }
   };
 
@@ -197,32 +215,28 @@ export function ProfilePage() {
     try {
       await deleteBankMutation.mutateAsync();
       setIsDeleteConfirmOpen(false);
-      setBankSuccessMessage('Đã xóa tài khoản nhận tiền.');
+      setBankSuccessMessage('Đã xóa thông tin tài khoản nhận tiền.');
       setTimeout(() => setBankSuccessMessage(null), 4000);
     } catch (err: unknown) {
-      // Error handled by react-query
+      console.error('Lỗi xóa tài khoản ngân hàng:', err);
     }
   };
 
-  const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const onSubmit = async (values: UserUpdateForm) => {
-    setSuccessMessage(null);
+  const onSubmit = async (data: UserUpdateForm) => {
     try {
+      setSuccessMessage(null);
+
       const payload = {
-        ...values,
-        social_links: socialLinks.map((s) => ({
-          platform: s.platform,
-          url: s.url,
+        ...data,
+        social_links: socialLinks.map((item) => ({
+          platform: item.platform,
+          url: item.url,
         })),
       };
+
       await updateProfileMutation.mutateAsync(payload);
+      setSuccessMessage('Cập nhật thông tin thành công!');
       setSocialDirty(false);
-      setSuccessMessage('Cập nhật hồ sơ thành công!');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (error) {
       console.error('Lỗi khi cập nhật hồ sơ:', error);
@@ -230,23 +244,22 @@ export function ProfilePage() {
   };
 
   const handleAddSocialLink = () => {
-    const trimmed = socialUrlInput.trim();
-    if (!trimmed) return;
+    if (!socialUrlInput.trim()) return;
 
-    const validation = validateSocialUrl(selectedPlatform, trimmed);
-    if (!validation.valid) {
-      setSocialInputError(validation.error || 'Liên kết không hợp lệ.');
+    if (socialLinks.some((l) => l.platform === selectedPlatform)) {
+      setSocialInputError(`Bạn đã thêm liên kết ${selectedPlatform} rồi.`);
       return;
     }
 
-    setSocialInputError(null);
-    const newLink: LocalSocialLink = {
-      id: `${selectedPlatform}-${Date.now()}`,
-      platform: selectedPlatform,
-      url: trimmed,
-    };
+    setSocialLinks((prev) => [
+      ...prev,
+      {
+        id: `${selectedPlatform}-${Date.now()}`,
+        platform: selectedPlatform,
+        url: socialUrlInput.trim(),
+      },
+    ]);
 
-    setSocialLinks((prev) => [...prev, newLink]);
     setSocialUrlInput('');
     setSocialDirty(true);
   };
@@ -289,44 +302,134 @@ export function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 py-6 sm:py-8">
-      {/* 1. Card tổng quan hồ sơ sinh viên */}
-      <section className="relative overflow-hidden rounded-2xl border border-brand-border bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+      {/* 1. Card tổng quan hồ sơ sinh viên & Marketplace Hub */}
+      <section className="relative overflow-hidden rounded-2xl border border-brand-border bg-white p-5 sm:p-7 shadow-xs text-center">
+        {/* Avatar */}
+        <div className="flex justify-center">
           <div className="relative">
-            {user.avatar_url ? (
-              <img
-                src={user.avatar_url}
-                alt={user.full_name}
-                className="h-24 w-24 rounded-full border-2 border-brand-burgundy/20 object-cover shadow-sm"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-brand-burgundy/20 bg-brand-soft-pink text-brand-burgundy shadow-sm">
-                <User className="h-10 w-10" />
-              </div>
-            )}
+            <Avatar
+              src={user.avatar_url}
+              name={user.full_name}
+              size="xl"
+              className="border-2 border-brand-burgundy/20 shadow-xs"
+            />
+          </div>
+        </div>
+
+        {/* Identity Details */}
+        <div className="mt-3.5 space-y-1.5 min-w-0 max-w-full">
+          {/* Row 1: Full Name on its own row */}
+          <h1 className="text-lg sm:text-xl font-bold text-brand-text min-w-0 max-w-full break-words [overflow-wrap:anywhere] leading-snug">
+            {user.full_name}
+          </h1>
+
+          {/* Row 2: Role / Student Badge on its own row below name */}
+          <div className="flex items-center justify-center">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+              <Shield className="h-3.5 w-3.5" />
+              {user.role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên PTIT'}
+            </span>
           </div>
 
-          <div className="flex-1 text-center sm:text-left">
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <h1 className="text-xl font-bold text-brand-text sm:text-2xl">
-                {user.full_name}
-              </h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                <Shield className="h-3.5 w-3.5" />
-                {user.role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên PTIT'}
-              </span>
-            </div>
+          {/* Row 3: Email */}
+          <p className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-brand-text-muted min-w-0 max-w-full break-all">
+            <Mail className="h-3.5 w-3.5 shrink-0" />
+            <span>{user.email}</span>
+          </p>
 
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-brand-text-muted sm:justify-start">
-              <Mail className="h-4 w-4" />
-              {user.email}
+          {/* Row 4: Member since date */}
+          {user.created_at && (
+            <p className="flex items-center justify-center gap-1.5 text-xs text-brand-text-muted">
+              <Calendar className="h-3.5 w-3.5 shrink-0 text-brand-text-muted" />
+              <span>{formatMemberSince(user.created_at)}</span>
             </p>
+          )}
+        </div>
 
-            <p className="mt-2 text-xs text-brand-text-muted">
-              Đồng bộ từ tài khoản Google sinh viên. Ảnh đại diện và email được quản lý qua tài khoản Google.
+        {/* 3 Metrics: Reputation, Active Listings, Sold Count */}
+        <div className="mt-5 grid grid-cols-3 divide-x divide-brand-border/60 rounded-xl border border-brand-border/60 bg-stone-50/70 py-3 text-center">
+          {/* Reputation */}
+          <div className="px-2">
+            <div className="flex items-center justify-center gap-1 font-bold text-sm sm:text-base text-brand-text">
+              {isPublicProfileLoading ? (
+                <div className="h-4 w-10 bg-stone-200 animate-pulse rounded" />
+              ) : publicProfile?.review_count ? (
+                <>
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400 shrink-0" />
+                  <span>{(publicProfile.rating_average ?? 5).toFixed(1)}</span>
+                </>
+              ) : (
+                <>
+                  <Star className="h-4 w-4 text-stone-300 shrink-0" />
+                  <span>—</span>
+                </>
+              )}
+            </div>
+            <p className="mt-0.5 text-[11px] text-brand-text-secondary truncate">
+              {isPublicProfileLoading ? (
+                <span className="inline-block h-3 w-14 bg-stone-200 animate-pulse rounded" />
+              ) : publicProfile?.review_count ? (
+                `${publicProfile.review_count} đánh giá`
+              ) : (
+                'Chưa có đánh giá'
+              )}
+            </p>
+          </div>
+
+          {/* Active Listings */}
+          <div className="px-2">
+            <div className="flex items-center justify-center gap-1 font-bold text-sm sm:text-base text-brand-text">
+              {isPublicProfileLoading ? (
+                <div className="h-4 w-8 bg-stone-200 animate-pulse rounded" />
+              ) : (
+                <>
+                  <Package className="h-4 w-4 text-brand-burgundy shrink-0" />
+                  <span>{publicProfile?.active_listing_count ?? 0}</span>
+                </>
+              )}
+            </div>
+            <p className="mt-0.5 text-[11px] text-brand-text-secondary truncate">
+              Đang bán
+            </p>
+          </div>
+
+          {/* Sold Count */}
+          <div className="px-2">
+            <div className="flex items-center justify-center gap-1 font-bold text-sm sm:text-base text-brand-text">
+              {isPublicProfileLoading ? (
+                <div className="h-4 w-8 bg-stone-200 animate-pulse rounded" />
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>{publicProfile?.completed_sold_count ?? 0}</span>
+                </>
+              )}
+            </div>
+            <p className="mt-0.5 text-[11px] text-brand-text-secondary truncate">
+              Đã bán
             </p>
           </div>
         </div>
+
+        {/* Action: Single prominent "Xem hồ sơ công khai" CTA */}
+        <div className="mt-5">
+          <Link
+            to={`/users/${user.user_id}`}
+            state={{
+              fromApp: true,
+              returnTo: '/profile',
+              returnLabel: 'profile',
+            }}
+            className="btn-interactive flex w-full items-center justify-center gap-2 rounded-xl bg-brand-burgundy px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-brand-burgundy-dark no-underline"
+          >
+            <Eye className="h-4 w-4" />
+            <span>Xem hồ sơ công khai</span>
+          </Link>
+        </div>
+
+        <p className="mt-2.5 text-center text-[11px] text-brand-text-muted">
+          Tên và ảnh đại diện được đồng bộ từ tài khoản Google.
+        </p>
       </section>
 
       {/* 2. Card Tài khoản nhận tiền (VietQR) */}

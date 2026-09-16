@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useProduct } from '../hooks';
 import { useCurrentUser } from '@/features/users/hooks';
 import { ProductImageGallery } from '../components/ProductImageGallery';
@@ -14,6 +14,8 @@ import { useFavoriteIds, useToggleFavorite } from '@/features/favorites/hooks';
 import { DirectPurchaseModal } from '@/features/orders/components/DirectPurchaseModal';
 import { AuctionPanel } from '@/features/auctions/components/AuctionPanel';
 import { SellerAuctionModal } from '@/features/auctions/components/SellerAuctionModal';
+import { useCreateConversation } from '@/features/conversations/hooks';
+import { getSafeBackAction } from '@/lib/navigation';
 import {
   ArrowLeft,
   User,
@@ -28,25 +30,76 @@ import {
   Heart,
   ShoppingBag,
   Gavel,
+  Star,
   ChevronRight,
+  MessageSquare,
+  Loader2,
+  Flag,
+  CheckCircle,
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ReportModal } from '@/features/reports';
 
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const numericId = productId ? parseInt(productId, 10) : undefined;
 
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isSellerAuctionModalOpen, setIsSellerAuctionModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const { data: product, isLoading, isError, error } = useProduct(numericId);
   const { data: currentUser } = useCurrentUser();
   const { firebaseUser } = useAuth();
   const { data: favoriteIds } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
+  const createConversationMutation = useCreateConversation();
+  const [isStartingChat, setIsStartingChat] = useState(false);
 
   const isFavorite = product ? (favoriteIds?.has(product.product_id) ?? false) : false;
+
+  const handleStartChat = async () => {
+    if (!firebaseUser) {
+      navigate('/?auth=login');
+      return;
+    }
+    if (!product) return;
+
+    try {
+      setIsStartingChat(true);
+      const conv = await createConversationMutation.mutateAsync({
+        product_id: product.product_id,
+      });
+
+      const thumb =
+        product.images.find((img) => img.is_thumbnail)?.image_url ||
+        product.images[0]?.image_url ||
+        null;
+
+      const safeContext = {
+        product_id: product.product_id,
+        title: product.title,
+        price: product.price,
+        status: product.status,
+        thumbnail_url: thumb,
+        listing_type: product.listing_type,
+      };
+
+      navigate(
+        `/messages/${conv.conversation_id}?productId=${product.product_id}`,
+        {
+          state: { productContext: safeContext },
+        }
+      );
+    } catch (err) {
+      console.error('Failed to open chat:', err);
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -78,10 +131,10 @@ export function ProductDetailPage() {
           {(error as any)?.response?.data?.detail || 'Sản phẩm không tồn tại hoặc đã bị ẩn/xóa.'}
         </p>
         <Link
-          to="/products"
+          to="/"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-burgundy text-white font-medium text-sm hover:bg-brand-burgundy/90 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Về danh sách sản phẩm
+          <ArrowLeft className="h-4 w-4" /> Về trang chủ
         </Link>
       </div>
     );
@@ -90,16 +143,21 @@ export function ProductDetailPage() {
   const isOwner = currentUser?.user_id === product.seller.user_id;
   const listingMeta = getListingTypeMeta(product.listing_type);
 
+  const { label: backLabel, handleBack } = getSafeBackAction(location.state, '/');
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 space-y-6">
       {/* Top navigation */}
       <div className="flex items-center justify-between">
-        <Link
-          to="/products"
+        <button
+          type="button"
+          onClick={() => handleBack(navigate)}
           className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-brand-text-secondary hover:text-brand-burgundy transition-colors"
+          aria-label={backLabel}
         >
-          <ArrowLeft className="h-4 w-4" /> Quay lại
-        </Link>
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          <span>{backLabel}</span>
+        </button>
 
         {isOwner && (
           <div className="flex items-center gap-2">
@@ -218,10 +276,47 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            <div className="flex items-center gap-4 text-xs text-brand-text-muted pt-1">
+
+            {/* Direct Chat action for buyers */}
+            {!isOwner && product.status === 'AVAILABLE' && (
+              <div className="pt-1.5">
+                <button
+                  type="button"
+                  onClick={handleStartChat}
+                  disabled={isStartingChat}
+                  className="w-full py-2.5 px-4 rounded-2xl border-2 border-brand-burgundy/20 hover:border-brand-burgundy hover:bg-brand-soft-pink/30 text-brand-burgundy text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isStartingChat ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4" />
+                  )}
+                  Nhắn tin cho người bán
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-brand-text-muted pt-1">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" /> Đăng {formatRelativeTime(product.created_at)}
               </span>
+              {!isOwner && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!firebaseUser) {
+                      navigate('/?auth=login');
+                      return;
+                    }
+                    setIsReportModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  title="Báo cáo sản phẩm vi phạm"
+                >
+                  <Flag className="h-3.5 w-3.5" />
+                  <span>Báo cáo</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -254,7 +349,12 @@ export function ProductDetailPage() {
           </h3>
 
           <Link
-            to={`/users/${product.seller.user_id}`}
+            to={`/users/${product.seller.user_id}?tab=sold`}
+            state={{
+              fromApp: true,
+              returnTo: location.pathname + location.search + location.hash,
+              returnLabel: 'product',
+            }}
             className="group flex items-center gap-3.5 pt-1 p-2 -mx-2 -mt-1 rounded-2xl hover:bg-brand-soft-pink/50 transition-colors cursor-pointer"
             aria-label={`Xem hồ sơ của ${product.seller.full_name}`}
           >
@@ -271,11 +371,22 @@ export function ProductDetailPage() {
             )}
 
             <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-bold text-brand-text truncate group-hover:text-brand-burgundy transition-colors">
-                {product.seller.full_name}
-              </h4>
-              <p className="text-xs text-brand-text-muted">
-                Thành viên từ {formatDate(product.seller.created_at)}
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-brand-text truncate group-hover:text-brand-burgundy transition-colors">
+                  {product.seller.full_name}
+                </h4>
+                {product.seller.rating_average !== null &&
+                  product.seller.rating_average !== undefined && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200/60 shrink-0">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      {product.seller.rating_average.toFixed(1)}
+                    </span>
+                  )}
+              </div>
+              <p className="text-xs text-brand-text-muted mt-0.5">
+                {product.seller.review_count && product.seller.review_count > 0
+                  ? `${product.seller.review_count} đánh giá · Thành viên từ ${formatDate(product.seller.created_at)}`
+                  : `Thành viên từ ${formatDate(product.seller.created_at)}`}
               </p>
             </div>
 
@@ -313,6 +424,29 @@ export function ProductDetailPage() {
         onClose={() => setIsSellerAuctionModalOpen(false)}
         product={product}
       />
+
+      {/* Report Modal */}
+      {product && (
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          targetType="PRODUCT"
+          targetId={product.product_id}
+          targetTitle={`Sản phẩm: ${product.title}`}
+          onSuccess={() => {
+            setSuccessToast('Đã gửi báo cáo. Ban quản trị sẽ xem xét.');
+            setTimeout(() => setSuccessToast(null), 4000);
+          }}
+        />
+      )}
+
+      {/* Success Toast */}
+      {successToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-xs sm:text-sm font-semibold text-white shadow-xl animate-in slide-in-from-bottom-5">
+          <CheckCircle className="h-4 w-4 shrink-0" />
+          <span>{successToast}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,35 +1,13 @@
-import React, { useState } from 'react';
-import { History, ShieldCheck, Crown, User } from 'lucide-react';
+import React from 'react';
+import { History, ShieldCheck, Crown } from 'lucide-react';
 import { useAuctionBids } from '../hooks';
 import { formatVND, parseServerDateTime } from '@/lib/formatters';
+import { Avatar } from '@/components/common/Avatar';
 
 interface RecentBidsListProps {
   auctionId: number;
 }
 
-const BidderAvatar: React.FC<{ avatarUrl?: string | null; displayName: string }> = ({
-  avatarUrl,
-  displayName,
-}) => {
-  const [hasError, setHasError] = useState(false);
-
-  if (avatarUrl && !hasError) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={displayName}
-        onError={() => setHasError(true)}
-        className="w-7 h-7 rounded-full object-cover border border-gray-200/80 shadow-2xs shrink-0"
-      />
-    );
-  }
-
-  return (
-    <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-400 border border-gray-200 flex items-center justify-center shrink-0">
-      <User className="w-3.5 h-3.5" />
-    </div>
-  );
-};
 
 export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => {
   const { data, isLoading } = useAuctionBids(auctionId);
@@ -86,54 +64,57 @@ export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => 
             return (
               <div
                 key={bid.bid_id}
-                className={`flex items-center justify-between py-2.5 px-3 rounded-xl transition-colors ${
+                className={`flex items-center gap-2.5 py-2.5 px-3 rounded-xl transition-colors ${
                   isLeading
                     ? 'bg-amber-50/60 border border-amber-200/70 shadow-2xs'
                     : 'hover:bg-gray-50/80'
                 }`}
               >
-                {/* Left: Avatar + Names + Badges */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {isLeading && (
-                    <Crown className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
-                  )}
+                {/* Crown (Leader only) */}
+                {isLeading && (
+                  <Crown className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
+                )}
 
-                  <BidderAvatar
-                    avatarUrl={bid.bidder_avatar_url}
-                    displayName={displayName}
-                  />
+                {/* Avatar */}
+                <Avatar
+                  src={bid.bidder_avatar_url}
+                  name={displayName}
+                  size="xs"
+                  className="w-7 h-7 border border-gray-200/80 shadow-2xs"
+                />
 
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`text-xs truncate ${
-                          bid.is_current_user
-                            ? 'font-extrabold text-emerald-800'
-                            : 'font-semibold text-gray-800'
-                        }`}
-                      >
-                        {displayName}
-                      </span>
-                    </div>
+                {/* Middle: Identity + Meta (flex-1 min-w-0) */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <div className="min-w-0">
+                    <span
+                      className={`text-xs truncate block ${
+                        bid.is_current_user
+                          ? 'font-extrabold text-emerald-800'
+                          : 'font-semibold text-gray-800'
+                      }`}
+                      title={displayName}
+                    >
+                      {displayName}
+                    </span>
+                  </div>
 
-                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                      {isLeading && (
-                        <>
-                          <span className="font-bold text-[10px] text-amber-800 bg-amber-100/90 px-1.5 py-0.2 rounded-md border border-amber-200/80">
-                            Dẫn đầu
-                          </span>
-                          <span>·</span>
-                        </>
-                      )}
-                      <span>{timeFormatted}</span>
-                    </div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 min-w-0">
+                    {isLeading && (
+                      <>
+                        <span className="font-bold text-[10px] text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded-md border border-amber-200/80 shrink-0 leading-tight">
+                          Dẫn đầu
+                        </span>
+                        <span className="shrink-0">·</span>
+                      </>
+                    )}
+                    <span className="truncate">{timeFormatted}</span>
                   </div>
                 </div>
 
-                {/* Right: Amount */}
-                <div className="text-right shrink-0 pl-2">
+                {/* Right: Amount (shrink-0 whitespace-nowrap text-right) */}
+                <div className="shrink-0 text-right whitespace-nowrap pl-1">
                   <span
-                    className={`text-xs font-bold ${
+                    className={`text-xs font-bold block ${
                       isLeading
                         ? 'text-amber-800 font-extrabold'
                         : 'text-gray-900 font-semibold'

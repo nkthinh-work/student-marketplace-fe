@@ -14,7 +14,11 @@ import { FavoritesPage } from '@/features/favorites/pages/FavoritesPage';
 import { BuyingOrdersPage } from '@/features/orders/pages/BuyingOrdersPage';
 import { SellingOrdersPage } from '@/features/orders/pages/SellingOrdersPage';
 import { OrderDetailPage } from '@/features/orders/pages/OrderDetailPage';
-import { usePrivateRealtime } from '@/features/orders/usePrivateRealtime';
+import { ConversationsPage } from '@/features/conversations/pages/ConversationsPage';
+import { ChatThreadPage } from '@/features/conversations/pages/ChatThreadPage';
+import { NotificationsPage } from '@/features/notifications';
+import { AuctionRedirectPage } from '@/features/auctions/pages/AuctionRedirectPage';
+import { usePrivateRealtime } from '@/app/realtime/usePrivateRealtime';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,8 +38,8 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <PrivateRealtimeBridge />
         <BrowserRouter>
+          <PrivateRealtimeBridge />
           <div className="min-h-screen bg-brand-cream text-brand-text flex flex-col">
             <Header />
             <main className="flex-1">
@@ -129,8 +133,42 @@ export function App() {
                   }
                 />
 
+                {/* Messages List (Protected) */}
+                <Route
+                  path="/messages"
+                  element={
+                    <ProtectedRoute>
+                      <ConversationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Chat Thread (Protected) */}
+                <Route
+                  path="/messages/:conversationId"
+                  element={
+                    <ProtectedRoute>
+                      <ChatThreadPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Notifications (Protected) */}
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <NotificationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Auction Redirect (Public / Optional Auth) */}
+                <Route path="/auctions/:auctionId" element={<AuctionRedirectPage />} />
+
                 {/* Fallback Catch-all */}
                 <Route path="*" element={<Navigate to="/" replace />} />
+
               </Routes>
             </main>
           </div>

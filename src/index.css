@@ -59,6 +59,7 @@ body {
 
 /* ===== Reduced Motion ===== */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -74,6 +75,7 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -84,11 +86,13 @@ body {
     0 1px 3px rgba(114, 47, 55, 0.06),
     0 1px 2px rgba(114, 47, 55, 0.04);
 }
+
 .elevation-2 {
   box-shadow:
     0 2px 8px rgba(114, 47, 55, 0.08),
     0 1px 3px rgba(114, 47, 55, 0.06);
 }
+
 .elevation-3 {
   box-shadow:
     0 4px 16px rgba(114, 47, 55, 0.10),
@@ -113,20 +117,25 @@ body {
 .btn-interactive {
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
+
 .card-interactive {
   transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease, background-color 250ms ease;
 }
+
 .chip-interactive {
   transition: box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease;
 }
+
 .chip-interactive--selected {
   box-shadow:
     0 2px 8px rgba(114, 47, 55, 0.18),
     0 1px 2px rgba(114, 47, 55, 0.10);
 }
+
 .icon-btn-interactive {
   transition: transform 180ms ease, background-color 180ms ease;
 }
+
 .heart-preview,
 .heart-btn {
   transition: transform 200ms ease, color 200ms ease, background-color 200ms ease;
@@ -140,6 +149,7 @@ body {
       0 4px 12px rgba(114, 47, 55, 0.12),
       0 1px 3px rgba(114, 47, 55, 0.08);
   }
+
   .btn-interactive:active {
     transform: translateY(0) scale(0.98);
     box-shadow: 0 1px 2px rgba(114, 47, 55, 0.06);
@@ -152,6 +162,7 @@ body {
       0 2px 6px rgba(114, 47, 55, 0.06);
     border-color: rgba(114, 47, 55, 0.15);
   }
+
   .card-interactive:active {
     transform: translateY(-1px) scale(0.99);
     box-shadow:
@@ -166,6 +177,7 @@ body {
   .icon-btn-interactive:hover {
     transform: scale(1.05);
   }
+
   .icon-btn-interactive:active {
     transform: scale(0.93);
   }
@@ -174,6 +186,7 @@ body {
   .heart-btn:hover {
     transform: scale(1.15);
   }
+
   .heart-preview:active,
   .heart-btn:active {
     transform: scale(0.9);
@@ -217,15 +230,63 @@ body {
     transform: translateY(16px);
     transition: opacity 400ms ease-out, transform 400ms ease-out;
   }
+
   .reveal-visible {
     opacity: 1;
     transform: translateY(0);
   }
 
-  .stagger-1 { transition-delay: 60ms; }
-  .stagger-2 { transition-delay: 120ms; }
-  .stagger-3 { transition-delay: 180ms; }
-  .stagger-4 { transition-delay: 240ms; }
-  .stagger-5 { transition-delay: 300ms; }
-  .stagger-6 { transition-delay: 360ms; }
+  .stagger-1 {
+    transition-delay: 60ms;
+  }
+
+  .stagger-2 {
+    transition-delay: 120ms;
+  }
+
+  .stagger-3 {
+    transition-delay: 180ms;
+  }
+
+  .stagger-4 {
+    transition-delay: 240ms;
+  }
+
+  .stagger-5 {
+    transition-delay: 300ms;
+  }
+
+  .stagger-6 {
+    transition-delay: 360ms;
+  }
+}
+
+.recent-review-marquee-track,
+.review-conveyor-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  touch-action: pan-y;
+}
+
+/* ===== Streak Flame Activation ===== */
+@keyframes flame-activate {
+  0% {
+    transform: scale(0.9);
+    filter: drop-shadow(0 0 0px rgba(245, 158, 11, 0));
+  }
+  50% {
+    transform: scale(1.22);
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.7));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0px rgba(245, 158, 11, 0));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-flame-pulse {
+    animation: flame-activate 650ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
 }

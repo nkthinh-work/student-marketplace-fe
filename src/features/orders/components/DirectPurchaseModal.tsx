@@ -7,6 +7,7 @@ import { createOrderSchema, type CreateOrderFormValues } from "../schemas";
 import { useCreateOrder } from "../hooks";
 import type { ProductDetailResponse } from "@/features/products/types";
 import { useCurrentUser } from "@/features/users/hooks";
+import { formatVND } from "@/lib/formatters";
 
 interface DirectPurchaseModalProps {
   product: ProductDetailResponse;
@@ -102,11 +103,11 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
               {isFree ? (
                 <span className="inline-flex items-center gap-1 text-sm font-black text-emerald-600">
                   <Gift className="w-4 h-4" />
-                  Miễn phí (0 đ)
+                  Miễn phí (0 ₫)
                 </span>
               ) : (
-                <p className="text-sm font-black text-brand-price">
-                  {Number(product.price).toLocaleString("vi-VN")} đ
+                <p className="text-sm font-black text-brand-price whitespace-nowrap tabular-nums">
+                  {formatVND(product.price)}
                 </p>
               )}
             </div>
@@ -295,15 +296,15 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
           </div>
 
           {/* Total & Submit */}
-          <div className="pt-2 border-t border-brand-border/60 flex items-center justify-between">
-            <div>
+          <div className="pt-3 border-t border-brand-border/60 flex flex-wrap items-end justify-between gap-3">
+            <div className="flex-none">
               <span className="text-xs text-brand-text-muted block">Tổng thanh toán:</span>
-              <span className="text-lg font-black text-brand-price">
-                {isFree ? "0 đ (Miễn phí)" : `${totalAmount.toLocaleString("vi-VN")} đ`}
+              <span className="text-lg font-black text-brand-price whitespace-nowrap tabular-nums block">
+                {isFree ? "0 ₫ (Miễn phí)" : formatVND(totalAmount)}
               </span>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center flex-none gap-2 ml-auto">
               <button
                 type="button"
                 onClick={onClose}
