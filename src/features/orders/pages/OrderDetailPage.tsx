@@ -93,9 +93,9 @@ export const OrderDetailPage: React.FC = () => {
   const isCompleted = order?.status === "COMPLETED";
   const isParticipant = Boolean(
     currentUser &&
-      order &&
-      (currentUser.user_id === order.buyer_id ||
-        currentUser.user_id === order.seller_id)
+    order &&
+    (currentUser.user_id === order.buyer_id ||
+      currentUser.user_id === order.seller_id)
   );
   const { data: reviewData, isLoading: isLoadingReview } = useOrderReview(
     idNum,
@@ -243,7 +243,7 @@ export const OrderDetailPage: React.FC = () => {
   return (
     <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6 space-y-4">
       {/* 1. Top navigation & Unified Contextual Status */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
         <button
           onClick={() => {
             if (window.history.length > 1) {
@@ -252,13 +252,13 @@ export const OrderDetailPage: React.FC = () => {
               navigate(isBuyer ? "/orders/buying" : "/orders/selling", { replace: true });
             }
           }}
-          className="btn-interactive inline-flex items-center gap-1.5 text-xs font-bold text-brand-text-muted hover:text-brand-burgundy transition-colors"
+          className="btn-interactive inline-flex items-center gap-1.5 text-xs font-semibold text-brand-text-muted hover:text-brand-burgundy transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Quay lại</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-none">
           <OrderStatusBadge order={order} role={isBuyer ? "buyer" : "seller"} />
         </div>
       </div>
@@ -283,11 +283,11 @@ export const OrderDetailPage: React.FC = () => {
       <div className="bg-brand-warm-white rounded-3xl p-5 sm:p-6 shadow-card border border-brand-border space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-border/60 pb-3.5">
           <div>
-            <span className="text-[11px] font-mono text-brand-text-muted uppercase tracking-wider block">
+            <span className="text-xs font-medium text-brand-text-muted block">
               Mã đơn hàng
             </span>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-black font-mono text-brand-text">
+              <h2 className="text-lg sm:text-xl font-bold tabular-nums text-brand-text">
                 {order.order_code}
               </h2>
               <button
@@ -329,8 +329,16 @@ export const OrderDetailPage: React.FC = () => {
           {/* Seller Confirm Order */}
           {canSellerConfirmOrder && (
             <button
+              data-ui-role="seller-confirm-order"
               onClick={() => setIsConfirmModalOpen(true)}
-              className="btn-interactive px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+              className="ui-primary-order-action btn-interactive px-4 py-2 rounded-2xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
+              style={{
+                backgroundColor: '#722F37',
+                color: '#FFFFFF',
+                WebkitTextFillColor: '#FFFFFF',
+                border: '1px solid #722F37',
+                opacity: 1,
+              }}
             >
               <CheckCircle2 className="w-4 h-4" />
               Xác nhận đơn hàng
@@ -342,7 +350,7 @@ export const OrderDetailPage: React.FC = () => {
             <button
               onClick={handleConfirmPayment}
               disabled={confirmPaymentMutation.isPending}
-              className="btn-interactive px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="btn-interactive px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
             >
               {confirmPaymentMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -358,7 +366,7 @@ export const OrderDetailPage: React.FC = () => {
             <button
               onClick={handleMarkDelivering}
               disabled={markDeliveringMutation.isPending}
-              className="btn-interactive px-4 py-2 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="btn-interactive px-4 py-2 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
             >
               {markDeliveringMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -374,7 +382,7 @@ export const OrderDetailPage: React.FC = () => {
             <button
               onClick={handleCompleteOrder}
               disabled={completeOrderMutation.isPending}
-              className="btn-interactive px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="btn-interactive px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
             >
               {completeOrderMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -390,7 +398,7 @@ export const OrderDetailPage: React.FC = () => {
             type="button"
             onClick={handleOpenChat}
             disabled={createConversationFromOrderMutation.isPending}
-            className="btn-interactive px-3.5 py-2 rounded-2xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+            className="btn-interactive px-3.5 py-2 rounded-2xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-800 text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5"
           >
             {createConversationFromOrderMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -404,7 +412,7 @@ export const OrderDetailPage: React.FC = () => {
           {canCancelOrder && (
             <button
               onClick={() => setIsCancelModalOpen(true)}
-              className="btn-interactive px-3.5 py-2 rounded-2xl border border-red-200 bg-white hover:bg-red-50 text-red-600 text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+              className="btn-interactive px-3.5 py-2 rounded-2xl border border-red-200 bg-white hover:bg-red-50 text-red-600 text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5"
             >
               <XCircle className="w-4 h-4" />
               Hủy đơn
@@ -450,9 +458,8 @@ export const OrderDetailPage: React.FC = () => {
             <div className="min-w-0 text-right">
               <span className="text-xs text-brand-text-muted block mb-0.5">Tổng giá trị</span>
               <span
-                className={`text-base sm:text-lg font-black whitespace-nowrap tabular-nums block ${
-                  isFreeOrder ? "text-emerald-700" : "text-brand-price"
-                }`}
+                className={`text-base sm:text-lg font-bold whitespace-nowrap tabular-nums block ${isFreeOrder ? "text-emerald-700" : "text-brand-price"
+                  }`}
               >
                 {isFreeOrder ? "Miễn phí" : formatVND(order.total_amount)}
               </span>
@@ -472,7 +479,7 @@ export const OrderDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
         {/* Participant Info */}
         <div className="bg-brand-warm-white rounded-3xl p-5 shadow-card border border-brand-border space-y-3 min-w-0">
-          <h4 className="text-xs font-bold text-brand-text-muted uppercase tracking-wider">
+          <h4 className="text-xs font-semibold text-brand-text-secondary">
             {isBuyer ? "Thông tin người bán" : "Thông tin người mua"}
           </h4>
           <Link
@@ -537,7 +544,7 @@ export const OrderDetailPage: React.FC = () => {
         {/* Fulfillment Info */}
         <div className="bg-brand-warm-white rounded-3xl p-5 shadow-card border border-brand-border space-y-3 min-w-0">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-brand-text-muted uppercase tracking-wider">
+            <h4 className="text-xs font-semibold text-brand-text-secondary">
               Giao nhận
             </h4>
             {canSellerEditTerms && (
@@ -560,7 +567,7 @@ export const OrderDetailPage: React.FC = () => {
 
             <div>
               <span className="text-brand-text-muted block text-[11px] mb-0.5">Số điện thoại</span>
-              <p className="font-semibold text-brand-text text-xs sm:text-sm font-mono whitespace-nowrap">
+              <p className="font-medium tabular-nums text-brand-text text-xs sm:text-sm whitespace-nowrap">
                 {order.contact_phone}
               </p>
             </div>
@@ -659,7 +666,7 @@ export const OrderDetailPage: React.FC = () => {
             <div className="space-y-4 min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200">
                 <span className="text-xs font-medium text-amber-900">Số tiền cần thanh toán:</span>
-                <span className="text-lg font-black text-brand-price font-mono whitespace-nowrap tabular-nums">
+                <span className="text-lg font-bold text-brand-price whitespace-nowrap tabular-nums">
                   {formatVND(order.total_amount)}
                 </span>
               </div>
@@ -671,7 +678,7 @@ export const OrderDetailPage: React.FC = () => {
                     <div>
                       <span className="text-brand-text-muted block text-[11px] mb-1">Ngân hàng thụ hưởng</span>
                       <div className="flex items-start gap-2 min-w-0">
-                        <span className="px-2 py-0.5 rounded-md bg-brand-burgundy/10 text-brand-burgundy font-bold font-mono text-[11px] shrink-0 mt-0.5">
+                        <span className="px-2 py-0.5 rounded-md bg-brand-burgundy/10 text-brand-burgundy font-semibold tabular-nums text-[11px] shrink-0 mt-0.5">
                           {order.payment_bank.bank_short_name || order.payment_bank.bank_bin}
                         </span>
                         <span className="font-semibold text-brand-text leading-snug break-words min-w-0 flex-1">
@@ -683,7 +690,7 @@ export const OrderDetailPage: React.FC = () => {
                     <div>
                       <span className="text-brand-text-muted block text-[11px] mb-1">Số tài khoản</span>
                       <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white border border-brand-border min-w-0">
-                        <span className="font-mono text-sm font-bold text-brand-text truncate min-w-0 select-all">
+                        <span className="font-semibold tabular-nums text-sm text-brand-text truncate min-w-0 select-all">
                           {order.payment_bank.account_number}
                         </span>
                         <button
@@ -708,7 +715,7 @@ export const OrderDetailPage: React.FC = () => {
 
                     <div>
                       <span className="text-brand-text-muted block text-[11px] mb-1">Chủ tài khoản</span>
-                      <p className="font-mono font-bold uppercase text-brand-text text-sm break-words min-w-0">
+                      <p className="font-semibold uppercase text-brand-text text-sm break-words min-w-0">
                         {order.payment_bank.account_name}
                       </p>
                     </div>
@@ -716,7 +723,7 @@ export const OrderDetailPage: React.FC = () => {
                     <div>
                       <span className="text-brand-text-muted block text-[11px] mb-1">Nội dung chuyển tiền</span>
                       <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white border border-brand-border min-w-0">
-                        <span className="font-mono text-xs font-bold text-brand-text truncate min-w-0 select-all">
+                        <span className="font-medium tabular-nums text-xs text-brand-text truncate min-w-0 select-all">
                           {order.order_code}
                         </span>
                         <button
@@ -830,7 +837,7 @@ export const OrderDetailPage: React.FC = () => {
             <div className="space-y-3 text-xs min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 p-3.5 rounded-2xl bg-stone-50 border border-brand-border">
                 <span className="font-medium text-brand-text-muted text-xs">Số tiền thanh toán:</span>
-                <span className="text-base sm:text-lg font-black text-brand-price font-mono whitespace-nowrap tabular-nums">
+                <span className="text-base sm:text-lg font-bold text-brand-price whitespace-nowrap tabular-nums">
                   {formatVND(order.total_amount)}
                 </span>
               </div>
@@ -888,12 +895,12 @@ export const OrderDetailPage: React.FC = () => {
                   {reviewData.rating === 5
                     ? "Rất hài lòng"
                     : reviewData.rating === 4
-                    ? "Hài lòng"
-                    : reviewData.rating === 3
-                    ? "Bình thường"
-                    : reviewData.rating === 2
-                    ? "Không hài lòng"
-                    : "Rất không hài lòng"}
+                      ? "Hài lòng"
+                      : reviewData.rating === 3
+                        ? "Bình thường"
+                        : reviewData.rating === 2
+                          ? "Không hài lòng"
+                          : "Rất không hài lòng"}
                 </span>
                 <span className="text-[11px] text-brand-text-muted sm:ml-auto">
                   {new Date(reviewData.updated_at || reviewData.created_at).toLocaleDateString("vi-VN")}
@@ -943,7 +950,7 @@ export const OrderDetailPage: React.FC = () => {
 
       {/* 7. Order Timeline / History Card */}
       <div className="bg-brand-warm-white rounded-3xl p-5 sm:p-6 shadow-card border border-brand-border space-y-3">
-        <h4 className="text-xs font-bold text-brand-text-muted uppercase tracking-wider">
+        <h4 className="text-xs font-semibold text-brand-text-secondary">
           Lịch sử đơn hàng
         </h4>
         <div className="space-y-3 text-xs">
@@ -1132,9 +1139,9 @@ export const OrderDetailPage: React.FC = () => {
 
             <div className="space-y-1 text-xs text-brand-text">
               <div className="font-bold">{order.payment_bank.bank_name}</div>
-              <div className="font-mono text-sm">{order.payment_bank.account_number}</div>
-              <div className="font-mono uppercase font-bold">{order.payment_bank.account_name}</div>
-              <div className="font-black text-brand-price text-base pt-1 whitespace-nowrap tabular-nums">
+              <div className="font-semibold tabular-nums text-sm">{order.payment_bank.account_number}</div>
+              <div className="font-semibold uppercase">{order.payment_bank.account_name}</div>
+              <div className="font-bold text-brand-price text-base pt-1 whitespace-nowrap tabular-nums">
                 {formatVND(order.total_amount)}
               </div>
             </div>

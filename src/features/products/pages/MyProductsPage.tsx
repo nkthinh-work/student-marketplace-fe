@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useMyProducts } from '../hooks';
-import type { ProductStatus } from '../types';
+import type { ProductStatus, SellerProductResponse } from '../types';
 import { SellerProductCard } from '../components/SellerProductCard';
 import {
   Package,
@@ -15,6 +15,90 @@ import {
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
+function sortSellerProducts(
+  items: SellerProductResponse[],
+  statusFilter?: ProductStatus,
+): SellerProductResponse[] {
+  // If viewing HIDDEN or SOLD_OUT: strict deterministic newest-first
+  if (statusFilter === 'HIDDEN' || statusFilter === 'SOLD_OUT') {
+    return [...items].sort((a, b) => {
+      const timeDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return b.product_id - a.product_id;
+    });
+  }
+
+  // Priority tiers for AVAILABLE / Tất cả:
+  // Tier 1: ACTIVE Auction (ends_at ASC)
+  // Tier 2: Winner Waiting Checkout ("Chờ người thắng" - deadline ASC if present)
+  // Tier 3: SCHEDULED Auction (starts_at ASC)
+  // Tier 4: Ordinary listings (created_at DESC)
+  const getPriorityTier = (p: SellerProductResponse): number => {
+    // Only AVAILABLE products receive live time-sensitive auction priority
+    if (p.status !== 'AVAILABLE') return 4;
+
+    // Group 1: ACTIVE Auction
+    if (p.listing_type === 'AUCTION' && p.auction?.status === 'ACTIVE') {
+      return 1;
+    }
+
+    // Group 2: Winner Waiting Checkout ("Chờ người thắng")
+    const isWaitingWinner =
+      p.listing_type === 'AUCTION' &&
+      (p.reserved_stock > 0 || (p.auction?.status === 'ENDED' && !!p.auction?.winner_checkout_deadline));
+    if (isWaitingWinner) {
+      return 2;
+    }
+
+    // Group 3: SCHEDULED Auction
+    if (p.listing_type === 'AUCTION' && p.auction?.status === 'SCHEDULED') {
+      return 3;
+    }
+
+    // Group 4: Ordinary listings (FIXED_PRICE or others)
+    return 4;
+  };
+
+  return [...items].sort((a, b) => {
+    const tierA = getPriorityTier(a);
+    const tierB = getPriorityTier(b);
+
+    if (tierA !== tierB) {
+      return tierA - tierB;
+    }
+
+    // Within Group 1 (ACTIVE Auctions): sort by ends_at ASC (ending soonest first)
+    if (tierA === 1 && a.auction?.ends_at && b.auction?.ends_at) {
+      const diff = new Date(a.auction.ends_at).getTime() - new Date(b.auction.ends_at).getTime();
+      if (diff !== 0) return diff;
+    }
+
+    // Within Group 2 (Winner Waiting): sort by deadline ASC if available
+    if (tierA === 2) {
+      const deadlineA = a.auction?.winner_checkout_deadline
+        ? new Date(a.auction.winner_checkout_deadline).getTime()
+        : Infinity;
+      const deadlineB = b.auction?.winner_checkout_deadline
+        ? new Date(b.auction.winner_checkout_deadline).getTime()
+        : Infinity;
+      if (deadlineA !== deadlineB && deadlineA !== Infinity && deadlineB !== Infinity) {
+        return deadlineA - deadlineB;
+      }
+    }
+
+    // Within Group 3 (SCHEDULED Auctions): sort by starts_at ASC (starting soonest first)
+    if (tierA === 3 && a.auction?.starts_at && b.auction?.starts_at) {
+      const diff = new Date(a.auction.starts_at).getTime() - new Date(b.auction.starts_at).getTime();
+      if (diff !== 0) return diff;
+    }
+
+    // Default within tier or Group 4: deterministic newest-first (created_at DESC, then product_id DESC)
+    const timeDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    return b.product_id - a.product_id;
+  });
+}
+
 export function MyProductsPage() {
   const [selectedStatus, setSelectedStatus] = useState<ProductStatus | undefined>(
     undefined,
@@ -24,7 +108,11 @@ export function MyProductsPage() {
     status: selectedStatus,
   });
 
-  const products = data?.items || [];
+  const rawProducts = data?.items || [];
+  const products = useMemo(
+    () => sortSellerProducts(rawProducts, selectedStatus),
+    [rawProducts, selectedStatus],
+  );
 
   const filterTabs: Array<{ id: ProductStatus | undefined; label: string; icon: React.ReactNode }> = [
     { id: undefined, label: 'Tất cả', icon: <Package className="h-3.5 w-3.5" /> },

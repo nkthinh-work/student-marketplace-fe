@@ -83,7 +83,7 @@ export const UploadReceiptModal: React.FC<UploadReceiptModalProps> = ({
         <form onSubmit={handleUpload} className="space-y-3.5 pt-3.5">
           <p className="text-xs text-brand-text-secondary">
             Tải lên ảnh chụp màn hình giao dịch chuyển khoản cho đơn hàng{" "}
-            <span className="font-mono font-bold text-brand-text">
+            <span className="font-semibold tabular-nums text-brand-text">
               {order.order_code}
             </span>.
           </p>

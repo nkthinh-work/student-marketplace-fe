@@ -5,12 +5,20 @@ import type {
   PublicUserProfileResponse,
   SoldProductListResponse,
   SupportedBank,
+  UserAccessStatusResponse,
   UserResponse,
   UserUpdate,
 } from './types';
 
 export async function fetchCurrentUser(): Promise<UserResponse> {
   const { data } = await apiClient.get<UserResponse>('/api/v1/users/me');
+  return data;
+}
+
+export async function fetchUserAccessStatus(): Promise<UserAccessStatusResponse> {
+  const { data } = await apiClient.get<UserAccessStatusResponse>(
+    '/api/v1/users/me/access-status',
+  );
   return data;
 }
 

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Gavel, Clock, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { ProductDetailResponse } from '@/features/products/types';
 import { useCreateAuction } from '../hooks';
+import { useUserAccessStatus } from '@/features/users/hooks';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import { formatVND, formatNumberVND, normalizeMoney } from '@/lib/formatters';
 
@@ -40,6 +41,9 @@ export const SellerAuctionModal: React.FC<SellerAuctionModalProps> = ({
   product,
   isNewRound = false,
 }) => {
+  const { data: accessStatus } = useUserAccessStatus();
+  const isSellRestricted = accessStatus?.can_sell === false;
+
   const [bidStep, setBidStep] = useState<number>(10000);
   const [isCustomDuration, setIsCustomDuration] = useState<boolean>(false);
   const [presetMinutes, setPresetMinutes] = useState<number>(180); // 3 hours default
@@ -78,6 +82,11 @@ export const SellerAuctionModal: React.FC<SellerAuctionModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (isSellRestricted) {
+      setErrorMessage('Tài khoản của bạn đang bị giới hạn quyền bán hàng/đấu giá.');
+      return;
+    }
 
     const normalizedBidStep = normalizeMoney(bidStep);
     if (normalizedBidStep <= 0) {
@@ -190,11 +199,10 @@ export const SellerAuctionModal: React.FC<SellerAuctionModalProps> = ({
                       key={preset.minutes}
                       type="button"
                       onClick={() => setPresetMinutes(preset.minutes)}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
-                        isSelected
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${isSelected
                           ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-xs'
                           : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       {preset.label}
                     </button>
@@ -243,6 +251,14 @@ export const SellerAuctionModal: React.FC<SellerAuctionModalProps> = ({
             </span>
           </div>
 
+          {/* Sell restriction warning banner */}
+          {isSellRestricted && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium flex items-center gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>Tài khoản của bạn đang bị giới hạn quyền bán hàng/thiết lập đấu giá.</span>
+            </div>
+          )}
+
           {/* Error message */}
           {errorMessage && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium flex items-center gap-2 animate-in fade-in">
@@ -263,8 +279,8 @@ export const SellerAuctionModal: React.FC<SellerAuctionModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-2"
+              disabled={createMutation.isPending || isSellRestricted}
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-2 disabled:opacity-50"
             >
               <Gavel className="w-4 h-4" />
               {createMutation.isPending ? 'Đang kích hoạt...' : 'Bắt đầu đấu giá'}

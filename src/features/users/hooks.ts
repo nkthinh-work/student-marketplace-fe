@@ -5,6 +5,7 @@ import {
   fetchMyBankAccount,
   fetchPublicUserProfile,
   fetchSupportedBanks,
+  fetchUserAccessStatus,
   fetchUserSoldProducts,
   updateCurrentUser,
   updateMyBankAccount,
@@ -14,6 +15,8 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export const CURRENT_USER_KEY = ['currentUser'] as const;
 export const currentUserQueryKey = (uid?: string | null) => ['currentUser', uid ?? null] as const;
+export const USER_ACCESS_STATUS_KEY = ['userAccessStatus'] as const;
+export const userAccessStatusQueryKey = (uid?: string | null) => ['userAccessStatus', uid ?? null] as const;
 export const MY_BANK_ACCOUNT_KEY = ['myBankAccount'] as const;
 export const myBankAccountQueryKey = (uid?: string | null) => ['myBankAccount', uid ?? null] as const;
 export const SUPPORTED_BANKS_KEY = ['supportedBanks'] as const;
@@ -39,6 +42,19 @@ export function useCurrentUser() {
       }
       return failureCount < 2;
     },
+  });
+}
+
+// Hook lấy trạng thái quyền tài khoản (can_buy, can_sell, active_restrictions)
+export function useUserAccessStatus() {
+  const { firebaseUser } = useAuth();
+  const uid = firebaseUser?.uid;
+
+  return useQuery({
+    queryKey: userAccessStatusQueryKey(uid),
+    queryFn: fetchUserAccessStatus,
+    enabled: !!uid,
+    staleTime: 30 * 1000,
   });
 }
 

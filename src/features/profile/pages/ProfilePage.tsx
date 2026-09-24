@@ -32,7 +32,6 @@ import {
   AlertCircle,
   Save,
   LogOut,
-  Link2,
   Facebook,
   Instagram,
   Linkedin,
@@ -433,43 +432,43 @@ export function ProfilePage() {
       </section>
 
       {/* 2. Card Tài khoản nhận tiền (VietQR) */}
-      <section className="rounded-2xl border border-brand-border bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col justify-between gap-4 border-b border-brand-border pb-5 sm:flex-row sm:items-center">
+      <section className="rounded-2xl border border-brand-border bg-white p-5 sm:p-7 shadow-xs">
+        <div className="flex flex-col gap-3 pb-4 border-b border-brand-border/60 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft-pink text-brand-burgundy">
               <Landmark className="h-5 w-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-brand-text">Tài khoản nhận tiền</h2>
-                <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-brand-text">Tài khoản nhận tiền</h2>
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-200 flex-none">
                   <QrCode className="h-3 w-3" />
                   VietQR
                 </span>
               </div>
-              <p className="text-xs text-brand-text-muted">
+              <p className="text-xs text-brand-text-muted mt-0.5 leading-relaxed">
                 Tài khoản ngân hàng dùng để tạo mã VietQR tự động khi người mua chọn thanh toán chuyển khoản.
               </p>
             </div>
           </div>
 
           {bankAccount && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleOpenBankModal}
-                className="flex items-center gap-1.5 rounded-xl border border-brand-border bg-white px-3.5 py-2 text-xs font-semibold text-brand-text hover:border-brand-burgundy hover:text-brand-burgundy"
+                className="btn-interactive inline-flex items-center gap-1.5 rounded-xl border border-brand-border bg-white px-3.5 py-1.5 text-xs font-semibold text-brand-text hover:border-brand-burgundy hover:text-brand-burgundy transition-colors"
               >
                 <Edit2 className="h-3.5 w-3.5" />
-                Chỉnh sửa
+                <span>Chỉnh sửa</span>
               </button>
               <button
                 type="button"
                 onClick={() => setIsDeleteConfirmOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                className="btn-interactive inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                Xóa
+                <span>Xóa</span>
               </button>
             </div>
           )}
@@ -478,44 +477,46 @@ export function ProfilePage() {
         {bankSuccessMessage && (
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-800">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-            {bankSuccessMessage}
+            <span>{bankSuccessMessage}</span>
           </div>
         )}
 
-        <div className="mt-5">
+        <div className="mt-4">
           {isBankLoading ? (
             <div className="flex items-center justify-center py-6 text-xs text-brand-text-muted">
               <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-brand-burgundy border-t-transparent" />
               Đang kiểm tra tài khoản ngân hàng...
             </div>
           ) : bankAccount ? (
-            <div className="rounded-2xl border border-brand-border/80 bg-gradient-to-br from-stone-50 to-amber-50/30 p-5">
+            <div className="rounded-2xl border border-brand-border/80 bg-stone-50/50 p-4 sm:p-5 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <span className="text-[11px] font-medium text-brand-text-muted">Ngân hàng</span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="rounded-md bg-brand-burgundy/10 px-2 py-0.5 font-mono text-xs font-bold text-brand-burgundy">
+                {/* Ngân hàng */}
+                <div className="min-w-0">
+                  <span className="text-xs font-medium text-brand-text-muted block mb-1">Ngân hàng</span>
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    <span className="rounded-md bg-brand-burgundy/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-brand-burgundy flex-none">
                       {bankAccount.bank_short_name || bankAccount.bank_code}
                     </span>
-                    <span className="text-sm font-semibold text-brand-text">
+                    <span className="text-sm font-semibold text-brand-text min-w-0 break-words flex-1">
                       {bankAccount.bank_name || bankAccount.bank_code}
                     </span>
                   </div>
-                  <div className="mt-1 text-[11px] font-mono text-brand-text-muted">
+                  <div className="mt-1 text-xs text-brand-text-muted tabular-nums">
                     Mã BIN: {bankAccount.bank_bin}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-[11px] font-medium text-brand-text-muted">Tên chủ tài khoản</span>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <span className="font-mono text-sm font-bold uppercase tracking-wide text-brand-text">
+                {/* Tên chủ tài khoản */}
+                <div className="min-w-0">
+                  <span className="text-xs font-medium text-brand-text-muted block mb-1">Tên chủ tài khoản</span>
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <span className="text-sm font-semibold uppercase text-brand-text break-words min-w-0 flex-1">
                       {bankAccount.account_name}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleCopy(bankAccount.account_name, 'name')}
-                      className="rounded-lg p-1 text-brand-text-muted hover:bg-black/5"
+                      className="rounded-lg p-1.5 text-brand-text-muted hover:bg-stone-200/60 hover:text-brand-text transition-colors flex-none"
                       title="Sao chép tên chủ tài khoản"
                     >
                       {copiedField === 'name' ? (
@@ -527,26 +528,27 @@ export function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="sm:col-span-2 sm:border-t sm:border-brand-border/40 sm:pt-3">
-                  <span className="text-[11px] font-medium text-brand-text-muted">Số tài khoản thụ hưởng</span>
-                  <div className="mt-1 flex items-center justify-between rounded-xl border border-brand-border bg-white px-4 py-2.5 shadow-xs">
-                    <span className="font-mono text-base font-bold tracking-wider text-brand-text">
+                {/* Số tài khoản thụ hưởng */}
+                <div className="sm:col-span-2 pt-2 border-t border-brand-border/50">
+                  <span className="text-xs font-medium text-brand-text-muted block mb-1.5">Số tài khoản thụ hưởng</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 rounded-xl border border-brand-border bg-white px-3.5 py-2.5 shadow-2xs">
+                    <span className="font-bold tabular-nums text-base sm:text-lg text-brand-text whitespace-nowrap min-w-0 flex-1 select-all">
                       {bankAccount.account_number}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleCopy(bankAccount.account_number, 'stk')}
-                      className="flex items-center gap-1 rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-semibold text-brand-text hover:bg-stone-200"
+                      className="btn-interactive inline-flex items-center gap-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 px-3 py-1.5 text-xs font-semibold text-brand-text transition-colors flex-none"
                     >
                       {copiedField === 'stk' ? (
                         <>
                           <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          <span className="text-emerald-700">Đã chép</span>
+                          <span className="text-emerald-700 whitespace-nowrap">Đã chép</span>
                         </>
                       ) : (
                         <>
                           <Copy className="h-3.5 w-3.5" />
-                          <span>Sao chép</span>
+                          <span className="whitespace-nowrap">Sao chép</span>
                         </>
                       )}
                     </button>
@@ -554,8 +556,9 @@ export function ProfilePage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-start gap-2 rounded-xl bg-white/70 p-3 text-[11px] leading-relaxed text-brand-text-muted">
-                <Info className="h-4 w-4 shrink-0 text-brand-burgundy" />
+              {/* Informational note */}
+              <div className="flex items-start gap-2 pt-2 border-t border-brand-border/40 text-xs leading-relaxed text-brand-text-muted">
+                <Info className="h-4 w-4 shrink-0 text-brand-burgundy mt-0.5" />
                 <span>
                   Thông tin này được dùng để tạo mã VietQR cho người mua khi bạn xác nhận đơn chuyển khoản. Thay đổi tại đây sẽ áp dụng cho các đơn hàng xác nhận sau này.
                 </span>
@@ -596,9 +599,9 @@ export function ProfilePage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-brand-text-muted">
+            <label className="mb-1.5 block text-xs sm:text-[13px] font-semibold text-brand-text">
               Họ và tên
             </label>
             <div className="relative">
@@ -606,9 +609,9 @@ export function ProfilePage() {
                 type="text"
                 {...register('full_name')}
                 placeholder="Nhập họ và tên"
-                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-burgundy"
+                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm text-brand-text outline-none focus:border-brand-burgundy"
               />
-              <User className="absolute right-3.5 top-3.5 h-4 w-4 text-brand-text-muted" />
+              <User className="absolute right-3.5 top-3 h-4 w-4 text-brand-text-muted" />
             </div>
             {errors.full_name && (
               <p className="mt-1.5 text-xs text-red-500">{errors.full_name.message}</p>
@@ -616,7 +619,7 @@ export function ProfilePage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-brand-text-muted">
+            <label className="mb-1.5 block text-xs sm:text-[13px] font-semibold text-brand-text">
               Số điện thoại
             </label>
             <div className="relative">
@@ -624,15 +627,15 @@ export function ProfilePage() {
                 type="text"
                 {...register('phone')}
                 placeholder="VD: 0912345678"
-                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-burgundy"
+                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm tabular-nums text-brand-text outline-none focus:border-brand-burgundy"
               />
-              <Phone className="absolute right-3.5 top-3.5 h-4 w-4 text-brand-text-muted" />
+              <Phone className="absolute right-3.5 top-3 h-4 w-4 text-brand-text-muted" />
             </div>
             {errors.phone && (
               <p className="mt-1.5 text-xs text-red-500">{errors.phone.message}</p>
             )}
 
-            <label className="mt-2.5 flex items-center gap-2 text-xs text-brand-text cursor-pointer select-none">
+            <label className="mt-2.5 flex items-center gap-2 text-xs text-brand-text-secondary cursor-pointer select-none">
               <input
                 type="checkbox"
                 {...register('show_phone_publicly')}
@@ -643,7 +646,7 @@ export function ProfilePage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-brand-text-muted">
+            <label className="mb-1.5 block text-xs sm:text-[13px] font-semibold text-brand-text">
               Phạm vi giao / nhận hàng
             </label>
             <div className="relative">
@@ -651,11 +654,11 @@ export function ProfilePage() {
                 type="text"
                 {...register('delivery_area')}
                 placeholder="VD: Hà Đông, Thanh Xuân, Cầu Giấy..."
-                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-burgundy"
+                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm text-brand-text outline-none focus:border-brand-burgundy"
               />
-              <MapPin className="absolute right-3.5 top-3.5 h-4 w-4 text-brand-text-muted" />
+              <MapPin className="absolute right-3.5 top-3 h-4 w-4 text-brand-text-muted" />
             </div>
-            <p className="mt-1 text-[11px] text-brand-text-muted">
+            <p className="mt-1 text-xs text-brand-text-muted">
               Cho người khác biết khu vực bạn có thể giao dịch hoặc giao/nhận hàng.
             </p>
             {errors.delivery_area && (
@@ -664,17 +667,17 @@ export function ProfilePage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-brand-text-muted">
-              Tiểu sử / Giới thiệu bản thân
+            <label className="mb-1.5 block text-xs sm:text-[13px] font-semibold text-brand-text">
+              Tiểu sử / giới thiệu bản thân
             </label>
             <div className="relative">
               <textarea
                 rows={3}
                 {...register('bio')}
                 placeholder="Giới thiệu đôi nét về bản thân..."
-                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-3 text-sm text-brand-text outline-none focus:border-brand-burgundy"
+                className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm text-brand-text outline-none focus:border-brand-burgundy"
               />
-              <FileText className="absolute right-3.5 top-3.5 h-4 w-4 text-brand-text-muted" />
+              <FileText className="absolute right-3.5 top-3 h-4 w-4 text-brand-text-muted" />
             </div>
             {errors.bio && (
               <p className="mt-1.5 text-xs text-red-500">{errors.bio.message}</p>
@@ -684,10 +687,10 @@ export function ProfilePage() {
           {/* Social Links UI */}
           <div className="rounded-2xl border border-brand-border/70 bg-stone-50/50 p-4 sm:p-5">
             <div className="mb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-text">
+              <h3 className="text-xs sm:text-[13px] font-semibold text-brand-text">
                 Liên kết mạng xã hội
               </h3>
-              <p className="mt-0.5 text-[11px] text-brand-text-muted">
+              <p className="mt-0.5 text-xs text-brand-text-muted">
                 Thêm liên kết để bạn bè và người mua dễ dàng kết nối.
               </p>
             </div>
@@ -707,10 +710,10 @@ export function ProfilePage() {
                           <SocialIcon platform={link.platform} className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-brand-text truncate">
+                          <p className="font-semibold text-xs sm:text-sm text-brand-text truncate">
                             {opt?.label || link.platform}
                           </p>
-                          <p className="text-[11px] text-brand-text-muted truncate font-mono">
+                          <p className="text-xs text-brand-text-muted truncate">
                             {displayUrl}
                           </p>
                         </div>
@@ -718,7 +721,7 @@ export function ProfilePage() {
                       <button
                         type="button"
                         onClick={() => handleRemoveSocialLink(link.id)}
-                        className="rounded-lg p-1.5 text-brand-text-muted hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                        className="rounded-lg p-1.5 text-brand-text-muted hover:bg-rose-50 hover:text-rose-600 transition-colors shrink-0"
                         aria-label="Xóa liên kết"
                         title="Xóa liên kết"
                       >
@@ -739,7 +742,7 @@ export function ProfilePage() {
                       setSelectedPlatform(e.target.value as SocialPlatform);
                       setSocialInputError(null);
                     }}
-                    className="w-full rounded-xl border border-brand-border bg-white px-3 py-2.5 text-xs font-semibold text-brand-text outline-none focus:border-brand-burgundy"
+                    className="w-full rounded-xl border border-brand-border bg-white px-3 py-2 text-xs font-semibold text-brand-text outline-none focus:border-brand-burgundy"
                   >
                     {SOCIAL_OPTIONS.map((item) => (
                       <option key={item.platform} value={item.platform}>
@@ -761,9 +764,8 @@ export function ProfilePage() {
                       SOCIAL_OPTIONS.find((o) => o.platform === selectedPlatform)?.placeholder ||
                       'https://...'
                     }
-                    className={`w-full rounded-xl border ${
-                      socialInputError ? 'border-red-500' : 'border-brand-border'
-                    } bg-white px-3 py-2.5 text-xs text-brand-text outline-none focus:border-brand-burgundy`}
+                    className={`w-full rounded-xl border ${socialInputError ? 'border-red-500' : 'border-brand-border'
+                      } bg-white px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-burgundy`}
                   />
                 </div>
               </div>
@@ -776,10 +778,10 @@ export function ProfilePage() {
                 type="button"
                 onClick={handleAddSocialLink}
                 disabled={!socialUrlInput.trim()}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-burgundy/25 bg-white px-3 py-2.5 text-xs font-semibold text-brand-burgundy transition-colors hover:bg-brand-soft-pink disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-interactive flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-border bg-white px-3 py-2 text-xs font-semibold text-brand-text transition-colors hover:bg-brand-soft-pink/40 hover:text-brand-burgundy hover:border-brand-burgundy/30 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <Link2 className="h-3.5 w-3.5" />
-                Thêm liên kết
+                <Plus className="h-3.5 w-3.5" />
+                <span>Thêm liên kết</span>
               </button>
             </div>
           </div>
@@ -788,31 +790,31 @@ export function ProfilePage() {
             <button
               type="submit"
               disabled={updateProfileMutation.isPending || (!isDirty && !socialDirty)}
-              className="btn-interactive flex w-full items-center justify-center gap-2 rounded-xl bg-brand-burgundy px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-burgundy-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-interactive flex w-full items-center justify-center gap-2 rounded-xl bg-brand-burgundy px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white transition-all hover:bg-brand-burgundy-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               {updateProfileMutation.isPending ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Đang lưu...
+                  <span>Đang lưu...</span>
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  Lưu thay đổi hồ sơ
+                  <span>Lưu thay đổi hồ sơ</span>
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <div className="mt-6 border-t border-brand-border pt-4">
+        <div className="mt-6 border-t border-brand-border/60 pt-4">
           <button
             type="button"
             onClick={handleSignOut}
-            className="btn-interactive flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+            className="btn-interactive flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50"
           >
             <LogOut className="h-4 w-4" />
-            Đăng xuất
+            <span>Đăng xuất</span>
           </button>
         </div>
       </section>
@@ -866,7 +868,7 @@ export function ProfilePage() {
                   type="text"
                   {...registerBank('account_number')}
                   placeholder="Nhập số tài khoản ngân hàng"
-                  className="w-full rounded-xl border border-brand-border bg-white px-3.5 py-2.5 font-mono text-sm text-brand-text outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy"
+                  className="w-full rounded-xl border border-brand-border bg-white px-3.5 py-2.5 text-sm tabular-nums text-brand-text outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy"
                 />
                 {bankErrors.account_number && (
                   <p className="mt-1 text-[11px] text-red-500">{bankErrors.account_number.message}</p>
@@ -881,7 +883,7 @@ export function ProfilePage() {
                   type="text"
                   {...registerBank('account_name')}
                   placeholder="VD: NGUYEN VAN A"
-                  className="w-full rounded-xl border border-brand-border bg-white px-3.5 py-2.5 font-mono text-sm uppercase text-brand-text outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy"
+                  className="w-full rounded-xl border border-brand-border bg-white px-3.5 py-2.5 text-sm uppercase text-brand-text outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy"
                 />
                 {bankErrors.account_name && (
                   <p className="mt-1 text-[11px] text-red-500">{bankErrors.account_name.message}</p>

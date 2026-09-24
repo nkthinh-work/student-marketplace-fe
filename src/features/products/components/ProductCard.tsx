@@ -5,7 +5,7 @@ import {
   getListingTypeMeta,
   formatRelativeTime,
 } from '@/lib/formatters';
-import { Heart, User, Image as ImageIcon } from 'lucide-react';
+import { Heart, User, Image as ImageIcon, Eye } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useFavoriteIds, useToggleFavorite } from '@/features/favorites/hooks';
 
@@ -101,10 +101,17 @@ export function ProductCard({ product, staggerIndex = 1 }: ProductCardProps) {
       {/* Content Info */}
       <div className="flex flex-1 flex-col justify-between p-3 sm:p-3.5">
         <div>
-          {/* Category & Time */}
-          <div className="flex items-center justify-between text-[11px] text-brand-text-muted mb-1">
-            <span className="truncate max-w-[65%]">{product.category.name}</span>
-            <span className="shrink-0">{formatRelativeTime(product.created_at)}</span>
+          {/* Category, Views & Time */}
+          <div className="flex items-center justify-between text-[11px] text-brand-text-muted mb-1 gap-1">
+            <span className="truncate max-w-[55%]">{product.category.name}</span>
+            <div className="flex items-center gap-1.5 shrink-0 text-brand-text-muted text-[10px]">
+              <span className="inline-flex items-center gap-0.5" title={`${product.view_count ?? 0} lượt xem`}>
+                <Eye className="h-3 w-3 stroke-[1.5]" />
+                <span>{product.view_count ?? 0}</span>
+              </span>
+              <span>·</span>
+              <span>{formatRelativeTime(product.created_at)}</span>
+            </div>
           </div>
 
           {/* Title */}

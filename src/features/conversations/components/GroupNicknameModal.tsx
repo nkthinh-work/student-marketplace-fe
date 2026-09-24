@@ -129,7 +129,7 @@ export const GroupNicknameModal: React.FC<GroupNicknameModalProps> = ({
                 disabled={isPending}
                 placeholder="Ví dụ: Mít, Cá Mập, Trưởng Ban..."
                 maxLength={40}
-                className="w-full text-xs sm:text-sm px-3 py-2 pr-12 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20 focus:border-brand-burgundy bg-white transition-all disabled:opacity-50"
+                className="w-full text-base md:text-sm px-3 py-2 pr-12 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-brand-burgundy/20 focus:border-brand-burgundy bg-white placeholder:text-stone-400 transition-all disabled:opacity-50"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-stone-400 pointer-events-none">
                 {nickname.length}/40

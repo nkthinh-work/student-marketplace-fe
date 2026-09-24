@@ -108,17 +108,17 @@ export const AudioBubble: React.FC<AudioBubbleProps> = ({
   // 3. null (renders "--:--")
   const serverDurationSec =
     durationMs !== undefined &&
-    durationMs !== null &&
-    Number.isFinite(durationMs) &&
-    durationMs > 0
+      durationMs !== null &&
+      Number.isFinite(durationMs) &&
+      durationMs > 0
       ? durationMs / 1000
       : null;
 
   const effectiveDuration =
     serverDurationSec ??
     (browserDuration !== null &&
-    Number.isFinite(browserDuration) &&
-    browserDuration > 0
+      Number.isFinite(browserDuration) &&
+      browserDuration > 0
       ? browserDuration
       : null);
 
@@ -160,30 +160,28 @@ export const AudioBubble: React.FC<AudioBubbleProps> = ({
 
   return (
     <div
-      className={`rounded-2xl p-2.5 sm:p-3 min-w-[220px] sm:min-w-[260px] max-w-xs mb-2 transition-all ${
-        isMine
+      className={`rounded-2xl p-2 sm:p-2.5 w-full max-w-[260px] min-w-0 mb-2 transition-all box-border overflow-hidden ${isMine
           ? 'bg-rose-950/40 border border-rose-800/60 text-white'
           : 'bg-stone-50 border border-stone-200 text-stone-900'
-      }`}
+        }`}
     >
       <audio ref={audioRef} src={url} preload="metadata" />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 w-full">
         {/* Play/Pause Button */}
         <button
           type="button"
           onClick={togglePlay}
-          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-sm ${
-            isMine
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-2xs ${isMine
               ? 'bg-white text-brand-burgundy hover:bg-rose-50'
               : 'bg-brand-burgundy text-white hover:bg-brand-burgundy/90'
-          }`}
+            }`}
           aria-label={isPlaying ? 'Tạm dừng tin nhắn thoại' : 'Phát tin nhắn thoại'}
         >
           {isPlaying ? (
-            <Pause className="w-5 h-5 fill-current" />
+            <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
           ) : (
-            <Play className="w-5 h-5 fill-current ml-0.5" />
+            <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
           )}
         </button>
 
@@ -198,18 +196,16 @@ export const AudioBubble: React.FC<AudioBubbleProps> = ({
               value={clampedCurrent}
               onChange={handleSeek}
               disabled={!effectiveDuration || effectiveDuration <= 0}
-              className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer transition-all ${
-                isMine
+              className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer transition-all ${isMine
                   ? 'accent-white bg-rose-900/60'
                   : 'accent-brand-burgundy bg-stone-200'
-              }`}
+                }`}
             />
           </div>
 
           <div
-            className={`flex items-center justify-between text-[10px] font-medium mt-0.5 ${
-              isMine ? 'text-rose-200' : 'text-stone-500'
-            }`}
+            className={`flex items-center justify-between text-[10px] font-medium mt-0.5 ${isMine ? 'text-rose-200' : 'text-stone-500'
+              }`}
           >
             <span>{formatAudioDuration(currentTime)}</span>
             <div className="flex items-center gap-1">

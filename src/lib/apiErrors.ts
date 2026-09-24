@@ -20,6 +20,20 @@ export function getApiErrorMessage(
       if (typeof data.detail === 'string' && data.detail.trim() !== '') {
         return data.detail;
       }
+      if (data.detail && typeof data.detail === 'object' && !Array.isArray(data.detail)) {
+        if (typeof data.detail.message === 'string' && data.detail.message.trim() !== '') {
+          return data.detail.message;
+        }
+        if (typeof data.detail.detail === 'string' && data.detail.detail.trim() !== '') {
+          return data.detail.detail;
+        }
+        if (data.detail.code === 'BUY_RESTRICTED') {
+          return 'Tài khoản của bạn đang bị giới hạn quyền mua hàng.';
+        }
+        if (data.detail.code === 'SELL_RESTRICTED') {
+          return 'Tài khoản của bạn đang bị giới hạn quyền bán hàng.';
+        }
+      }
       if (Array.isArray(data.detail) && data.detail.length > 0) {
         // FastAPI 422 Unprocessable Entity array of validation errors
         const validationMsgs = data.detail
@@ -98,4 +112,31 @@ export function isAccessRevokedError(error: unknown): boolean {
   const status = getApiErrorStatus(error);
   return status === 403 || status === 404;
 }
+
+/**
+ * Checks whether an error represents a BUY capability restriction.
+ */
+export function isBuyRestrictedError(error: unknown): boolean {
+  if (!axios.isAxiosError(error) || !error.response?.data) return false;
+  const data = error.response.data as Record<string, any>;
+  return (
+    data?.detail?.code === 'BUY_RESTRICTED' ||
+    data?.code === 'BUY_RESTRICTED' ||
+    (typeof data?.detail === 'string' && data.detail.includes('BUY_RESTRICTED'))
+  );
+}
+
+/**
+ * Checks whether an error represents a SELL capability restriction.
+ */
+export function isSellRestrictedError(error: unknown): boolean {
+  if (!axios.isAxiosError(error) || !error.response?.data) return false;
+  const data = error.response.data as Record<string, any>;
+  return (
+    data?.detail?.code === 'SELL_RESTRICTED' ||
+    data?.code === 'SELL_RESTRICTED' ||
+    (typeof data?.detail === 'string' && data.detail.includes('SELL_RESTRICTED'))
+  );
+}
+
 

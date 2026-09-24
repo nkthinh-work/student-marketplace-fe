@@ -77,7 +77,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               placeholder="Tìm theo tên bạn bè..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:bg-white text-stone-900 transition-colors"
+              className="w-full pl-9 pr-3 py-2 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:bg-white text-stone-900 placeholder:text-stone-400 transition-colors"
             />
           </div>
         </div>

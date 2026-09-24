@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { ConversationSummary } from '../types';
+import { parseServerDateTime } from '@/lib/formatters';
 
 interface ConversationCardProps {
   conversation: ConversationSummary;
@@ -69,7 +70,14 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   const formattedDate = React.useMemo(() => {
     if (!conversation.last_message_at) return '';
     try {
-      const date = new Date(conversation.last_message_at);
+      const timestamp = parseServerDateTime(conversation.last_message_at);
+      if (!timestamp) {
+        if (import.meta.env.DEV) {
+          console.warn(`[ConversationCard] Invalid last_message_at: "${conversation.last_message_at}"`);
+        }
+        return '';
+      }
+      const date = new Date(timestamp);
       const now = new Date();
       const diffDays = Math.floor(
         (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)

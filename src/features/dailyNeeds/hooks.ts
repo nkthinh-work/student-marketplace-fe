@@ -41,6 +41,7 @@ export const useMyDailyNeedSummary = (enabled = true) => {
     queryFn: getMyDailyNeedSummary,
     enabled,
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -66,15 +67,17 @@ export const useUpsertDailyNeed = (currentUserId?: number | null) => {
   return useMutation({
     mutationFn: (payload: DailyNeedCreateOrUpdatePayload) =>
       upsertMyTodayDailyNeed(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.today() });
-      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.myToday() });
-      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.mySummary() });
-      if (currentUserId) {
-        queryClient.invalidateQueries({
-          queryKey: dailyNeedKeys.userToday(currentUserId),
-        });
-      }
+    onSuccess: async (data) => {
+      queryClient.setQueryData(dailyNeedKeys.myToday(), data);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: dailyNeedKeys.today() }),
+        queryClient.invalidateQueries({ queryKey: dailyNeedKeys.mySummary() }),
+        currentUserId
+          ? queryClient.invalidateQueries({
+              queryKey: dailyNeedKeys.userToday(currentUserId),
+            })
+          : Promise.resolve(),
+      ]);
     },
   });
 };
@@ -84,15 +87,17 @@ export const useDeleteDailyNeed = (currentUserId?: number | null) => {
 
   return useMutation({
     mutationFn: () => deleteMyTodayDailyNeed(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.today() });
-      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.myToday() });
-      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.mySummary() });
-      if (currentUserId) {
-        queryClient.invalidateQueries({
-          queryKey: dailyNeedKeys.userToday(currentUserId),
-        });
-      }
+    onSuccess: async () => {
+      queryClient.setQueryData(dailyNeedKeys.myToday(), null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: dailyNeedKeys.today() }),
+        queryClient.invalidateQueries({ queryKey: dailyNeedKeys.mySummary() }),
+        currentUserId
+          ? queryClient.invalidateQueries({
+              queryKey: dailyNeedKeys.userToday(currentUserId),
+            })
+          : Promise.resolve(),
+      ]);
     },
   });
 };

@@ -76,6 +76,14 @@ export interface MessageReactionSummaryResponse {
   my_reaction?: ReactionKey | null;
 }
 
+export interface ReplyMessageSummary {
+  message_id: number;
+  sender_id: number;
+  sender_name?: string | null;
+  type?: MessageType;
+  preview: string;
+}
+
 export interface MessageItem {
   message_id: number;
   conversation_id: number;
@@ -92,6 +100,7 @@ export interface MessageItem {
   mentions?: MessageMentionItem[];
   reactions?: ReactionAggregateItem[];
   my_reaction?: ReactionKey | null;
+  reply_to?: ReplyMessageSummary | null;
 }
 
 export interface ConversationMemberItem {
@@ -258,4 +267,5 @@ export interface SendMessagePayload {
   files?: File[];
   voice_duration_ms?: number | null;
   mentions?: MessageMentionInput[];
+  reply_to_message_id?: number | null;
 }

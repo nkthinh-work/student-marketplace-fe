@@ -6,8 +6,9 @@ import { AlertCircle, CreditCard, Gift, Loader2, MapPin, Truck, X, Banknote } fr
 import { createOrderSchema, type CreateOrderFormValues } from "../schemas";
 import { useCreateOrder } from "../hooks";
 import type { ProductDetailResponse } from "@/features/products/types";
-import { useCurrentUser } from "@/features/users/hooks";
+import { useCurrentUser, useUserAccessStatus } from "@/features/users/hooks";
 import { formatVND } from "@/lib/formatters";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 
 interface DirectPurchaseModalProps {
   product: ProductDetailResponse;
@@ -22,7 +23,9 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
+  const { data: accessStatus } = useUserAccessStatus();
   const createOrderMutation = useCreateOrder();
+  const isBuyRestricted = accessStatus?.can_buy === false;
 
   const isFree = Number(product.price) === 0;
   const availableStock = product.available_stock;
@@ -146,11 +149,10 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
                 onClick={() => {
                   setValue("fulfillment_method", "MEETUP");
                 }}
-                className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${
-                  selectedFulfillmentMethod === "MEETUP"
+                className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${selectedFulfillmentMethod === "MEETUP"
                     ? "border-brand-burgundy bg-brand-soft-pink text-brand-burgundy shadow-xs"
                     : "border-brand-border bg-white text-brand-text hover:bg-brand-soft-pink/50"
-                }`}
+                  }`}
               >
                 <MapPin className="w-4 h-4 text-brand-price" />
                 <span>Gặp trực tiếp</span>
@@ -161,11 +163,10 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
                 onClick={() => {
                   setValue("fulfillment_method", "SHIPPING");
                 }}
-                className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${
-                  selectedFulfillmentMethod === "SHIPPING"
+                className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${selectedFulfillmentMethod === "SHIPPING"
                     ? "border-brand-burgundy bg-brand-soft-pink text-brand-burgundy shadow-xs"
                     : "border-brand-border bg-white text-brand-text hover:bg-brand-soft-pink/50"
-                }`}
+                  }`}
               >
                 <Truck className="w-4 h-4 text-blue-600" />
                 <span>Giao hàng</span>
@@ -221,11 +222,10 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setValue("payment_method", "CASH_ON_MEETUP")}
-                  className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${
-                    selectedPaymentMethod === "CASH_ON_MEETUP"
+                  className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${selectedPaymentMethod === "CASH_ON_MEETUP"
                       ? "border-brand-burgundy bg-brand-soft-pink text-brand-burgundy shadow-xs"
                       : "border-brand-border bg-white text-brand-text hover:bg-brand-soft-pink/50"
-                  }`}
+                    }`}
                 >
                   <Banknote className="w-4 h-4 text-emerald-600" />
                   <span>
@@ -238,11 +238,10 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setValue("payment_method", "BANK_TRANSFER")}
-                  className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${
-                    selectedPaymentMethod === "BANK_TRANSFER"
+                  className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all ${selectedPaymentMethod === "BANK_TRANSFER"
                       ? "border-brand-burgundy bg-brand-soft-pink text-brand-burgundy shadow-xs"
                       : "border-brand-border bg-white text-brand-text hover:bg-brand-soft-pink/50"
-                  }`}
+                    }`}
                 >
                   <CreditCard className="w-4 h-4 text-brand-burgundy" />
                   <span>Chuyển khoản VietQR</span>
@@ -274,7 +273,7 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
               <input
                 type="text"
                 {...register("contact_phone")}
-                className="w-full px-3 py-2 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy focus:outline-none font-mono"
+                className="w-full px-3 py-2 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy focus:outline-none tabular-nums"
               />
               {errors.contact_phone && (
                 <p className="text-xs text-red-500 mt-1">{errors.contact_phone.message}</p>
@@ -314,7 +313,7 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={createOrderMutation.isPending}
+                disabled={createOrderMutation.isPending || isBuyRestricted}
                 className="btn-interactive px-5 py-2 rounded-2xl bg-brand-burgundy hover:bg-brand-burgundy-dark text-white text-xs font-bold shadow-sm flex items-center gap-1.5 disabled:opacity-50"
               >
                 {createOrderMutation.isPending && (
@@ -325,12 +324,18 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
             </div>
           </div>
 
+          {isBuyRestricted && (
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>Tài khoản của bạn đang bị giới hạn quyền mua hàng.</span>
+            </div>
+          )}
+
           {createOrderMutation.isError && (
             <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-600 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>
-                {(createOrderMutation.error as { response?: { data?: { detail?: string } } })
-                  ?.response?.data?.detail || "Không thể tạo đơn hàng, vui lòng thử lại."}
+                {getApiErrorMessage(createOrderMutation.error, "Không thể tạo đơn hàng, vui lòng thử lại.")}
               </span>
             </div>
           )}

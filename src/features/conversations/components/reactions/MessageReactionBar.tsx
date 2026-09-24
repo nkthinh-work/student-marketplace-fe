@@ -50,8 +50,8 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
             aria-label={`${def.label} ${item.count}`}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-150 cursor-pointer shadow-2xs ${
               isMyReaction
-                ? 'bg-rose-100/75 hover:bg-rose-100 border-brand-burgundy text-brand-burgundy ring-1 ring-brand-burgundy/30 scale-102'
-                : 'bg-[#FFF9F4] hover:bg-[#FFF3E8] border-brand-burgundy/25 hover:border-brand-burgundy/40 text-brand-burgundy'
+                ? 'bg-brand-soft-pink border-brand-burgundy text-brand-burgundy ring-1 ring-brand-burgundy/30 scale-102'
+                : 'bg-brand-warm-white hover:bg-brand-soft-pink border-brand-burgundy/25 hover:border-brand-burgundy/40 text-brand-burgundy'
             }`}
           >
             {/* Small-size enhanced mascot icon: 24px on mobile, 22px on desktop */}

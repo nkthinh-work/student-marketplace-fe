@@ -10,6 +10,7 @@ import {
   type ProductUpdateForm,
 } from '../schemas';
 import type { ProductDetailResponse } from '../types';
+import { CategorySelector } from './CategorySelector';
 import {
   Package,
   FileText,
@@ -37,7 +38,7 @@ interface EditProductFormProps {
   submitLabel?: string;
 }
 
-type ProductFormProps = CreateProductFormProps | EditProductFormProps;
+export type ProductFormProps = CreateProductFormProps | EditProductFormProps;
 
 export function ProductForm(props: ProductFormProps) {
   const { mode, initialData, onSubmit, isSubmitting = false, submitLabel } = props;
@@ -50,6 +51,7 @@ export function ProductForm(props: ProductFormProps) {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<ProductCreateForm & ProductUpdateForm>({
     resolver: zodResolver(
@@ -105,22 +107,27 @@ export function ProductForm(props: ProductFormProps) {
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       <div>
-        <label className="block text-xs font-bold text-brand-text mb-1.5 flex items-center gap-1.5">
+        <label
+          htmlFor="category-selector-trigger"
+          className="block text-xs font-bold text-brand-text mb-1.5 flex items-center gap-1.5"
+        >
           <Layers className="h-4 w-4 text-brand-burgundy" />
           Danh mục sản phẩm <span className="text-brand-price">*</span>
         </label>
-        <select
-          {...register('category_id')}
+
+        {/* Hidden registered input for form submission & validation */}
+        <input type="hidden" {...register('category_id')} />
+
+        {/* Application-rendered custom CategorySelector */}
+        <CategorySelector
+          categories={sortedCategories}
+          selectedCategoryId={selectedCategoryId}
+          onSelect={(catId) => {
+            setValue('category_id', catId, { shouldValidate: true, shouldDirty: true });
+          }}
           disabled={categoriesLoading}
-          className="w-full rounded-2xl bg-white border border-brand-border px-4 py-3 text-sm text-brand-text focus:border-brand-burgundy focus:outline-hidden disabled:opacity-50"
-        >
-          <option value="">-- Chọn danh mục phù hợp --</option>
-          {sortedCategories.map((cat) => (
-            <option key={cat.category_id} value={cat.category_id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+          hasError={Boolean(errors.category_id)}
+        />
         {selectedMeta?.helper && !errors.category_id && (
           <p className="text-xs text-brand-text-muted mt-1.5 flex items-center gap-1.5 leading-relaxed">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-burgundy/60 shrink-0" />
@@ -177,15 +184,40 @@ export function ProductForm(props: ProductFormProps) {
             Giá bán (VNĐ) <span className="text-brand-price">*</span>
           </label>
           <input
-            type="number"
-            min="0"
-            step="1000"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="Ví dụ: 45000"
             {...register('price')}
-            className="w-full rounded-2xl bg-white border border-brand-border px-4 py-3 text-sm text-brand-text placeholder:text-brand-text-muted focus:border-brand-burgundy focus:outline-hidden"
+            onKeyDown={(e) => {
+              if (
+                e.key === 'Backspace' ||
+                e.key === 'Delete' ||
+                e.key === 'Tab' ||
+                e.key === 'Escape' ||
+                e.key === 'Enter' ||
+                e.key === 'ArrowLeft' ||
+                e.key === 'ArrowRight' ||
+                e.key === 'Home' ||
+                e.key === 'End' ||
+                ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()))
+              ) {
+                return;
+              }
+              if (!/^\d$/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onPaste={(e) => {
+              const pasted = e.clipboardData.getData('text');
+              if (!/^\d+$/.test(pasted.trim())) {
+                e.preventDefault();
+              }
+            }}
+            className="w-full rounded-2xl bg-white border border-brand-border px-4 py-3 text-base md:text-sm text-brand-text placeholder:text-brand-text-muted focus:border-brand-burgundy focus:outline-hidden"
           />
           <span className="text-[11px] text-brand-text-secondary mt-1 block">
-            Nhập 0 nếu muốn cho miễn phí.
+            Nhập 0 nếu muốn cho miễn phí (tối đa 50.000.000 VNĐ).
           </span>
           {errors.price && (
             <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -205,7 +237,7 @@ export function ProductForm(props: ProductFormProps) {
             step="1"
             placeholder="1"
             {...register('stock')}
-            className="w-full rounded-2xl bg-white border border-brand-border px-4 py-3 text-sm text-brand-text placeholder:text-brand-text-muted focus:border-brand-burgundy focus:outline-hidden"
+            className="w-full rounded-2xl bg-white border border-brand-border px-4 py-3 text-base md:text-sm text-brand-text placeholder:text-brand-text-muted focus:border-brand-burgundy focus:outline-hidden"
           />
           {errors.stock && (
             <p className="text-xs text-red-600 mt-1 flex items-center gap-1">

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useProducts } from '../hooks';
 import type { ProductFilterParams } from '../types';
 import { ProductCard } from './ProductCard';
@@ -10,6 +10,7 @@ import {
   Loader2,
   RefreshCw,
   Search,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 interface ProductFeedSectionProps {
@@ -56,6 +57,7 @@ export function ProductFeedSection({
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Flatten all items across cursor pages
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const allProducts = data?.pages.flatMap((page) => page.items) || [];
   const totalItemsLoaded = allProducts.length;
 
@@ -66,10 +68,27 @@ export function ProductFeedSection({
     filters.max_price,
   ].filter((v) => v !== undefined).length;
 
+  const hasActiveRefinements = activeFilterCount > 0 || Boolean(filters.q);
+
+  const handleClearRefinements = () => {
+    onFilterChange({
+      ...filters,
+      listing_type: undefined,
+      min_price: undefined,
+      max_price: undefined,
+    });
+    if (filters.q && onClearSearch) {
+      onClearSearch();
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Bar */}
-      <div className="flex items-center justify-between gap-2">
+      <div
+        data-ui-role="search-results-header"
+        className="flex items-center justify-between gap-2"
+      >
         <div className="flex items-center gap-2 min-w-0">
           <ShoppingBag className="h-5 w-5 text-brand-burgundy shrink-0" />
           <h2 className="text-base sm:text-lg font-bold text-brand-text truncate">
@@ -82,6 +101,8 @@ export function ProductFeedSection({
             filters={filters}
             onChange={onFilterChange}
             activeCount={activeFilterCount}
+            isOpen={isFilterModalOpen}
+            onOpenChange={setIsFilterModalOpen}
           />
         </div>
       </div>
@@ -151,14 +172,55 @@ export function ProductFeedSection({
       {!isLoading && !isError && allProducts.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-brand-border p-8 text-center bg-brand-warm-white/50">
           <Tag className="h-8 w-8 text-brand-text-muted mb-2" />
-          <p className="text-sm text-brand-text-secondary font-medium">
-            Chưa có sản phẩm nào phù hợp
-          </p>
-          <p className="text-xs text-brand-text-muted mt-1">
-            {filters.q
-              ? 'Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc xem nhé!'
-              : 'Hãy quay lại sau hoặc chọn danh mục khác nhé!'}
-          </p>
+          {hasActiveRefinements ? (
+            /* CASE A: Active filters/search produced 0 matches */
+            <>
+              <p className="text-sm font-bold text-brand-text">
+                Không tìm thấy sản phẩm phù hợp
+              </p>
+              <p className="text-xs text-brand-text-muted mt-1 max-w-sm">
+                Thử thay đổi khoảng giá, từ khóa tìm kiếm hoặc đặt lại bộ lọc để tìm thêm sản phẩm.
+              </p>
+              <div className="flex items-center gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={handleClearRefinements}
+                  className="btn-interactive px-3.5 py-2 rounded-xl bg-brand-soft-pink text-brand-burgundy border border-brand-burgundy/20 text-xs font-semibold hover:bg-brand-soft-pink/80 transition-colors shadow-2xs"
+                >
+                  Xóa bộ lọc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className="btn-interactive flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-burgundy text-white text-xs font-semibold hover:bg-brand-burgundy-dark transition-colors shadow-2xs"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Điều chỉnh bộ lọc</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            /* CASE B: Genuinely empty browse context / category */
+            <>
+              <p className="text-sm font-bold text-brand-text">
+                Chưa có sản phẩm
+              </p>
+              <p className="text-xs text-brand-text-muted mt-1 max-w-sm">
+                {filters.category_id
+                  ? 'Hiện chưa có sản phẩm nào trong danh mục này. Hãy quay lại sau hoặc khám phá toàn bộ nhé!'
+                  : 'Hiện chưa có sản phẩm nào được đăng bán. Hãy là người đầu tiên đăng tin nhé!'}
+              </p>
+              {filters.category_id && (
+                <button
+                  type="button"
+                  onClick={() => onFilterChange({ ...filters, category_id: undefined })}
+                  className="mt-4 btn-interactive px-4 py-2 rounded-xl bg-brand-burgundy text-white text-xs font-semibold hover:bg-brand-burgundy-dark transition-colors shadow-2xs"
+                >
+                  Xem tất cả sản phẩm
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
 

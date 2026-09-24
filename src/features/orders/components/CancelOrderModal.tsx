@@ -62,7 +62,7 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
         <form onSubmit={handleCancel} className="space-y-3.5 pt-3.5">
           <p className="text-xs sm:text-sm text-brand-text-secondary">
             Bạn có chắc chắn muốn hủy đơn hàng{" "}
-            <span className="font-mono font-bold text-brand-text">
+            <span className="font-semibold tabular-nums text-brand-text">
               {order.order_code}
             </span>{" "}
             không? Thao tác này sẽ giải phóng số lượng giữ hàng.

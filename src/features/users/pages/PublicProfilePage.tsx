@@ -398,7 +398,7 @@ export const PublicProfilePage: React.FC = () => {
         {/* Bio */}
         {user.bio && (
           <section className="rounded-2xl border border-brand-border bg-white p-4 sm:p-5 shadow-xs space-y-1.5">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-text-muted">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-brand-text">
               <FileText className="h-4 w-4 text-brand-burgundy" />
               <span>Giới thiệu bản thân</span>
             </div>
@@ -413,7 +413,7 @@ export const PublicProfilePage: React.FC = () => {
           <section className="rounded-2xl border border-brand-border bg-white p-4 sm:p-5 shadow-xs space-y-3">
             {user.delivery_area && (
               <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-text-muted">
+                <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-brand-text">
                   <MapPin className="h-4 w-4 text-brand-burgundy" />
                   <span>Phạm vi giao / nhận hàng</span>
                 </div>
@@ -425,13 +425,13 @@ export const PublicProfilePage: React.FC = () => {
 
             {user.phone && (
               <div className="space-y-1 pt-1 border-t border-brand-border/40">
-                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-text-muted">
+                <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-brand-text">
                   <Phone className="h-4 w-4 text-brand-burgundy" />
                   <span>Số điện thoại liên hệ</span>
                 </div>
                 <a
                   href={`tel:${user.phone}`}
-                  className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-brand-burgundy hover:underline font-mono"
+                  className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-brand-burgundy hover:underline tabular-nums"
                 >
                   {user.phone}
                 </a>
@@ -443,9 +443,9 @@ export const PublicProfilePage: React.FC = () => {
         {/* Social Links */}
         {user.social_links && user.social_links.length > 0 && (
           <section className="rounded-2xl border border-brand-border bg-white p-4 sm:p-5 shadow-xs space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-text-muted">
+            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-brand-text">
               <Share2 className="h-4 w-4 text-brand-burgundy" />
-              <span>Mạng xã hội & Liên kết</span>
+              <span>Mạng xã hội & liên kết</span>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -462,7 +462,7 @@ export const PublicProfilePage: React.FC = () => {
                     className="h-4 w-4 text-brand-burgundy shrink-0"
                   />
                   <span className="truncate">{getPlatformLabel(link.platform)}</span>
-                  <span className="text-[11px] text-brand-text-muted truncate font-mono hidden sm:inline max-w-[140px]">
+                  <span className="text-[11px] text-brand-text-muted truncate hidden sm:inline max-w-[140px]">
                     {formatSocialDisplay(link.url)}
                   </span>
                   <ExternalLink className="h-3 w-3 text-brand-text-muted group-hover:text-brand-burgundy shrink-0" />

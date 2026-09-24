@@ -47,6 +47,7 @@ export function FavoritesPage() {
         listing_type: item.listing_type,
         status: item.status,
         available_stock: item.available_stock,
+        view_count: item.view_count ?? 0,
         thumbnail_url: item.thumbnail_url,
         category: item.category,
         seller: item.seller,

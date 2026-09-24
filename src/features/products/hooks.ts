@@ -3,7 +3,11 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
+  type QueryClient,
+  type InfiniteData,
 } from '@tanstack/react-query';
+import { favoriteKeys } from '@/features/favorites/hooks';
+import type { FavoriteListResponse } from '@/features/favorites/types';
 import {
   getProducts,
   getProduct,
@@ -22,6 +26,7 @@ import type {
   ProductCreatePayload,
   ProductUpdatePayload,
   ImageReorderRequest,
+  ProductListResponse,
 } from './types';
 
 // Query key factory cho Products
@@ -62,9 +67,10 @@ export function useProduct(productId?: number) {
 
 // Hook lấy danh sách sản phẩm của seller hiện tại
 export function useMyProducts(params?: SellerProductFilterParams) {
+  const queryParams = { limit: 50, ...params };
   return useQuery({
-    queryKey: productKeys.myProducts(params),
-    queryFn: () => getMyProducts(params),
+    queryKey: productKeys.myProducts(queryParams),
+    queryFn: () => getMyProducts(queryParams),
     staleTime: 30 * 1000,
   });
 }
@@ -165,4 +171,107 @@ export function useReorderImages(productId: number) {
       queryClient.invalidateQueries({ queryKey: productKeys.publicLists() });
     },
   });
+}
+
+/**
+ * Narrowly patches view_count in active TanStack Query cached product feeds (Home, Search, Categories,
+ * Public Seller Profile, Favorites) with the server-returned view count after successful view registration.
+ * Leaves sorting, ordering, and all other fields/items completely untouched.
+ */
+export function patchProductViewCountInQueryCaches(
+  queryClient: QueryClient,
+  productId: number,
+  serverViewCount: number,
+) {
+  // 1. Narrowly patch public product list caches
+  queryClient.setQueriesData<InfiniteData<ProductListResponse> | ProductListResponse>(
+    { queryKey: productKeys.publicLists() },
+    (oldData) => {
+      if (!oldData) return oldData;
+
+      // InfiniteData from useInfiniteQuery (useProducts)
+      if ('pages' in oldData && Array.isArray(oldData.pages)) {
+        let hasChanged = false;
+        const newPages = oldData.pages.map((page) => {
+          if (!page || !Array.isArray(page.items)) return page;
+          let pageChanged = false;
+          const newItems = page.items.map((item) => {
+            if (item?.product_id === productId) {
+              if (item.view_count !== serverViewCount) {
+                pageChanged = true;
+                hasChanged = true;
+                return { ...item, view_count: serverViewCount };
+              }
+            }
+            return item;
+          });
+          return pageChanged ? { ...page, items: newItems } : page;
+        });
+        return hasChanged ? { ...oldData, pages: newPages } : oldData;
+      }
+
+      // Plain ProductListResponse from useQuery (e.g. HomeDiscoveryCarousel)
+      if ('items' in oldData && Array.isArray(oldData.items)) {
+        let hasChanged = false;
+        const newItems = oldData.items.map((item) => {
+          if (item?.product_id === productId) {
+            if (item.view_count !== serverViewCount) {
+              hasChanged = true;
+              return { ...item, view_count: serverViewCount };
+            }
+          }
+          return item;
+        });
+        return hasChanged ? { ...oldData, items: newItems } : oldData;
+      }
+
+      return oldData;
+    },
+  );
+
+  // 2. Narrowly patch favorites list caches
+  queryClient.setQueriesData<InfiniteData<FavoriteListResponse> | FavoriteListResponse>(
+    { queryKey: favoriteKeys.lists() },
+    (oldData) => {
+      if (!oldData) return oldData;
+
+      // InfiniteData from useInfiniteQuery (useFavorites)
+      if ('pages' in oldData && Array.isArray(oldData.pages)) {
+        let hasChanged = false;
+        const newPages = oldData.pages.map((page) => {
+          if (!page || !Array.isArray(page.items)) return page;
+          let pageChanged = false;
+          const newItems = page.items.map((item) => {
+            if (item?.product_id === productId) {
+              if (item.view_count !== serverViewCount) {
+                pageChanged = true;
+                hasChanged = true;
+                return { ...item, view_count: serverViewCount };
+              }
+            }
+            return item;
+          });
+          return pageChanged ? { ...page, items: newItems } : page;
+        });
+        return hasChanged ? { ...oldData, pages: newPages } : oldData;
+      }
+
+      // Plain FavoriteListResponse
+      if ('items' in oldData && Array.isArray(oldData.items)) {
+        let hasChanged = false;
+        const newItems = oldData.items.map((item) => {
+          if (item?.product_id === productId) {
+            if (item.view_count !== serverViewCount) {
+              hasChanged = true;
+              return { ...item, view_count: serverViewCount };
+            }
+          }
+          return item;
+        });
+        return hasChanged ? { ...oldData, items: newItems } : oldData;
+      }
+
+      return oldData;
+    },
+  );
 }

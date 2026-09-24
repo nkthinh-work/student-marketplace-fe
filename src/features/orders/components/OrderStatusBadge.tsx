@@ -25,11 +25,11 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({
     const display = getOrderDisplayState(order, role);
     return (
       <span
-        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border ${display.bg} ${display.text} ${display.border} ${className}`}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border whitespace-nowrap flex-none shrink-0 ${display.bg} ${display.text} ${display.border} ${className}`}
         title={display.description}
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${display.dot}`} />
-        {display.label}
+        <span className={`w-1.5 h-1.5 rounded-full flex-none ${display.dot}`} />
+        <span>{display.label}</span>
       </span>
     );
   }
@@ -39,10 +39,10 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border ${display.bg} ${display.text} ${display.border} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border whitespace-nowrap flex-none shrink-0 ${display.bg} ${display.text} ${display.border} ${className}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${display.dot}`} />
-      {display.label}
+      <span className={`w-1.5 h-1.5 rounded-full flex-none ${display.dot}`} />
+      <span>{display.label}</span>
     </span>
   );
 };

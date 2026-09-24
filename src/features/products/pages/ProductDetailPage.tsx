@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useProduct } from '../hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProduct, productKeys, patchProductViewCountInQueryCaches } from '../hooks';
+import { registerProductView } from '../api';
+import type { ProductDetailResponse } from '../types';
+import { getAnonymousViewerId } from '@/lib/viewerId';
 import { useCurrentUser } from '@/features/users/hooks';
 import { ProductImageGallery } from '../components/ProductImageGallery';
 import {
@@ -58,6 +62,33 @@ export function ProductDetailPage() {
   const toggleFavorite = useToggleFavorite();
   const createConversationMutation = useCreateConversation();
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const queryClient = useQueryClient();
+  const registeredProductIdRef = useRef<number | null>(null);
+
+  // Best-effort 24h deduplicated product view registration
+  useEffect(() => {
+    if (!product?.product_id) return;
+    if (registeredProductIdRef.current === product.product_id) return;
+    registeredProductIdRef.current = product.product_id;
+
+    const viewerId = getAnonymousViewerId();
+    registerProductView(product.product_id, viewerId)
+      .then((res) => {
+        if (typeof res?.view_count === 'number') {
+          queryClient.setQueryData<ProductDetailResponse>(
+            productKeys.detail(product.product_id),
+            (old) => (old ? { ...old, view_count: res.view_count } : old),
+          );
+          patchProductViewCountInQueryCaches(queryClient, product.product_id, res.view_count);
+        }
+      })
+      .catch((err) => {
+        // Fail-open: view count is non-critical analytics, don't disrupt user browsing
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('[ProductDetailPage] View registration non-critical error:', err);
+        }
+      });
+  }, [product?.product_id, queryClient]);
 
   const isFavorite = product ? (favoriteIds?.has(product.product_id) ?? false) : false;
 
@@ -161,7 +192,7 @@ export function ProductDetailPage() {
 
         {isOwner && (
           <div className="flex items-center gap-2">
-            {product.listing_type === 'FIXED_PRICE' && product.status === 'AVAILABLE' && product.available_stock === 1 && (
+            {product.listing_type === 'FIXED_PRICE' && product.status === 'AVAILABLE' && product.moderation_status === 'CLEAR' && product.available_stock === 1 && (
               <button
                 type="button"
                 onClick={() => setIsSellerAuctionModalOpen(true)}
@@ -180,14 +211,97 @@ export function ProductDetailPage() {
         )}
       </div>
 
+      {/* Moderation Blocked Banner for Owner */}
+      {isOwner && product.moderation_status === 'BLOCKED' && (
+        <div className="flex items-start gap-3 rounded-2xl bg-red-50 border border-red-200 p-4 text-red-800">
+          <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="text-xs sm:text-sm">
+            <h4 className="font-bold text-red-900">
+              Tin đăng này đã bị quản trị viên ẩn
+            </h4>
+            <p className="mt-0.5 text-red-700">
+              Tin đăng của bạn tạm thời không hiển thị công khai trên chợ vì lý do vi phạm tiêu chuẩn cộng đồng. Bạn vẫn có thể xem thông tin nhưng người mua không thể tìm kiếm hoặc đặt hàng.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Main Product Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-        {/* Left Column: Image Gallery (5 cols) */}
+        {/* Left Column: Image Gallery + Seller Info + Safety Notice (6 cols) */}
         <div className="lg:col-span-6 space-y-4">
           <ProductImageGallery
             images={product.images}
             title={product.title}
           />
+
+          <div className="w-full min-w-0 p-4 sm:p-5 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-3">
+            <h3 className="text-sm font-bold text-brand-text flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-brand-burgundy" />
+              Thông tin người bán
+            </h3>
+
+            <Link
+              to={`/users/${product.seller.user_id}?tab=sold`}
+              state={{
+                fromApp: true,
+                returnTo: location.pathname + location.search + location.hash,
+                returnLabel: 'product',
+              }}
+              className="group flex items-center gap-3.5 pt-1 p-2 -mx-2 -mt-1 rounded-2xl hover:bg-brand-soft-pink/50 transition-colors cursor-pointer"
+              aria-label={`Xem hồ sơ của ${product.seller.full_name}`}
+            >
+              {product.seller.avatar_url ? (
+                <img
+                  src={product.seller.avatar_url}
+                  alt={product.seller.full_name}
+                  className="h-12 w-12 rounded-full object-cover border-2 border-brand-burgundy/20 group-hover:border-brand-burgundy/50 transition-colors"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-burgundy/10 text-brand-burgundy">
+                  <User className="h-6 w-6" />
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-brand-text truncate group-hover:text-brand-burgundy transition-colors">
+                    {product.seller.full_name}
+                  </h4>
+                  {product.seller.rating_average !== null &&
+                    product.seller.rating_average !== undefined && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200/60 shrink-0">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        {product.seller.rating_average.toFixed(1)}
+                      </span>
+                    )}
+                </div>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  {product.seller.review_count && product.seller.review_count > 0
+                    ? `${product.seller.review_count} đánh giá · Thành viên từ ${formatDate(product.seller.created_at)}`
+                    : `Thành viên từ ${formatDate(product.seller.created_at)}`}
+                </p>
+              </div>
+
+              <ChevronRight className="h-4 w-4 text-brand-text-muted/60 group-hover:text-brand-burgundy group-hover:translate-x-0.5 transition-all shrink-0" />
+            </Link>
+
+            {product.seller.delivery_area && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-brand-border/60 text-xs text-brand-text-secondary">
+                <MapPin className="h-4 w-4 text-brand-burgundy shrink-0" />
+                <span>
+                  Phạm vi giao / nhận: <strong>{product.seller.delivery_area}</strong>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="w-full min-w-0 p-4 rounded-2xl bg-gradient-to-br from-brand-burgundy/5 via-brand-soft-pink/30 to-brand-gold/10 border border-brand-border/60 text-xs text-brand-text-secondary space-y-1">
+            <p className="font-bold text-brand-text">💡 Lưu ý giao dịch an toàn:</p>
+            <p className="leading-relaxed">
+              Gặp mặt trực tiếp tại khuôn viên Học viện (Ký túc xá, Căn tin, Sảnh toà nhà) để kiểm tra kỹ sản phẩm trước khi thanh toán.
+            </p>
+          </div>
         </div>
 
         {/* Right Column: Product Info & Buy/Auction Box (6 cols) */}
@@ -204,8 +318,8 @@ export function ProductDetailPage() {
                   onClick={handleFavoriteClick}
                   disabled={toggleFavorite.isPending}
                   className={`p-2 rounded-xl border transition-all ${isFavorite
-                      ? 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-100'
-                      : 'bg-white border-brand-border text-brand-text-muted hover:text-rose-500 hover:border-rose-200'
+                    ? 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-100'
+                    : 'bg-white border-brand-border text-brand-text-muted hover:text-rose-500 hover:border-rose-200'
                     }`}
                   title={isFavorite ? 'Bỏ lưu' : 'Lưu tin'}
                 >
@@ -239,7 +353,7 @@ export function ProductDetailPage() {
                     <Package className="h-3.5 w-3.5" /> Có sẵn: {product.available_stock}
                   </div>
                   <div className="flex items-center gap-1 justify-end text-brand-text-muted mt-0.5">
-                    <Eye className="h-3.5 w-3.5" /> {product.view_count} lượt xem
+                    <Eye className="h-3.5 w-3.5" /> {new Intl.NumberFormat('vi-VN').format(product.view_count)} lượt xem
                   </div>
                 </div>
               </div>
@@ -267,7 +381,7 @@ export function ProductDetailPage() {
                   <button
                     type="button"
                     disabled
-                    className="w-full py-3 px-6 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+                    className="w-full py-3 px-6 rounded-2xl bg-stone-200 text-stone-500 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-not-allowed"
                   >
                     <AlertCircle className="w-4 h-4" />
                     Tạm hết hàng (đang trong giao dịch)
@@ -297,9 +411,14 @@ export function ProductDetailPage() {
             )}
 
             <div className="flex items-center justify-between text-xs text-brand-text-muted pt-1">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" /> Đăng {formatRelativeTime(product.created_at)}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" /> Đăng {formatRelativeTime(product.created_at)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Eye className="h-3.5 w-3.5" /> {new Intl.NumberFormat('vi-VN').format(product.view_count)} lượt xem
+                </span>
+              </div>
               {!isOwner && (
                 <button
                   type="button"
@@ -340,74 +459,6 @@ export function ProductDetailPage() {
               {product.description || 'Người bán chưa cung cấp mô tả chi tiết cho sản phẩm này.'}
             </div>
           </div>
-        </div>
-
-        <div className="p-4 sm:p-5 rounded-3xl bg-brand-warm-white border border-brand-border shadow-card space-y-3">
-          <h3 className="text-sm font-bold text-brand-text flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4 text-brand-burgundy" />
-            Thông tin người bán
-          </h3>
-
-          <Link
-            to={`/users/${product.seller.user_id}?tab=sold`}
-            state={{
-              fromApp: true,
-              returnTo: location.pathname + location.search + location.hash,
-              returnLabel: 'product',
-            }}
-            className="group flex items-center gap-3.5 pt-1 p-2 -mx-2 -mt-1 rounded-2xl hover:bg-brand-soft-pink/50 transition-colors cursor-pointer"
-            aria-label={`Xem hồ sơ của ${product.seller.full_name}`}
-          >
-            {product.seller.avatar_url ? (
-              <img
-                src={product.seller.avatar_url}
-                alt={product.seller.full_name}
-                className="h-12 w-12 rounded-full object-cover border-2 border-brand-burgundy/20 group-hover:border-brand-burgundy/50 transition-colors"
-              />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-burgundy/10 text-brand-burgundy">
-                <User className="h-6 w-6" />
-              </div>
-            )}
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-bold text-brand-text truncate group-hover:text-brand-burgundy transition-colors">
-                  {product.seller.full_name}
-                </h4>
-                {product.seller.rating_average !== null &&
-                  product.seller.rating_average !== undefined && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200/60 shrink-0">
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      {product.seller.rating_average.toFixed(1)}
-                    </span>
-                  )}
-              </div>
-              <p className="text-xs text-brand-text-muted mt-0.5">
-                {product.seller.review_count && product.seller.review_count > 0
-                  ? `${product.seller.review_count} đánh giá · Thành viên từ ${formatDate(product.seller.created_at)}`
-                  : `Thành viên từ ${formatDate(product.seller.created_at)}`}
-              </p>
-            </div>
-
-            <ChevronRight className="h-4 w-4 text-brand-text-muted/60 group-hover:text-brand-burgundy group-hover:translate-x-0.5 transition-all shrink-0" />
-          </Link>
-
-          {product.seller.delivery_area && (
-            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-brand-border/60 text-xs text-brand-text-secondary">
-              <MapPin className="h-4 w-4 text-brand-burgundy shrink-0" />
-              <span>
-                Phạm vi giao / nhận: <strong>{product.seller.delivery_area}</strong>
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-brand-burgundy/5 via-brand-soft-pink/30 to-brand-gold/10 border border-brand-border/60 text-xs text-brand-text-secondary space-y-1">
-          <p className="font-bold text-brand-text">💡 Lưu ý giao dịch an toàn:</p>
-          <p>
-            Gặp mặt trực tiếp tại khuôn viên Học viện (Ký túc xá, Căn tin, Sảnh toà nhà) để kiểm tra kỹ sản phẩm trước khi thanh toán.
-          </p>
         </div>
       </div>
 

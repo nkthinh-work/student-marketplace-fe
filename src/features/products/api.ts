@@ -9,6 +9,7 @@ import type {
   ProductUpdatePayload,
   ProductImageResponse,
   ImageReorderRequest,
+  ProductViewResponse,
 } from './types';
 
 // Lấy danh sách sản phẩm public (hỗ trợ cursor pagination, tìm kiếm, lọc)
@@ -141,3 +142,17 @@ export async function reorderProductImages(
   );
   return response.data;
 }
+
+// Đăng ký lượt xem sản phẩm (best-effort 24h deduplicated analytics)
+export async function registerProductView(
+  productId: number,
+  anonymousViewerId?: string,
+): Promise<ProductViewResponse> {
+  const payload = anonymousViewerId ? { anonymous_viewer_id: anonymousViewerId } : {};
+  const response = await apiClient.post<ProductViewResponse>(
+    `/api/v1/products/${productId}/view`,
+    payload,
+  );
+  return response.data;
+}
+

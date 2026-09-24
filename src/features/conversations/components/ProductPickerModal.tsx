@@ -105,7 +105,7 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
               placeholder="Tìm theo tên sản phẩm..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900"
+              className="w-full pl-9 pr-3 py-1.5 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900 placeholder:text-stone-400"
             />
           </div>
         </div>

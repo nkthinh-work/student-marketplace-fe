@@ -4,6 +4,8 @@ import { useCreateProduct, useProduct } from '../hooks';
 import type { ProductCreateForm } from '../schemas';
 import { ProductForm } from '../components/ProductForm';
 import { ProductImageManager } from '../components/ProductImageManager';
+import { useUserAccessStatus } from '@/features/users/hooks';
+import { getApiErrorMessage } from '@/lib/apiErrors';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -15,6 +17,8 @@ import {
 export function CreateProductPage() {
   const navigate = useNavigate();
   const createMutation = useCreateProduct();
+  const { data: accessStatus } = useUserAccessStatus();
+  const isSellRestricted = accessStatus?.can_sell === false;
 
   const [createdProductId, setCreatedProductId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -25,6 +29,11 @@ export function CreateProductPage() {
 
   const handleCreateSubmit = (data: ProductCreateForm) => {
     setErrorMessage(null);
+    if (isSellRestricted) {
+      setErrorMessage('Tài khoản của bạn đang bị giới hạn quyền bán hàng.');
+      return;
+    }
+
     createMutation.mutate(
       {
         ...data,
@@ -35,10 +44,7 @@ export function CreateProductPage() {
           setCreatedProductId(newProduct.product_id);
         },
         onError: (err) => {
-          const detail =
-            (err as { response?: { data?: { detail?: string } } })?.response
-              ?.data?.detail || 'Không thể tạo tin đăng. Vui lòng kiểm tra lại.';
-          setErrorMessage(detail);
+          setErrorMessage(getApiErrorMessage(err, 'Không thể tạo tin đăng. Vui lòng kiểm tra lại.'));
         },
       },
     );
@@ -70,6 +76,13 @@ export function CreateProductPage() {
         </p>
       </div>
 
+      {isSellRestricted && (
+        <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-800 font-medium animate-in fade-in">
+          <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+          <span>Tài khoản của bạn đang bị giới hạn quyền bán hàng. Bạn không thể đăng bán sản phẩm mới lúc này.</span>
+        </div>
+      )}
+
       {errorMessage && (
         <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
@@ -82,9 +95,13 @@ export function CreateProductPage() {
           <ProductForm
             mode="create"
             onSubmit={handleCreateSubmit}
-            isSubmitting={createMutation.isPending}
+            isSubmitting={createMutation.isPending || isSellRestricted}
             submitLabel={
-              createMutation.isPending ? 'Đang tạo tin...' : 'Tiếp tục: Tải ảnh sản phẩm'
+              isSellRestricted
+                ? 'Tài khoản bị giới hạn bán hàng'
+                : createMutation.isPending
+                ? 'Đang tạo tin...'
+                : 'Tiếp tục: Tải ảnh sản phẩm'
             }
           />
         </div>

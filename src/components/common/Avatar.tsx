@@ -83,16 +83,17 @@ export const Avatar: React.FC<AvatarProps> = ({
     <div
       role="img"
       aria-label={accessibleLabel}
-      className={`relative inline-flex items-center justify-center overflow-hidden shrink-0 select-none bg-brand-burgundy/10 text-brand-burgundy font-bold ${roundedClass} ${sizeConfig.container} ${className}`}
+      className={`relative inline-flex items-center justify-center overflow-hidden shrink-0 select-none box-border bg-brand-burgundy/10 text-brand-burgundy font-bold ${roundedClass} ${sizeConfig.container} ${className}`}
     >
       {shouldRenderImage ? (
         <img
           src={src!}
           alt=""
           aria-hidden="true"
+          referrerPolicy="no-referrer"
           draggable={draggable}
           onError={() => setHasError(true)}
-          className="h-full w-full object-cover select-none"
+          className="block h-full w-full object-cover border-0 m-0 p-0 rounded-[inherit] select-none"
         />
       ) : initials ? (
         <span className={`${sizeConfig.text} font-bold tracking-tight uppercase select-none`}>

@@ -76,7 +76,7 @@ export const ConfirmOrderModal: React.FC<ConfirmOrderModalProps> = ({
         <form onSubmit={handleConfirm} className="space-y-3.5 pt-3.5">
           <p className="text-xs sm:text-sm text-brand-text-secondary">
             Bạn có chắc chắn muốn xác nhận đơn hàng{" "}
-            <span className="font-mono font-bold text-brand-text">
+            <span className="font-semibold tabular-nums text-brand-text">
               {order.order_code}
             </span>{" "}
             không?
@@ -103,14 +103,14 @@ export const ConfirmOrderModal: React.FC<ConfirmOrderModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="text-xs text-brand-text font-mono bg-white/80 p-2.5 rounded-xl border border-amber-200/60 space-y-1">
+                  <div className="text-xs text-brand-text tabular-nums bg-white/80 p-2.5 rounded-xl border border-amber-200/60 space-y-1">
                     <div>
                       <span className="text-brand-text-muted">STK:</span>{" "}
-                      <span className="font-bold text-brand-text">{bankAccount.account_number}</span>
+                      <span className="font-semibold text-brand-text">{bankAccount.account_number}</span>
                     </div>
                     <div>
                       <span className="text-brand-text-muted">Chủ TK:</span>{" "}
-                      <span className="font-bold uppercase text-brand-text">{bankAccount.account_name}</span>
+                      <span className="font-semibold uppercase text-brand-text">{bankAccount.account_name}</span>
                     </div>
                   </div>
 
@@ -183,12 +183,40 @@ export const ConfirmOrderModal: React.FC<ConfirmOrderModalProps> = ({
               Đóng
             </button>
             <button
+              data-ui-role="seller-confirm-order"
               type="submit"
               disabled={confirmMutation.isPending || hasMissingBank}
-              className="btn-interactive px-5 py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ui-primary-order-action btn-interactive px-5 py-2 rounded-2xl text-xs font-bold shadow-sm flex items-center gap-2"
+              style={
+                confirmMutation.isPending
+                  ? {
+                      backgroundColor: '#722F37',
+                      color: '#FFFFFF',
+                      WebkitTextFillColor: '#FFFFFF',
+                      border: '1px solid #722F37',
+                      opacity: 1,
+                      cursor: 'wait',
+                    }
+                  : hasMissingBank
+                  ? {
+                      backgroundColor: '#E7E5E4',
+                      color: '#57534E',
+                      WebkitTextFillColor: '#57534E',
+                      border: '1px solid #D6D3D1',
+                      opacity: 1,
+                      cursor: 'not-allowed',
+                    }
+                  : {
+                      backgroundColor: '#722F37',
+                      color: '#FFFFFF',
+                      WebkitTextFillColor: '#FFFFFF',
+                      border: '1px solid #722F37',
+                      opacity: 1,
+                    }
+              }
             >
               {confirmMutation.isPending && (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               )}
               Xác nhận đơn
             </button>

@@ -130,65 +130,93 @@ export const AuctionPanel: React.FC<AuctionPanelProps> = ({
   return (
     <div className="bg-gradient-to-b from-white to-gray-50/50 rounded-3xl p-6 border border-gray-200/80 shadow-md space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700 shadow-inner">
-            <Gavel className="w-5 h-5" />
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pb-4 border-b border-gray-100">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700 shadow-inner shrink-0">
+            <Gavel className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              Phiên đấu giá
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-nowrap shrink-0">
+              <h2 className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap shrink-0">
+                Phiên đấu giá
+              </h2>
               {auction.status === 'ACTIVE' && (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-600 text-white animate-pulse">
+                <span
+                  data-ui-role="auction-header-status-badge"
+                  className="ui-auction-status-badge bg-emerald-600 text-white animate-pulse"
+                >
                   ĐANG DIỄN RA
                 </span>
               )}
               {auction.status === 'SCHEDULED' && (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
+                <span
+                  data-ui-role="auction-header-status-badge"
+                  className="ui-auction-status-badge bg-amber-100 text-amber-800 border border-amber-200/80"
+                >
                   SẮP BẮT ĐẦU
                 </span>
               )}
               {auction.status === 'ENDED' && (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700">
+                <span
+                  data-ui-role="auction-header-status-badge"
+                  className="ui-auction-status-badge bg-gray-100 text-gray-700 border border-gray-200/80"
+                >
                   ĐÃ KẾT THÚC
                 </span>
               )}
               {auction.status === 'CANCELLED' && (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700">
+                <span
+                  data-ui-role="auction-header-status-badge"
+                  className="ui-auction-status-badge bg-red-100 text-red-700 border border-red-200/80"
+                >
                   ĐÃ HỦY
                 </span>
               )}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            </div>
+            <p
+              className="text-xs text-gray-500 mt-0.5"
+              style={{ color: '#4B5563', WebkitTextFillColor: '#4B5563' }}
+            >
               Bước giá: +{bidStepFormatted}
             </p>
           </div>
         </div>
 
-        <AuctionCountdown
-          status={auction.status}
-          startsAt={auction.starts_at}
-          endsAt={auction.ends_at}
-          serverTime={auction.server_time}
-          onExpire={handleCountdownExpire}
-        />
+        <div className="shrink-0">
+          <AuctionCountdown
+            status={auction.status}
+            startsAt={auction.starts_at}
+            endsAt={auction.ends_at}
+            serverTime={auction.server_time}
+            onExpire={handleCountdownExpire}
+          />
+        </div>
       </div>
 
       {/* Main Pricing Block */}
       <div className="bg-white rounded-2xl p-5 border border-emerald-100/80 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <span
+            className="text-xs font-semibold text-gray-500 uppercase tracking-wider"
+            style={{ color: '#4B5563', WebkitTextFillColor: '#4B5563' }}
+          >
             {isEnded
               ? 'Giá chốt phiên'
               : auction.bid_count > 0
-              ? 'Giá cao nhất hiện tại'
-              : 'Giá khởi điểm'}
+                ? 'Giá cao nhất hiện tại'
+                : 'Giá khởi điểm'}
           </span>
-          <div className="text-3xl sm:text-4xl font-extrabold text-emerald-700 tracking-tight mt-1">
+          <div
+            className="text-3xl sm:text-4xl font-extrabold text-emerald-700 tracking-tight mt-1"
+            style={{ color: '#047857', WebkitTextFillColor: '#047857' }}
+          >
             {isEnded ? finalPriceFormatted : currentPriceFormatted}
           </div>
-          <div className="text-xs text-gray-400 mt-1">
-            Khởi điểm: <span className="font-medium text-gray-600">{startingPriceFormatted}</span> • {auction.bid_count} lượt đặt giá
+          <div
+            className="text-xs text-gray-400 mt-1"
+            style={{ color: '#4B5563', WebkitTextFillColor: '#4B5563' }}
+          >
+            Khởi điểm: <span className="font-medium text-gray-600" style={{ color: '#374151', WebkitTextFillColor: '#374151' }}>{startingPriceFormatted}</span> • {auction.bid_count} lượt đặt giá
           </div>
 
           {/* Social Leading Bidder Display */}
@@ -215,24 +243,52 @@ export const AuctionPanel: React.FC<AuctionPanelProps> = ({
 
       {/* WINNER UX BANNER: Authenticated winner waiting to checkout */}
       {auction.is_current_user_winner && isEnded && !isOrderCreated && (
-        <div className="bg-gradient-to-r from-amber-500 to-emerald-600 rounded-2xl p-5 text-white shadow-lg space-y-3">
+        <div
+          data-ui-role="auction-winner-banner"
+          className="ui-auction-winner-surface rounded-2xl p-5 text-white shadow-lg space-y-3"
+          style={{ backgroundColor: '#047857', backgroundImage: 'none', color: '#FFFFFF' }}
+        >
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
               <Trophy className="w-6 h-6 text-amber-200" />
             </div>
             <div>
-              <h3 className="font-bold text-base">Chúc mừng! Bạn đã thắng phiên đấu giá</h3>
-              <p className="text-xs text-white/90 mt-0.5">
-                Giá thắng: <strong>{finalPriceFormatted}</strong>. Vui lòng hoàn tất đặt mua trước thời hạn để nhận hàng.
+              <h3 className="font-bold text-base text-white" style={{ color: '#FFFFFF' }}>
+                Chúc mừng! Bạn đã thắng phiên đấu giá
+              </h3>
+              <p
+                data-ui-role="auction-winner-copy"
+                className="ui-auction-winner-copy text-xs mt-0.5"
+                style={{ color: '#ECFDF5', WebkitTextFillColor: '#ECFDF5' }}
+              >
+                Giá thắng:{' '}
+                <strong
+                  data-ui-role="auction-winner-price"
+                  className="ui-auction-winner-price"
+                  style={{ color: '#FEF08A', WebkitTextFillColor: '#FEF08A' }}
+                >
+                  {finalPriceFormatted}
+                </strong>
+                . Vui lòng hoàn tất đặt mua trước thời hạn để nhận hàng.
               </p>
             </div>
           </div>
 
           <div className="pt-2 flex justify-end">
             <button
+              data-ui-role="auction-winner-cta"
               type="button"
               onClick={() => setIsCheckoutModalOpen(true)}
-              className="px-6 py-2.5 bg-white text-emerald-800 font-bold text-sm rounded-xl shadow hover:bg-amber-50 active:scale-[0.98] transition-all flex items-center gap-2"
+              className="ui-auction-winner-cta px-6 py-2.5 font-bold text-sm rounded-xl transition-all flex items-center gap-2"
+              style={{
+                backgroundColor: '#722F37',
+                color: '#FFFFFF',
+                WebkitTextFillColor: '#FFFFFF',
+                border: '1px solid #722F37',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                opacity: 1,
+              }}
             >
               <ShoppingBag className="w-4 h-4" />
               Tiến hành đặt mua
@@ -392,13 +448,22 @@ export const AuctionPanel: React.FC<AuctionPanelProps> = ({
 
       {/* Seller Cancel Action when 0 bids and ACTIVE/SCHEDULED */}
       {isSeller && (auction.status === 'ACTIVE' || auction.status === 'SCHEDULED') && auction.bid_count === 0 && (
-        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200/80 flex items-center justify-between">
-          <span className="text-xs text-gray-600">Chưa có lượt đặt giá nào:</span>
+        <div
+          className="p-4 bg-gray-50 rounded-2xl border border-gray-200/80 flex items-center justify-between"
+          style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB' }}
+        >
+          <span
+            className="text-xs text-gray-600 font-medium"
+            style={{ color: '#374151', WebkitTextFillColor: '#374151' }}
+          >
+            Chưa có lượt đặt giá nào:
+          </span>
           <button
             type="button"
             onClick={handleCancelAuction}
             disabled={cancelAuctionMutation.isPending}
             className="px-4 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            style={{ backgroundColor: '#FFFFFF', color: '#DC2626', WebkitTextFillColor: '#DC2626', borderColor: '#FECACA' }}
           >
             <Ban className="w-3.5 h-3.5" />
             {cancelAuctionMutation.isPending ? 'Đang hủy...' : 'Hủy phiên đấu giá'}

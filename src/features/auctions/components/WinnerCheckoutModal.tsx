@@ -119,11 +119,10 @@ export const WinnerCheckoutModal: React.FC<WinnerCheckoutModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFulfillmentMethod('MEETUP')}
-                className={`flex items-center justify-center sm:justify-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
-                  fulfillmentMethod === 'MEETUP'
-                    ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
-                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                }`}
+                className={`flex items-center justify-center sm:justify-start gap-2.5 p-3 rounded-xl border text-left transition-all ${fulfillmentMethod === 'MEETUP'
+                  ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
+                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                  }`}
               >
                 <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="text-xs font-bold">Gặp mặt trực tiếp</span>
@@ -132,11 +131,10 @@ export const WinnerCheckoutModal: React.FC<WinnerCheckoutModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFulfillmentMethod('SHIPPING')}
-                className={`flex items-center justify-center sm:justify-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
-                  fulfillmentMethod === 'SHIPPING'
-                    ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
-                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                }`}
+                className={`flex items-center justify-center sm:justify-start gap-2.5 p-3 rounded-xl border text-left transition-all ${fulfillmentMethod === 'SHIPPING'
+                  ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
+                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                  }`}
               >
                 <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="text-xs font-bold">Giao hàng tận nơi</span>
@@ -182,11 +180,10 @@ export const WinnerCheckoutModal: React.FC<WinnerCheckoutModalProps> = ({
               <button
                 type="button"
                 onClick={() => setPaymentMethod('CASH_ON_MEETUP')}
-                className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
-                  paymentMethod === 'CASH_ON_MEETUP'
-                    ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
-                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                }`}
+                className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${paymentMethod === 'CASH_ON_MEETUP'
+                  ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
+                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                  }`}
               >
                 <Banknote className="w-4 h-4 text-emerald-600 shrink-0" />
                 <div>
@@ -198,11 +195,10 @@ export const WinnerCheckoutModal: React.FC<WinnerCheckoutModalProps> = ({
               <button
                 type="button"
                 onClick={() => setPaymentMethod('BANK_TRANSFER')}
-                className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
-                  paymentMethod === 'BANK_TRANSFER'
-                    ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
-                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                }`}
+                className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${paymentMethod === 'BANK_TRANSFER'
+                  ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold ring-2 ring-emerald-500/20'
+                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                  }`}
               >
                 <CreditCard className="w-4 h-4 text-emerald-600 shrink-0" />
                 <div>

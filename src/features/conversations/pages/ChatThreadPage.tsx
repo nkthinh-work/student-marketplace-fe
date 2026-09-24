@@ -35,9 +35,8 @@ import { MessageComposer } from '../components/MessageComposer';
 import { GroupInfoDrawer } from '../components/GroupInfoDrawer';
 import { DirectInfoDrawer } from '../components/DirectInfoDrawer';
 import { ChatProductContextCard } from '../components/ChatProductContextCard';
-import { MessageMentionInput } from '../types';
+import { MessageMentionInput, ReplyMessageSummary } from '../types';
 import { useCurrentUser } from '@/features/users/hooks';
-import { useUserTodayDailyNeed } from '@/features/dailyNeeds';
 import { markCommunityPromoSeen } from '../utils/promo';
 import { getSafeBackAction } from '@/lib/navigation';
 
@@ -59,6 +58,7 @@ export const ChatThreadPage: React.FC = () => {
 
   const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
   const [isDirectInfoOpen, setIsDirectInfoOpen] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<ReplyMessageSummary | null>(null);
 
   const {
     data: conversation,
@@ -89,19 +89,21 @@ export const ChatThreadPage: React.FC = () => {
   const joinCommunityMutation = useJoinOfficialCommunity();
 
   const { data: groupMembers = [] } = useGroupMembers(
-    isGroup ? conversationId || 0 : 0
+    isGroup || isCommunity ? conversationId || 0 : 0
   );
 
   const memberNicknameMap = useMemo(() => {
     const map = new Map<number, string | null>();
-    if (!isGroup) return map;
+    if (!isGroup && !isCommunity) return map;
     for (const m of groupMembers) {
       map.set(m.user_id, m.nickname || null);
     }
     return map;
-  }, [isGroup, groupMembers]);
+  }, [isGroup, isCommunity, groupMembers]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const shellContainerRef = useRef<HTMLDivElement>(null);
+  const [chatAvailableHeight, setChatAvailableHeight] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef<boolean>(true);
   const prevScrollHeightRef = useRef<number>(0);
@@ -167,6 +169,11 @@ export const ChatThreadPage: React.FC = () => {
     handleBack(navigate);
   };
 
+  // Clear replyingTo when switching conversation
+  useEffect(() => {
+    setReplyingTo(null);
+  }, [conversationId]);
+
   // REST Authorization Fallback: if deterministic loss of access occurs (403/404),
   // immediately and idempotently cancel queries, clear caches, and replace-navigate away.
   useEffect(() => {
@@ -206,6 +213,16 @@ export const ChatThreadPage: React.FC = () => {
     }
   };
 
+  // Helper to scroll strictly within the MessageList container without moving window/ancestors
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior,
+    });
+  }, []);
+
   // Anchor scroll position when prepending older pages
   useLayoutEffect(() => {
     const container = scrollContainerRef.current;
@@ -216,9 +233,9 @@ export const ChatThreadPage: React.FC = () => {
       const heightDiff = container.scrollHeight - prevScrollHeightRef.current;
       container.scrollTop += heightDiff;
     } else if (isNearBottomRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      scrollToBottom('smooth');
     }
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // Authoritative trigger: mark community discovery promo seen ONLY after thread successfully opens
   useEffect(() => {
@@ -341,19 +358,18 @@ export const ChatThreadPage: React.FC = () => {
       }
 
       // 3. Fresh entry: default to bottom
-      messagesEndRef.current?.scrollIntoView({
-        behavior: 'instant' as ScrollBehavior,
-      });
+      scrollToBottom('instant');
       hasRestoredScrollRef.current = true;
     }
-  }, [isMsgsLoading, messages.length, scrollKey, hasNextPage, isFetchingNextPage]);
+  }, [isMsgsLoading, messages.length, scrollKey, hasNextPage, isFetchingNextPage, scrollToBottom]);
 
   const handleSend = (
     content?: string | null,
     files?: File[],
     productId?: number | null,
     voiceDurationMs?: number | null,
-    mentions?: MessageMentionInput[]
+    mentions?: MessageMentionInput[],
+    replyToMessageId?: number | null
   ) => {
     sendMessageMutation.mutate(
       {
@@ -362,16 +378,156 @@ export const ChatThreadPage: React.FC = () => {
         files: files,
         voice_duration_ms: voiceDurationMs || null,
         mentions: mentions,
+        reply_to_message_id: replyToMessageId || null,
       },
       {
         onSuccess: () => {
+          setReplyingTo(null);
           setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            scrollToBottom('smooth');
           }, 50);
         },
       }
     );
   };
+
+  // Canonical Chat VisualViewport reconciliation with synchronized focus and bounded transition tracking
+  const lastHeightRef = useRef<number | null>(null);
+  const rafTrackerIdRef = useRef<number | null>(null);
+  const consecutiveStableFramesRef = useRef<number>(0);
+  const trackerFrameCountRef = useRef<number>(0);
+
+  // Initial measurement in useLayoutEffect after DOM commit but before paint to prevent two-phase flash
+  useLayoutEffect(() => {
+    // Ensure clean route entry without stale scroll from prior route
+    if (typeof window !== 'undefined' && window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+    }
+    const vv = window.visualViewport;
+    if (!vv || !shellContainerRef.current) return;
+    const rect = shellContainerRef.current.getBoundingClientRect();
+    const available = Math.max(0, Math.floor(vv.height + vv.offsetTop - rect.top));
+    lastHeightRef.current = available;
+    setChatAvailableHeight(available);
+  }, []);
+
+  const cancelTracker = useCallback(() => {
+    if (rafTrackerIdRef.current !== null) {
+      cancelAnimationFrame(rafTrackerIdRef.current);
+      rafTrackerIdRef.current = null;
+    }
+    consecutiveStableFramesRef.current = 0;
+    trackerFrameCountRef.current = 0;
+  }, []);
+
+  const requestChatViewportReconcile = useCallback(
+    (startContinuousTracking = false) => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+
+      const STABLE_FRAMES_REQUIRED = 5;
+      const MAX_TRACKER_FRAMES = 60; // ~1000ms bounded safety guard
+
+      if (startContinuousTracking) {
+        cancelTracker();
+
+        const step = () => {
+          rafTrackerIdRef.current = null;
+          trackerFrameCountRef.current++;
+
+          if (!shellContainerRef.current || !window.visualViewport) {
+            cancelTracker();
+            return;
+          }
+
+          const currentVv = window.visualViewport;
+          // READ live geometry
+          const rect = shellContainerRef.current.getBoundingClientRect();
+          const available = Math.max(0, Math.floor(currentVv.height + currentVv.offsetTop - rect.top));
+
+          // CHECK STABILITY
+          const hasChanged =
+            lastHeightRef.current === null || Math.abs(lastHeightRef.current - available) > 0.5;
+
+          if (hasChanged) {
+            consecutiveStableFramesRef.current = 0;
+            lastHeightRef.current = available;
+            // WRITE
+            setChatAvailableHeight(available);
+            if (isNearBottomRef.current && scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }
+          } else {
+            consecutiveStableFramesRef.current++;
+          }
+
+          // TERMINATION
+          if (
+            consecutiveStableFramesRef.current >= STABLE_FRAMES_REQUIRED ||
+            trackerFrameCountRef.current >= MAX_TRACKER_FRAMES
+          ) {
+            cancelTracker();
+            return;
+          }
+
+          rafTrackerIdRef.current = requestAnimationFrame(step);
+        };
+
+        rafTrackerIdRef.current = requestAnimationFrame(step);
+      } else {
+        // Single frame reconciliation
+        if (rafTrackerIdRef.current !== null) return;
+        rafTrackerIdRef.current = requestAnimationFrame(() => {
+          rafTrackerIdRef.current = null;
+          if (!shellContainerRef.current || !window.visualViewport) return;
+          const currentVv = window.visualViewport;
+          // READ live geometry
+          const rect = shellContainerRef.current.getBoundingClientRect();
+          const available = Math.max(0, Math.floor(currentVv.height + currentVv.offsetTop - rect.top));
+
+          if (lastHeightRef.current === null || Math.abs(lastHeightRef.current - available) > 0.5) {
+            lastHeightRef.current = available;
+            // WRITE
+            setChatAvailableHeight(available);
+            if (isNearBottomRef.current && scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }
+          }
+        });
+      }
+    },
+    [cancelTracker]
+  );
+
+  const handleComposerFocus = useCallback(() => {
+    requestChatViewportReconcile(true);
+  }, [requestChatViewportReconcile]);
+
+  const handleComposerBlur = useCallback(() => {
+    requestChatViewportReconcile(true);
+  }, [requestChatViewportReconcile]);
+
+  // Single unified listener for VisualViewport & window events
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleVvChange = () => requestChatViewportReconcile(true);
+    const handleWindowResize = () => requestChatViewportReconcile(false);
+
+    vv.addEventListener('resize', handleVvChange);
+    vv.addEventListener('scroll', handleVvChange);
+    window.addEventListener('resize', handleWindowResize);
+    window.addEventListener('orientationchange', handleVvChange);
+
+    return () => {
+      cancelTracker();
+      vv.removeEventListener('resize', handleVvChange);
+      vv.removeEventListener('scroll', handleVvChange);
+      window.removeEventListener('resize', handleWindowResize);
+      window.removeEventListener('orientationchange', handleVvChange);
+    };
+  }, [requestChatViewportReconcile, cancelTracker]);
 
   // If conversation does not exist or user is not authorized, show clean fallback UI
   if (!isConvLoading && (isConvError || !conversation)) {
@@ -381,7 +537,7 @@ export const ChatThreadPage: React.FC = () => {
     }
 
     return (
-      <div className="flex flex-col h-[calc(100vh-56px)] bg-brand-warm-white items-center justify-center p-4">
+      <div className="flex flex-col h-[calc(100dvh-56px)] bg-brand-warm-white items-center justify-center p-4">
         <div className="bg-white rounded-2xl border border-stone-200 p-6 max-w-sm w-full text-center shadow-sm">
           <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 mx-auto flex items-center justify-center mb-3">
             <AlertCircle className="w-6 h-6" />
@@ -414,19 +570,18 @@ export const ChatThreadPage: React.FC = () => {
   const otherUser = conversation?.other_participant;
   const otherUserId = isDirect ? otherUser?.user_id : undefined;
 
-  // Direct-only guard: query other user's today journal strictly for DIRECT conversations
-  const { data: otherUserTodayJournal } = useUserTodayDailyNeed(
-    otherUserId,
-    Boolean(isDirect && otherUserId)
-  );
-
   const headerTitle = isDirect
     ? otherUser?.full_name || 'Người dùng'
     : conversation?.title ||
       (isCommunity ? 'Cộng đồng Chợ PTITers' : 'Nhóm trò chuyện');
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] bg-brand-warm-white">
+    <div
+      ref={shellContainerRef}
+      data-ui-role="chat-thread-shell"
+      style={chatAvailableHeight ? { height: `${chatAvailableHeight}px` } : undefined}
+      className="flex flex-col h-[100dvh] md:h-[calc(100dvh-56px)] bg-brand-warm-white overflow-hidden"
+    >
       {/* Top Thread Header */}
       <header className="shrink-0 flex items-center justify-between bg-white border-b border-stone-200 px-2 sm:px-4 py-2 sm:py-2.5 z-10 shadow-xs">
         {/* Left Slot: Back Button */}
@@ -465,14 +620,6 @@ export const ChatThreadPage: React.FC = () => {
               <h2 className="text-sm font-semibold text-stone-900 group-hover:text-brand-burgundy transition-colors truncate leading-tight">
                 {headerTitle}
               </h2>
-              {otherUserTodayJournal?.content ? (
-                <p
-                  className="text-xs text-stone-500 truncate leading-tight mt-0.5 max-w-full"
-                  title={otherUserTodayJournal.content}
-                >
-                  {otherUserTodayJournal.content}
-                </p>
-              ) : null}
             </div>
           </div>
         ) : (
@@ -570,8 +717,9 @@ export const ChatThreadPage: React.FC = () => {
       {/* Messages Scroll Area */}
       <div
         ref={scrollContainerRef}
+        data-ui-role="message-list"
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-1"
       >
         {/* Load older spinner */}
         {isFetchingNextPage && (
@@ -611,7 +759,7 @@ export const ChatThreadPage: React.FC = () => {
         {/* Message bubbles */}
         {!isMsgsLoading &&
           messages.map((msg) =>
-            isGroup && msg.type === 'SYSTEM' ? (
+            (isGroup || isCommunity) && msg.type === 'SYSTEM' ? (
               <GroupSystemMessage key={msg.message_id} message={msg} />
             ) : (
               <MessageBubble
@@ -620,7 +768,35 @@ export const ChatThreadPage: React.FC = () => {
                 conversationId={conversationId || msg.conversation_id}
                 showSenderInfo={!isDirect}
                 isCommunity={isCommunity}
-                senderNickname={isGroup ? memberNicknameMap.get(msg.sender_id) : undefined}
+                senderNickname={(isGroup || isCommunity) ? memberNicknameMap.get(msg.sender_id) : undefined}
+                memberNicknameMap={(isGroup || isCommunity) ? Object.fromEntries(memberNicknameMap) : undefined}
+                onReply={(m) => {
+                  const sName = ((isGroup || isCommunity) && memberNicknameMap.get(m.sender_id)) || m.sender_name || 'Người dùng';
+                  let preview = m.content ? m.content.trim() : '';
+                  if (!preview) {
+                    const firstAtt = m.attachments?.[0];
+                    if (firstAtt) {
+                      const k = firstAtt.kind;
+                      if (k === 'IMAGE') preview = 'Hình ảnh';
+                      else if (k === 'VIDEO') preview = 'Video';
+                      else if (k === 'AUDIO') preview = 'Tin nhắn thoại';
+                      else preview = 'Tệp đính kèm';
+                    } else if (m.product) {
+                      preview = 'Sản phẩm';
+                    } else {
+                      preview = 'Tin nhắn';
+                    }
+                  } else if (preview.length > 120) {
+                    preview = preview.slice(0, 120).trimEnd() + '...';
+                  }
+                  setReplyingTo({
+                    message_id: m.message_id,
+                    sender_id: m.sender_id,
+                    sender_name: sName,
+                    type: m.type,
+                    preview,
+                  });
+                }}
                 onBeforeNavigateAway={saveConversationViewState}
               />
             )
@@ -635,9 +811,13 @@ export const ChatThreadPage: React.FC = () => {
           onSend={handleSend}
           disabled={sendMessageMutation.isPending}
           conversationType={conversation?.type || 'DIRECT'}
-          otherUserId={otherUser?.user_id}
+          otherUserId={otherUserId}
           otherUserName={otherUser?.full_name}
           conversationId={conversationId}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+          onFocus={handleComposerFocus}
+          onBlur={handleComposerBlur}
           placeholder={
             isDirect
               ? `Nhắn cho ${otherUser?.full_name || 'người bán'}...`

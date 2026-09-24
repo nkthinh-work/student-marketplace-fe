@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getWebSocketBaseUrl } from '@/lib/websocket';
 import {
   cancelAuction,
   checkoutAuctionWinner,
@@ -140,17 +141,7 @@ export function useAuctionWebSocket(
     let isMounted = true;
 
     // Resolve base WebSocket URL
-    const apiBase = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-    let wsBaseUrl = import.meta.env.VITE_WS_URL;
-    if (!wsBaseUrl) {
-      const isHttps = apiBase.startsWith('https:') || window.location.protocol === 'https:';
-      const wsProtocol = isHttps ? 'wss:' : 'ws:';
-      let host = apiBase.replace(/^https?:\/\//, '');
-      if (host.includes(':3000')) {
-        host = 'localhost:8000';
-      }
-      wsBaseUrl = `${wsProtocol}//${host}`;
-    }
+    const wsBaseUrl = getWebSocketBaseUrl();
     const wsUrl = `${wsBaseUrl}/ws/auctions/${auctionId}`;
 
     function cleanupSocket() {

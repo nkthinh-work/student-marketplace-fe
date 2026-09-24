@@ -43,11 +43,14 @@ export interface ProductSummaryResponse {
   listing_type: ListingType;
   status: ProductStatus;
   available_stock: number;
+  view_count: number;
   thumbnail_url?: string | null;
   category: CategorySummary;
   seller: SellerSummary;
   created_at: string;
 }
+
+export type ProductModerationStatus = 'CLEAR' | 'BLOCKED';
 
 export interface ProductDetailResponse {
   product_id: number;
@@ -57,12 +60,25 @@ export interface ProductDetailResponse {
   price: number | string;
   available_stock: number;
   status: ProductStatus;
+  moderation_status: ProductModerationStatus;
   view_count: number;
   images: ProductImageResponse[];
   category: CategorySummary;
   seller: SellerDetailSummary;
   created_at: string;
   updated_at: string;
+}
+
+export interface SellerAuctionSummary {
+  auction_id: number;
+  status: string;
+  starting_price: number | string;
+  bid_step: number | string;
+  current_price: number | string;
+  starts_at: string;
+  ends_at: string;
+  winner_checkout_deadline?: string | null;
+  bid_count: number;
 }
 
 export interface SellerProductResponse {
@@ -75,9 +91,11 @@ export interface SellerProductResponse {
   reserved_stock: number;
   available_stock: number;
   status: ProductStatus;
+  moderation_status: ProductModerationStatus;
   view_count: number;
   thumbnail_url?: string | null;
   category: CategorySummary;
+  auction?: SellerAuctionSummary | null;
   created_at: string;
   updated_at: string;
 }
@@ -128,3 +146,9 @@ export interface ProductUpdatePayload {
   stock?: number;
   status?: SellerUpdatableStatus;
 }
+
+export interface ProductViewResponse {
+  view_count: number;
+  counted: boolean;
+}
+

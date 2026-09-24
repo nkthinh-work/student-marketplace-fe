@@ -8,6 +8,7 @@ export interface FavoriteProductResponse {
   listing_type: ListingType;
   status: ProductStatus;
   available_stock: number;
+  view_count: number;
   thumbnail_url?: string | null;
   category: CategorySummary;
   seller: SellerSummary;

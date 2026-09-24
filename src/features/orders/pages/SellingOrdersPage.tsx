@@ -35,7 +35,7 @@ export const SellingOrdersPage: React.FC = () => {
     <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6">
       {/* Header section */}
       <div className="space-y-1 mb-4">
-        <h1 className="text-xl sm:text-2xl font-black text-brand-text flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-brand-text flex items-center gap-2">
           <Store className="h-6 w-6 text-brand-burgundy" />
           Đơn bán
         </h1>
@@ -56,11 +56,10 @@ export const SellingOrdersPage: React.FC = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setSelectedTab(tab.id)}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 sm:px-3.5 py-1.5 text-xs font-semibold border transition-colors shrink-0 select-none ${
-                    isSelected
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 sm:px-3.5 py-1.5 text-xs font-semibold border transition-colors shrink-0 select-none ${isSelected
                       ? "bg-brand-burgundy text-white border-brand-burgundy shadow-xs"
                       : "bg-brand-warm-white text-brand-text-secondary border-brand-border hover:bg-brand-soft-pink"
-                  }`}
+                    }`}
                 >
                   {tab.icon}
                   <span>{tab.label}</span>

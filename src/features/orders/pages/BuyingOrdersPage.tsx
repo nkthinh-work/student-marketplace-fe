@@ -52,7 +52,7 @@ export const BuyingOrdersPage: React.FC = () => {
     <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6">
       {/* Header section */}
       <div className="space-y-1 mb-4">
-        <h1 className="text-xl sm:text-2xl font-black text-brand-text flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-brand-text flex items-center gap-2">
           <ShoppingBag className="h-6 w-6 text-brand-burgundy" />
           Đơn mua
         </h1>
@@ -70,9 +70,9 @@ export const BuyingOrdersPage: React.FC = () => {
                 <Trophy className="w-4 h-4 text-amber-600" />
               </div>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-brand-text flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-semibold text-brand-text flex items-center gap-2">
                   Đấu giá đã thắng
-                  <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.2 text-[11px] font-extrabold border border-amber-200">
+                  <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.2 text-[11px] font-semibold border border-amber-200">
                     {wonAuctions.length}
                   </span>
                 </h2>
@@ -106,17 +106,17 @@ export const BuyingOrdersPage: React.FC = () => {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.2 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.2 text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
                         Bạn đã thắng
                       </span>
                     </div>
                     <Link
                       to={`/products/${item.product_id}`}
-                      className="text-xs sm:text-sm font-bold text-brand-text hover:text-brand-burgundy transition-colors line-clamp-1 no-underline"
+                      className="text-xs sm:text-sm font-semibold text-brand-text hover:text-brand-burgundy transition-colors line-clamp-1 no-underline"
                     >
                       {item.product_title}
                     </Link>
-                    <div className="text-xs font-black text-brand-price mt-0.5">
+                    <div className="text-xs font-bold text-brand-price tabular-nums mt-0.5">
                       Giá thắng: {formatVND(item.final_price)}
                     </div>
                   </div>
@@ -156,11 +156,10 @@ export const BuyingOrdersPage: React.FC = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setSelectedTab(tab.id)}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 sm:px-3.5 py-1.5 text-xs font-semibold border transition-colors shrink-0 select-none ${
-                    isSelected
-                      ? "bg-brand-burgundy text-white border-brand-burgundy shadow-xs"
-                      : "bg-brand-warm-white text-brand-text-secondary border-brand-border hover:bg-brand-soft-pink"
-                  }`}
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 sm:px-3.5 py-1.5 text-xs font-semibold border transition-colors shrink-0 select-none ${isSelected
+                    ? "bg-brand-burgundy text-white border-brand-burgundy shadow-xs"
+                    : "bg-brand-warm-white text-brand-text-secondary border-brand-border hover:bg-brand-soft-pink"
+                    }`}
                 >
                   {tab.icon}
                   <span>{tab.label}</span>

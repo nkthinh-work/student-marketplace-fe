@@ -104,8 +104,11 @@ export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
       }
     };
 
-    // Close on chat scroll to prevent floating detached popovers
+    const mountTime = Date.now();
+
+    // Close on chat scroll to prevent floating detached popovers (ignore first 150ms after mount to prevent Android reflow dismissals)
     const handleScroll = (e: Event) => {
+      if (Date.now() - mountTime < 150) return;
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         onClose();
       }
@@ -141,14 +144,14 @@ export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
             }
           : { visibility: 'hidden' }
       }
-      className="z-50 bg-white/98 backdrop-blur-md rounded-2xl shadow-xl border border-rose-200/80 p-2.5 select-none overflow-x-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="z-50 bg-brand-warm-white rounded-2xl shadow-xl border border-brand-border p-2.5 select-none overflow-x-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Title Header */}
-      <div className="flex items-center justify-between px-1.5 pt-0.5 pb-2 mb-1.5 border-b border-stone-100">
+      <div className="flex items-center justify-between px-1.5 pt-0.5 pb-2 mb-1.5 border-b border-brand-border/60">
         <span className="text-xs font-bold text-brand-burgundy tracking-wide">
           Cảm xúc PTITers
         </span>
-        <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+        <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
           12 biểu cảm
         </span>
       </div>
@@ -168,8 +171,8 @@ export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
               onClick={() => onSelect(item.key)}
               className={`flex flex-col items-center justify-start p-1 sm:p-1.5 rounded-xl transition-all duration-150 cursor-pointer min-w-0 w-full group ${
                 isSelected
-                  ? 'bg-rose-50 border border-brand-burgundy/50 ring-1 ring-brand-burgundy/30 shadow-2xs'
-                  : 'hover:bg-rose-50/60 hover:scale-105 active:scale-95 border border-transparent'
+                  ? 'bg-brand-soft-pink border border-brand-burgundy/50 ring-1 ring-brand-burgundy/30 shadow-2xs'
+                  : 'hover:bg-brand-soft-pink/60 hover:scale-105 active:scale-95 border border-transparent'
               }`}
             >
               {/* Canonical P Mascot PNG Asset */}
@@ -181,7 +184,7 @@ export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
               />
 
               {/* Label */}
-              <span className="text-[11px] sm:text-[10px] leading-tight text-stone-700 font-medium text-center break-words mt-1 w-full min-h-[2.4em] flex items-center justify-center px-0.5">
+              <span className="text-[11px] sm:text-[10px] leading-tight text-brand-text font-medium text-center break-words mt-1 w-full min-h-[2.4em] flex items-center justify-center px-0.5">
                 {item.label}
               </span>
             </button>

@@ -123,7 +123,7 @@ export const GroupCreateModal: React.FC<GroupCreateModalProps> = ({
                 setError(null);
               }}
               maxLength={80}
-              className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900 placeholder:text-stone-400"
+              className="w-full px-3 py-2 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900 placeholder:text-stone-400"
             />
           </div>
 
@@ -137,7 +137,7 @@ export const GroupCreateModal: React.FC<GroupCreateModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={200}
-              className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900 placeholder:text-stone-400 resize-none"
+              className="w-full px-3 py-2 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900 placeholder:text-stone-400 resize-none"
             />
           </div>
 
@@ -175,7 +175,7 @@ export const GroupCreateModal: React.FC<GroupCreateModalProps> = ({
                 placeholder="Tìm bạn bè theo tên..."
                 value={userQuery}
                 onChange={(e) => setUserQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900"
+                className="w-full pl-9 pr-3 py-2 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy text-stone-900 placeholder:text-stone-400"
               />
             </div>
 

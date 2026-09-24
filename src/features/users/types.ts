@@ -93,3 +93,18 @@ export interface BankAccountInput {
   account_number: string;
   account_name: string;
 }
+
+export interface UserCapabilityRestrictionResponse {
+  capability: 'BUY' | 'SELL' | string;
+  expires_at: string | null;
+}
+
+export interface UserAccessStatusResponse {
+  user_id: number;
+  status: 'ACTIVE' | 'BANNED' | 'INACTIVE' | string;
+  role: 'STUDENT' | 'ADMIN' | string;
+  can_buy?: boolean;
+  can_sell?: boolean;
+  active_restrictions?: UserCapabilityRestrictionResponse[];
+}
+

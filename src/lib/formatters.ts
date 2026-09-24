@@ -83,10 +83,29 @@ export function formatDate(isoString: string): string {
   }
 }
 
+// Format chuỗi ISO datetime sang giờ:phút tin nhắn (VD: "12:06")
+export function formatMessageTime(isoString: string | null | undefined): string {
+  if (!isoString) return '';
+  const timestamp = parseServerDateTime(isoString);
+  if (!timestamp) {
+    if (import.meta.env.DEV) {
+      console.warn(`[formatMessageTime] Invalid datetime string received: "${isoString}"`);
+    }
+    return '';
+  }
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 // Format thời gian tương đối (VD: "2 giờ trước", "Hôm qua")
 export function formatRelativeTime(isoString: string): string {
   try {
-    const date = new Date(isoString);
+    const timestamp = parseServerDateTime(isoString);
+    if (!timestamp) return formatDate(isoString);
+    const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffSec = Math.floor(diffMs / 1000);

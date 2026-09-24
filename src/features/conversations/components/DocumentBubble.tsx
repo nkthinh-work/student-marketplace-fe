@@ -46,7 +46,7 @@ export const DocumentBubble: React.FC<DocumentBubbleProps> = ({
 
   return (
     <div
-      className={`flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl border transition-all mb-2 max-w-sm ${
+      className={`flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl border transition-all mb-2 w-full max-w-sm min-w-0 box-border ${
         isMine
           ? 'bg-rose-950/40 border-rose-800/60 text-white'
           : 'bg-stone-50 border-stone-200 text-stone-900 hover:bg-stone-100/80'

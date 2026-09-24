@@ -21,7 +21,7 @@ export const ProductCardBubble: React.FC<ProductCardBubbleProps> = ({
 }) => {
   return (
     <div
-      className={`rounded-2xl p-2.5 sm:p-3 border max-w-xs sm:max-w-sm transition-all mb-2 ${
+      className={`rounded-2xl p-2.5 sm:p-3 border w-full max-w-xs sm:max-w-sm min-w-0 transition-all mb-2 box-border ${
         isMine
           ? 'bg-rose-950/30 border-rose-800/40 text-white'
           : 'bg-stone-50 border-stone-200 text-stone-900'
@@ -71,7 +71,7 @@ export const ProductCardBubble: React.FC<ProductCardBubbleProps> = ({
         </div>
       </div>
 
-      <div className="mt-2.5 pt-2 border-t border-white/10 flex justify-end">
+      <div className={`mt-2.5 pt-2 flex justify-end ${isMine ? 'border-t border-white/15' : 'border-t border-stone-200'}`}>
         <Link
           to={`/products/${product.product_id}`}
           onClick={() => onBeforeNavigateAway?.()}

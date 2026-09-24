@@ -31,24 +31,27 @@ export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => 
   const bids = data?.items || [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-3">
+    <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm space-y-3 text-brand-text">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+        <h3 className="text-sm font-semibold text-brand-text flex items-center gap-1.5">
           <History className="w-4 h-4 text-emerald-600" />
           Lịch sử đặt giá ({bids.length})
         </h3>
-        <span className="text-[11px] text-gray-400 flex items-center gap-1">
+        <span className="text-[11px] text-brand-text-muted flex items-center gap-1">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           Bảo mật danh tính
         </span>
       </div>
 
       {bids.length === 0 ? (
-        <div className="py-6 text-center text-xs text-gray-400">
+        <div
+          className="py-6 text-center text-xs text-brand-text-muted"
+          style={{ color: '#4B5563', WebkitTextFillColor: '#4B5563' }}
+        >
           Chưa có lượt đặt giá nào. Hãy là người đầu tiên đặt giá!
         </div>
       ) : (
-        <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto pr-1 space-y-1">
+        <div className="divide-y divide-stone-100 max-h-64 overflow-y-auto pr-1 space-y-1">
           {bids.map((bid, index) => {
             const isLeading = bid.is_highest || index === 0;
             const displayName = bid.is_current_user ? 'Bạn' : bid.bidder_display;
@@ -67,7 +70,7 @@ export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => 
                 className={`flex items-center gap-2.5 py-2.5 px-3 rounded-xl transition-colors ${
                   isLeading
                     ? 'bg-amber-50/60 border border-amber-200/70 shadow-2xs'
-                    : 'hover:bg-gray-50/80'
+                    : 'hover:bg-stone-50/80'
                 }`}
               >
                 {/* Crown (Leader only) */}
@@ -80,7 +83,7 @@ export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => 
                   src={bid.bidder_avatar_url}
                   name={displayName}
                   size="xs"
-                  className="w-7 h-7 border border-gray-200/80 shadow-2xs"
+                  className="w-7 h-7 border border-stone-200/80 shadow-2xs"
                 />
 
                 {/* Middle: Identity + Meta (flex-1 min-w-0) */}
@@ -90,7 +93,7 @@ export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => 
                       className={`text-xs truncate block ${
                         bid.is_current_user
                           ? 'font-extrabold text-emerald-800'
-                          : 'font-semibold text-gray-800'
+                          : 'font-semibold text-brand-text'
                       }`}
                       title={displayName}
                     >
@@ -98,7 +101,7 @@ export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => 
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 min-w-0">
+                  <div className="flex items-center gap-1.5 text-[11px] text-brand-text-muted min-w-0">
                     {isLeading && (
                       <>
                         <span className="font-bold text-[10px] text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded-md border border-amber-200/80 shrink-0 leading-tight">
@@ -117,7 +120,7 @@ export const RecentBidsList: React.FC<RecentBidsListProps> = ({ auctionId }) => 
                     className={`text-xs font-bold block ${
                       isLeading
                         ? 'text-amber-800 font-extrabold'
-                        : 'text-gray-900 font-semibold'
+                        : 'text-brand-text font-semibold'
                     }`}
                   >
                     {formatVND(bid.amount)}

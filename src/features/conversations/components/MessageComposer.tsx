@@ -15,6 +15,7 @@ import {
   ConversationMemberItem,
   MessageMentionInput,
   ProductContextSummary,
+  ReplyMessageSummary,
 } from '../types';
 import { useGroupMembers } from '../hooks';
 import { useCurrentUser } from '@/features/users/hooks';
@@ -29,7 +30,8 @@ interface MessageComposerProps {
     files?: File[],
     productId?: number | null,
     voiceDurationMs?: number | null,
-    mentions?: MessageMentionInput[]
+    mentions?: MessageMentionInput[],
+    replyToMessageId?: number | null
   ) => void;
   disabled?: boolean;
   placeholder?: string;
@@ -37,6 +39,10 @@ interface MessageComposerProps {
   otherUserId?: number;
   otherUserName?: string;
   conversationId?: number;
+  replyingTo?: ReplyMessageSummary | null;
+  onCancelReply?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 const MAX_ATTACHMENTS = 4;
@@ -73,6 +79,10 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   otherUserId,
   otherUserName = 'Người dùng',
   conversationId,
+  replyingTo,
+  onCancelReply,
+  onFocus,
+  onBlur,
 }) => {
   const { data: currentUser } = useCurrentUser();
   const [content, setContent] = useState('');
@@ -300,7 +310,14 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
   const handleSendVoice = (audioFile: File, voiceDurationMs: number) => {
     setIsVoiceRecording(false);
-    onSend(null, [audioFile], null, voiceDurationMs, undefined);
+    onSend(
+      null,
+      [audioFile],
+      null,
+      voiceDurationMs,
+      undefined,
+      replyingTo ? replyingTo.message_id : null
+    );
   };
 
   const handleCancelVoice = () => {
@@ -361,7 +378,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
       hasFiles ? selectedFiles : undefined,
       selectedProduct ? selectedProduct.product_id : null,
       null,
-      mentionsToSend.length > 0 ? mentionsToSend : undefined
+      mentionsToSend.length > 0 ? mentionsToSend : undefined,
+      replyingTo ? replyingTo.message_id : null
     );
 
     setContent('');
@@ -435,7 +453,10 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     !disabled;
 
   return (
-    <div className="flex flex-col bg-white border-t border-stone-200 relative">
+    <div
+      data-ui-role="message-composer"
+      className="shrink-0 flex flex-col bg-white border-t border-stone-200 relative pb-[env(safe-area-inset-bottom,0px)]"
+    >
       {/* Mention Autocomplete Suggestion Dropdown */}
       {mentionTrigger && filteredMentionMembers.length > 0 && (
         <div className="absolute bottom-full left-2 right-2 sm:right-auto sm:left-3 mb-2 sm:w-80 max-w-[calc(100vw-16px)] bg-white rounded-2xl shadow-xl border border-stone-200 divide-y divide-stone-100 overflow-hidden z-30 max-h-56 overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-150">
@@ -508,6 +529,28 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           onSubmit={handleSubmit}
           className="flex flex-col px-2 py-2 sm:px-3 sm:py-2.5 relative"
         >
+          {/* Replying banner */}
+          {replyingTo && (
+            <div className="mb-2 px-3 py-1.5 bg-stone-50 border-l-3 border-brand-burgundy rounded-r-xl flex items-center justify-between text-xs text-stone-700 shadow-2xs animate-in fade-in duration-150">
+              <div className="min-w-0 pr-2">
+                <span className="font-semibold text-brand-burgundy block truncate text-[11px]">
+                  Trả lời {replyingTo.sender_name || 'Người dùng'}
+                </span>
+                <span className="text-stone-500 truncate block text-[11px]">
+                  {replyingTo.preview}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onCancelReply}
+                className="p-1 hover:bg-stone-200/60 rounded-full text-stone-400 hover:text-stone-600 transition-colors shrink-0"
+                title="Hủy trả lời"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Error alert message */}
           {errorMessage && (
             <div className="mb-1.5 p-1.5 px-2 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-xs text-rose-700">
@@ -700,7 +743,9 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                     : placeholder
                 }
                 disabled={disabled}
-                className="w-full bg-transparent resize-none outline-none text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 max-h-[110px] py-0.5 leading-relaxed"
+                onFocus={onFocus}
+                onBlur={onBlur}
+                className="w-full bg-transparent resize-none outline-none text-base md:text-sm text-stone-900 placeholder:text-stone-400 max-h-[110px] py-0.5 leading-relaxed"
               />
             </div>
 

@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { auth } from '@/lib/firebase';
 
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: configuredBaseUrl || undefined,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -53,6 +55,23 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    if (error.response?.status === 403) {
+      const detail = String(error.response?.data?.detail || '').toLowerCase();
+      if (
+        detail.includes('banned') ||
+        detail.includes('inactive') ||
+        detail.includes('tài khoản đã bị khóa') ||
+        detail.includes('tài khoản không hoạt động')
+      ) {
+        if (
+          typeof window !== 'undefined' &&
+          window.location.pathname !== '/account-restricted'
+        ) {
+          window.location.href = '/account-restricted';
+        }
       }
     }
 

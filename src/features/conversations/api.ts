@@ -249,6 +249,12 @@ export async function sendMessage(
   if (payload.mentions && payload.mentions.length > 0) {
     formData.append('mentions', JSON.stringify(payload.mentions));
   }
+  if (
+    payload.reply_to_message_id !== undefined &&
+    payload.reply_to_message_id !== null
+  ) {
+    formData.append('reply_to_message_id', String(payload.reply_to_message_id));
+  }
 
   const { data } = await apiClient.post<MessageItem>(
     `/api/v1/conversations/${conversationId}/messages`,

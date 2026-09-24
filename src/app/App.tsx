@@ -18,6 +18,10 @@ import { ConversationsPage } from '@/features/conversations/pages/ConversationsP
 import { ChatThreadPage } from '@/features/conversations/pages/ChatThreadPage';
 import { NotificationsPage } from '@/features/notifications';
 import { AuctionRedirectPage } from '@/features/auctions/pages/AuctionRedirectPage';
+import { AdminReportsPage } from '@/features/reports/pages/AdminReportsPage';
+import { AdminCommunityMomentsPage } from '@/features/communityMoments';
+import { FeedbackPage, AdminFeedbackPage } from '@/features/feedback';
+import { AccountRestrictedPage } from '@/features/auth/pages/AccountRestrictedPage';
 import { usePrivateRealtime } from '@/app/realtime/usePrivateRealtime';
 
 const queryClient = new QueryClient({
@@ -38,9 +42,9 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <PrivateRealtimeBridge />
-          <div className="min-h-screen bg-brand-cream text-brand-text flex flex-col">
+          <BrowserRouter>
+            <PrivateRealtimeBridge />
+            <div className="min-h-screen bg-brand-cream text-brand-text flex flex-col">
             <Header />
             <main className="flex-1">
               <Routes>
@@ -57,8 +61,12 @@ export function App() {
                   }
                 />
 
-                {/* Public User Profile (Public) */}
+                {/* Public User Profile (Public, both /users/:id and /profile/:id supported) */}
                 <Route path="/users/:userId" element={<PublicProfilePage />} />
+                <Route path="/profile/:userId" element={<PublicProfilePage />} />
+
+                {/* Account Restricted Page (Public / Authenticated with restricted status) */}
+                <Route path="/account-restricted" element={<AccountRestrictedPage />} />
 
                 {/* Product Detail (Public / Optional Auth) */}
                 <Route path="/products/:productId" element={<ProductDetailPage />} />
@@ -163,8 +171,41 @@ export function App() {
                   }
                 />
 
+                {/* Admin Reports Queue (Protected, ADMIN only) */}
+                <Route
+                  path="/admin/reports"
+                  element={
+                    <ProtectedRoute requiredRole="ADMIN">
+                      <AdminReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin Community Moments Queue (Protected, ADMIN only) */}
+                <Route
+                  path="/admin/community-moments"
+                  element={
+                    <ProtectedRoute requiredRole="ADMIN">
+                      <AdminCommunityMomentsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Auction Redirect (Public / Optional Auth) */}
                 <Route path="/auctions/:auctionId" element={<AuctionRedirectPage />} />
+
+                {/* Feedback Page (Public) */}
+                <Route path="/feedback" element={<FeedbackPage />} />
+
+                {/* Admin Feedback Moderation Queue (Protected, ADMIN only) */}
+                <Route
+                  path="/admin/feedback"
+                  element={
+                    <ProtectedRoute requiredRole="ADMIN">
+                      <AdminFeedbackPage />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Fallback Catch-all */}
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -175,5 +216,5 @@ export function App() {
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
-  );
+);
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { MessageItem } from '../types';
+import { formatMessageTime } from '@/lib/formatters';
 
 interface GroupSystemMessageProps {
   message: MessageItem;
@@ -7,15 +8,7 @@ interface GroupSystemMessageProps {
 
 export const GroupSystemMessage: React.FC<GroupSystemMessageProps> = ({ message }) => {
   const formattedTime = React.useMemo(() => {
-    try {
-      const d = new Date(message.sent_at);
-      return d.toLocaleTimeString('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return '';
-    }
+    return formatMessageTime(message.sent_at);
   }, [message.sent_at]);
 
   return (

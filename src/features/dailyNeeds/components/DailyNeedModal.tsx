@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Sparkles, AlertCircle, Trash2, Loader2 } from 'lucide-react';
+import { StreakFlame } from './StreakFlame';
 import {
   useMyTodayDailyNeed,
   useMyDailyNeedSummary,
@@ -26,7 +28,6 @@ export const DailyNeedModal: React.FC<DailyNeedModalProps> = ({
   const upsertMutation = useUpsertDailyNeed(currentUser?.user_id);
   const deleteMutation = useDeleteDailyNeed(currentUser?.user_id);
 
-
   const [content, setContent] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,6 +39,30 @@ export const DailyNeedModal: React.FC<DailyNeedModalProps> = ({
       setIsDeleting(false);
     }
   }, [isOpen, myNote]);
+
+  // Robust scroll-preserving body lock
+  useEffect(() => {
+    if (!isOpen || typeof document === 'undefined') return;
+
+    const scrollY = window.scrollY;
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalTop = document.body.style.top;
+    const originalWidth = document.body.style.width;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.top = originalTop;
+      document.body.style.width = originalWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -84,12 +109,15 @@ export const DailyNeedModal: React.FC<DailyNeedModalProps> = ({
   };
 
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="daily-need-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs animate-in fade-in duration-150"
+      onClick={onClose}
     >
       <div
         className="w-full max-w-md rounded-3xl bg-white p-5 sm:p-6 shadow-2xl border border-stone-200/80 animate-in zoom-in-95 duration-150"
@@ -149,16 +177,24 @@ export const DailyNeedModal: React.FC<DailyNeedModalProps> = ({
               disabled={isSubmitting || isNoteLoading}
               maxLength={120}
               placeholder="VD: Hôm nay cần tìm giáo trình Giải tích, Đang tìm bàn học nhỏ phòng trọ..."
-              className="w-full p-3 rounded-2xl border border-stone-200 bg-stone-50/50 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy transition-all resize-none"
+              className="w-full p-3 rounded-2xl border border-stone-200 bg-stone-50/50 text-base md:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy transition-all resize-none"
             />
             {/* Helper & Counter Footer */}
             <div className="mt-2 space-y-1 text-[11px] sm:text-xs text-stone-400">
               {/* Line 1: Streak helper & Character counter */}
               <div className="flex items-center justify-between gap-2 leading-tight">
-                <span className="min-w-0 truncate text-stone-400 select-none">
-                  {hasCheckedInToday
-                    ? 'Bạn đã giữ chuỗi hôm nay 🔥'
-                    : 'Viết mỗi ngày để giữ chuỗi 🔥'}
+                <span className="min-w-0 truncate text-stone-500 select-none inline-flex items-center gap-1">
+                  {hasCheckedInToday ? (
+                    <>
+                      <span>Bạn đã giữ chuỗi hôm nay</span>
+                      <StreakFlame streakCount={1} isActive={true} size={13} />
+                    </>
+                  ) : (
+                    <>
+                      <span>Không đăng nhật ký mất chuỗi ráng chịu</span>
+                      <StreakFlame streakCount={0} isActive={false} size={13} />
+                    </>
+                  )}
                 </span>
                 <span
                   className={`shrink-0 tabular-nums text-right font-medium ${
@@ -231,7 +267,8 @@ export const DailyNeedModal: React.FC<DailyNeedModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

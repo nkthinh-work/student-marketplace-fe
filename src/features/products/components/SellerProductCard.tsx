@@ -13,8 +13,7 @@ import {
   Eye,
   EyeOff,
   Image as ImageIcon,
-  Gavel,
-  ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 
 interface SellerProductCardProps {
@@ -31,13 +30,24 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
   const isWaitingWinnerCheckout =
     product.listing_type === 'AUCTION' &&
     product.status === 'AVAILABLE' &&
-    product.reserved_stock > 0;
+    (product.reserved_stock > 0 || (product.auction?.status === 'ENDED' && !!product.auction?.winner_checkout_deadline));
+
+  const isActiveAuction =
+    product.listing_type === 'AUCTION' &&
+    product.status === 'AVAILABLE' &&
+    product.auction?.status === 'ACTIVE';
 
   const displayStatusMeta = isWaitingWinnerCheckout
     ? {
         label: 'Chờ người thắng',
         bgClass: 'bg-amber-50 border-amber-300',
         textClass: 'text-amber-800 font-bold',
+      }
+    : isActiveAuction
+    ? {
+        label: 'Đang đấu giá',
+        bgClass: 'bg-emerald-50 border-emerald-300',
+        textClass: 'text-emerald-800 font-bold',
       }
     : statusMeta;
 
@@ -90,11 +100,18 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
           {/* Top line: Category & Status */}
           <div className="flex items-center justify-between gap-1 text-[11px] text-brand-text-muted">
             <span className="truncate max-w-[55%]">{product.category.name}</span>
-            <span
-              className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold border shrink-0 ${displayStatusMeta.bgClass} ${displayStatusMeta.textClass}`}
-            >
-              {displayStatusMeta.label}
-            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              {product.moderation_status === 'BLOCKED' && (
+                <span className="rounded-md px-1.5 py-0.5 text-[10px] font-bold border bg-red-50 text-red-700 border-red-200 shrink-0">
+                  Đã bị quản trị viên ẩn
+                </span>
+              )}
+              <span
+                className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold border shrink-0 ${displayStatusMeta.bgClass} ${displayStatusMeta.textClass}`}
+              >
+                {displayStatusMeta.label}
+              </span>
+            </div>
           </div>
 
           {/* Product Title (2-line clamp) */}
@@ -122,36 +139,30 @@ export function SellerProductCard({ product }: SellerProductCardProps) {
             </span>
           </div>
 
-          {/* Stock metadata */}
+          {/* Stock metadata & Views */}
           <div className="flex items-center gap-1.5 text-[11px] text-brand-text-secondary flex-wrap pt-0.5">
             <span>Tồn <strong>{product.stock}</strong></span>
             {product.reserved_stock > 0 && (
               <span className="text-amber-700">· Đang giữ <strong>{product.reserved_stock}</strong></span>
             )}
             <span className="text-emerald-700">· Khả dụng <strong>{product.available_stock}</strong></span>
+            <span className="text-brand-text-muted inline-flex items-center gap-0.5 ml-auto text-[11px]" title={`${product.view_count ?? 0} lượt xem`}>
+              <Eye className="h-3 w-3 stroke-[1.5]" />
+              <span>{product.view_count ?? 0}</span>
+            </span>
           </div>
         </div>
 
         {/* Action buttons row */}
         <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-brand-border/50 justify-between">
           <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-            {listingMeta.isAuction ? (
-              <Link
-                to={`/products/${product.product_id}`}
-                className="btn-interactive inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 no-underline"
-              >
-                <Gavel className="h-3 w-3" />
-                <span>Đấu giá</span>
-              </Link>
-            ) : (
-              <Link
-                to={`/products/${product.product_id}`}
-                className="btn-interactive inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-stone-100 text-brand-text hover:bg-stone-200 no-underline"
-              >
-                <ExternalLink className="h-3 w-3 text-brand-text-muted" />
-                <span>Chi tiết</span>
-              </Link>
-            )}
+            <Link
+              to={`/products/${product.product_id}`}
+              className="btn-interactive inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-stone-100 text-brand-text hover:bg-stone-200 transition-colors no-underline shrink-0"
+            >
+              <span>Chi tiết</span>
+              <ArrowRight className="h-3 w-3 text-brand-text-muted" />
+            </Link>
 
             <Link
               to={`/products/${product.product_id}/edit`}

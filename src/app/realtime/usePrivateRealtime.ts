@@ -6,8 +6,9 @@ import { ORDER_QUERY_KEYS } from '@/features/orders/hooks';
 import { AUCTION_QUERY_KEYS } from '@/features/auctions/hooks';
 import { conversationKeys, invalidateAttachmentCaches } from '@/features/conversations/hooks';
 import { handleConversationAccessRevoked } from '@/features/conversations/accessRevocation';
-import { useCurrentUser } from '@/features/users/hooks';
+import { CURRENT_USER_KEY, useCurrentUser } from '@/features/users/hooks';
 import { NOTIFICATION_QUERY_KEYS } from '@/features/notifications/hooks';
+import { getWebSocketBaseUrl } from '@/lib/websocket';
 
 export interface PrivateRealtimeEvent {
   type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'AUCTION_WINNER_CHECKED_OUT' | 'MESSAGE_CREATED' | string;
@@ -60,17 +61,7 @@ export function usePrivateRealtime() {
     let isMounted = true;
 
     // Resolve base WebSocket URL
-    const apiBase = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-    let wsBaseUrl = import.meta.env.VITE_WS_URL;
-    if (!wsBaseUrl) {
-      const isHttps = apiBase.startsWith('https:') || window.location.protocol === 'https:';
-      const wsProtocol = isHttps ? 'wss:' : 'ws:';
-      let host = apiBase.replace(/^https?:\/\//, '');
-      if (host.includes(':3000')) {
-        host = 'localhost:8000';
-      }
-      wsBaseUrl = `${wsProtocol}//${host}`;
-    }
+    const wsBaseUrl = getWebSocketBaseUrl();
 
     function cleanupSocket() {
       if (pingIntervalRef.current) {
@@ -139,6 +130,14 @@ export function usePrivateRealtime() {
           if (event.data === 'pong') return;
           try {
             const data: PrivateRealtimeEvent = JSON.parse(event.data);
+
+            if (data.type === '_DISCONNECT' || data.type === 'ACCOUNT_ACCESS_REVOKED') {
+              cleanupSocket();
+              queryClient.cancelQueries({ queryKey: CURRENT_USER_KEY });
+              queryClient.removeQueries({ queryKey: CURRENT_USER_KEY });
+              navigate('/account-restricted', { replace: true });
+              return;
+            }
 
             if (data.type === 'ORDER_UPDATED') {
               if (data.order_id) {
@@ -302,8 +301,14 @@ export function usePrivateRealtime() {
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (event: CloseEvent) => {
           cleanupSocket();
+          if (event.code === 1008) {
+            queryClient.cancelQueries({ queryKey: CURRENT_USER_KEY });
+            queryClient.removeQueries({ queryKey: CURRENT_USER_KEY });
+            navigate('/account-restricted', { replace: true });
+            return;
+          }
           scheduleReconnect();
         };
 
@@ -326,5 +331,5 @@ export function usePrivateRealtime() {
       }
       cleanupSocket();
     };
-  }, [firebaseUser, initializing, queryClient]);
+  }, [firebaseUser, initializing, queryClient, navigate]);
 }

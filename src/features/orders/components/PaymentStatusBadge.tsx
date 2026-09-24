@@ -64,16 +64,16 @@ export const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
   const methodText = getPaymentMethodLabel(paymentMethod, fulfillmentMethod, totalAmount);
 
   return (
-    <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0 ${className}`}>
       <span
-        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap flex-none ${config.bg} ${config.text} ${config.border}`}
+        className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border whitespace-nowrap flex-none ${config.bg} ${config.text} ${config.border}`}
       >
         {config.label}
       </span>
       {showMethod && methodText && (
-        <span className="text-[11px] font-medium text-brand-text-muted min-w-0 break-words">
-          <span className="hidden sm:inline mr-1 text-brand-border">•</span>
-          {methodText}
+        <span className="text-[11px] font-medium text-brand-text-muted min-w-0 break-words flex items-center gap-1.5">
+          <span className="hidden sm:inline text-brand-border">•</span>
+          <span>{methodText}</span>
         </span>
       )}
     </div>

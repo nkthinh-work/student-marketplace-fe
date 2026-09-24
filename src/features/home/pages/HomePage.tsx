@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { CategoryBar } from '../components/CategoryBar';
 import { HomeDiscoveryCarousel } from '../components/HomeDiscoveryCarousel';
 import { ProductFeedSection } from '@/features/products/components/ProductFeedSection';
+import { executeScrollToResults } from '@/lib/searchScrollCoordinator';
 import { LoginPrompt } from '@/components/common/LoginPrompt';
 import {
   DailyNeedsMarquee,
   DailyNeedModal,
+  dailyNeedKeys,
   useMyDailyNeedSummary,
 } from '@/features/dailyNeeds';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -18,10 +21,12 @@ import type {
   ProductFilterParams,
   ListingType,
 } from '@/features/products/types';
-import { Sparkles, ArrowRight, PenSquare, Flame } from 'lucide-react';
+import { Sparkles, ArrowRight, PenSquare } from 'lucide-react';
+import { StreakFlame } from '@/features/dailyNeeds/components/StreakFlame';
 
 export function HomePage() {
-  const { firebaseUser } = useAuth();
+  const queryClient = useQueryClient();
+  const { firebaseUser, initializing } = useAuth();
   const { data: user } = useCurrentUser();
   const { data: journalSummary } = useMyDailyNeedSummary(Boolean(firebaseUser));
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,7 +38,33 @@ export function HomePage() {
   const hasJournalToday = Boolean(journalSummary?.has_journal_today);
   const streakCount = journalSummary?.streak_count ?? 0;
 
+  // Schedule a single refresh at next day boundary (midnight) for long-lived open tabs
+  useEffect(() => {
+    if (!firebaseUser) return;
+    const now = new Date();
+    // Midnight in local time + 3s buffer for server rollover
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 3);
+    const msUntilMidnight = Math.max(1000, nextMidnight.getTime() - now.getTime());
 
+    const timer = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.mySummary() });
+      queryClient.invalidateQueries({ queryKey: dailyNeedKeys.myToday() });
+    }, msUntilMidnight);
+
+    return () => clearTimeout(timer);
+  }, [firebaseUser, queryClient]);
+
+
+
+  const location = useLocation();
+
+  // Cross-route Search Submit: if navigation carried scrollToSearchResults intent, fulfill it once
+  useEffect(() => {
+    if (location.state?.scrollToSearchResults) {
+      window.history.replaceState({}, document.title);
+      executeScrollToResults();
+    }
+  }, [location.state]);
 
   // Parse filters from URL
   const filters: ProductFilterParams = useMemo(() => {
@@ -137,12 +168,14 @@ export function HomePage() {
       </div>
 
       {/* 2. Welcome Card (Auth Prompt or Authenticated Personal Identity & Streak) */}
-      <div className="mb-3 sm:mb-4 relative z-0">
-        {!firebaseUser ? (
-          <section id="auth-card" className="scroll-mt-20" ref={revealRef}>
-            <div className="reveal rounded-2xl bg-gradient-to-br from-brand-burgundy/10 via-brand-soft-pink/30 to-brand-gold/10 p-5 border border-brand-border/60 card-interactive">
+      {initializing ? (
+        <div className="mb-3 sm:mb-4 rounded-2xl bg-brand-warm-white/80 p-5 border border-brand-border/60 animate-pulse h-32" />
+      ) : !firebaseUser ? (
+        <div className="mb-3 sm:mb-4 relative z-0">
+          <section id="auth-card" className="scroll-mt-20">
+            <div className="rounded-2xl bg-gradient-to-br from-brand-burgundy/10 via-brand-soft-pink/30 to-brand-gold/10 p-4 sm:p-5 border border-brand-border/60 card-interactive">
               <div className="mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-brand-burgundy" />
+                <Sparkles className="h-5 w-5 text-brand-burgundy shrink-0" />
                 <h2 className="text-sm sm:text-base font-bold text-brand-text">
                   Tham gia Chợ PTITers ngay hôm nay!
                 </h2>
@@ -153,7 +186,9 @@ export function HomePage() {
               <LoginPrompt message="Đăng nhập nhanh chỉ với 1 chạm" />
             </div>
           </section>
-        ) : (
+        </div>
+      ) : (
+        <div className="mb-3 sm:mb-4 relative z-0">
           <section className="rounded-2xl bg-brand-warm-white p-3.5 sm:p-4 border border-brand-border shadow-card card-interactive">
             {/* Top row: User identity & profile action */}
             <div className="flex items-start justify-between gap-3">
@@ -183,39 +218,47 @@ export function HomePage() {
             </div>
 
             {/* Bottom row: Streak flame status & Journal CTA */}
-            <div className="mt-3 pt-2.5 border-t border-brand-border/50 flex items-center justify-between gap-2">
-              <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-colors ${
-                  hasCheckedInToday
-                    ? 'bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs'
-                    : 'bg-stone-100 text-stone-500 border border-stone-200/60'
-                }`}
-                title={
-                  hasCheckedInToday
-                    ? 'Bạn đã giữ chuỗi hôm nay'
-                    : 'Đăng nhật ký hôm nay để giữ chuỗi'
-                }
-                aria-label={
-                  hasCheckedInToday
-                    ? 'Bạn đã giữ chuỗi hôm nay'
-                    : 'Đăng nhật ký hôm nay để giữ chuỗi'
-                }
-              >
-                <span
-                  className={`inline-flex items-center justify-center ${
-                    isActivatingFlame ? 'animate-flame-pulse' : ''
-                  }`}
-                >
-                  <Flame
-                    className={`w-4 h-4 transition-colors ${
-                      hasCheckedInToday
-                        ? 'text-amber-500 fill-amber-500'
-                        : 'text-stone-400 fill-transparent'
+            <div className="mt-3 pt-2.5 border-t border-brand-border/60 flex items-center justify-between gap-2">
+              {(() => {
+                // CRITICAL RULE: Active flame MUST be based strictly on hasCheckedInToday,
+                // NEVER on streakCount > 0!
+                const isFlameActive = hasCheckedInToday;
+                return (
+                  <div
+                    data-ui-role="streak-chip"
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-colors ${
+                      isFlameActive
+                        ? 'bg-amber-50 text-amber-950 border border-amber-200 shadow-2xs'
+                        : 'bg-stone-100 text-stone-500 border border-stone-200'
                     }`}
-                  />
-                </span>
-                <span>{streakCount} ngày</span>
-              </div>
+                    title={
+                      hasCheckedInToday
+                        ? 'Bạn đã giữ chuỗi hôm nay'
+                        : streakCount > 0
+                        ? `Chuỗi hiện tại: ${streakCount} ngày. Đăng hôm nay để duy trì!`
+                        : 'Đăng nhật ký hôm nay để bắt đầu chuỗi'
+                    }
+                    aria-label={
+                      hasCheckedInToday
+                        ? 'Bạn đã giữ chuỗi hôm nay'
+                        : streakCount > 0
+                        ? `Chuỗi hiện tại: ${streakCount} ngày. Đăng hôm nay để duy trì!`
+                        : 'Đăng nhật ký hôm nay để bắt đầu chuỗi'
+                    }
+                  >
+                    <StreakFlame
+                      streakCount={streakCount}
+                      isActive={isFlameActive}
+                      forceCelebrate={isActivatingFlame}
+                      onCelebrationEnd={() => setIsActivatingFlame(false)}
+                      size={16}
+                    />
+                    <span className={isFlameActive ? 'text-amber-950 font-bold' : 'text-stone-500 font-medium'}>
+                      {streakCount} ngày
+                    </span>
+                  </div>
+                );
+              })()}
 
               <button
                 type="button"
@@ -234,8 +277,8 @@ export function HomePage() {
             </div>
 
           </section>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 3. Daily Journal Marquee (Directly below Welcome Card, before Categories) */}
       <DailyNeedsMarquee />
@@ -274,10 +317,9 @@ export function HomePage() {
       <DailyNeedModal
         isOpen={isDailyNeedModalOpen}
         onClose={() => setIsDailyNeedModalOpen(false)}
-        onJournalPublished={(wasFirstPostToday) => {
-          if (wasFirstPostToday) {
+        onJournalPublished={(checkinCreated) => {
+          if (checkinCreated) {
             setIsActivatingFlame(true);
-            setTimeout(() => setIsActivatingFlame(false), 700);
           }
         }}
       />

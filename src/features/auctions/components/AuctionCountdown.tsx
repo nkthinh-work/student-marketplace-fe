@@ -124,7 +124,10 @@ export const AuctionCountdown: React.FC<AuctionCountdownProps> = ({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+      <span
+        className="text-xs font-medium text-gray-500 flex items-center gap-1.5"
+        style={{ color: '#4B5563', WebkitTextFillColor: '#4B5563' }}
+      >
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -133,30 +136,86 @@ export const AuctionCountdown: React.FC<AuctionCountdownProps> = ({
       </span>
       <div className="flex items-center gap-2">
         {days > 0 && (
-          <div className="flex flex-col items-center bg-gray-900 text-white rounded-lg px-2.5 py-1 min-w-[42px]">
-            <span className="text-base font-bold leading-none">{days}</span>
-            <span className="text-[10px] text-gray-400 mt-0.5">ngày</span>
+          <div
+            className="flex flex-col items-center bg-gray-900 text-white rounded-lg px-2.5 py-1 min-w-[42px]"
+            style={{ backgroundColor: '#0F172A', color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+          >
+            <span
+              className="text-base font-bold leading-none"
+              style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+            >
+              {days}
+            </span>
+            <span
+              className="text-[10px] text-gray-400 mt-0.5"
+              style={{ color: '#94A3B8', WebkitTextFillColor: '#94A3B8' }}
+            >
+              ngày
+            </span>
           </div>
         )}
-        <div className="flex flex-col items-center bg-gray-900 text-white rounded-lg px-2.5 py-1 min-w-[42px]">
-          <span className="text-base font-bold leading-none">
+        <div
+          className="flex flex-col items-center bg-gray-900 text-white rounded-lg px-2.5 py-1 min-w-[42px]"
+          style={{ backgroundColor: '#0F172A', color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+        >
+          <span
+            className="text-base font-bold leading-none"
+            style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+          >
             {String(hours).padStart(2, '0')}
           </span>
-          <span className="text-[10px] text-gray-400 mt-0.5">giờ</span>
+          <span
+            className="text-[10px] text-gray-400 mt-0.5"
+            style={{ color: '#94A3B8', WebkitTextFillColor: '#94A3B8' }}
+          >
+            giờ
+          </span>
         </div>
-        <span className="text-gray-400 font-bold">:</span>
-        <div className="flex flex-col items-center bg-gray-900 text-white rounded-lg px-2.5 py-1 min-w-[42px]">
-          <span className="text-base font-bold leading-none">
+        <span
+          className="text-gray-400 font-bold"
+          style={{ color: '#94A3B8', WebkitTextFillColor: '#94A3B8' }}
+        >
+          :
+        </span>
+        <div
+          className="flex flex-col items-center bg-gray-900 text-white rounded-lg px-2.5 py-1 min-w-[42px]"
+          style={{ backgroundColor: '#0F172A', color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+        >
+          <span
+            className="text-base font-bold leading-none"
+            style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+          >
             {String(minutes).padStart(2, '0')}
           </span>
-          <span className="text-[10px] text-gray-400 mt-0.5">phút</span>
+          <span
+            className="text-[10px] text-gray-400 mt-0.5"
+            style={{ color: '#94A3B8', WebkitTextFillColor: '#94A3B8' }}
+          >
+            phút
+          </span>
         </div>
-        <span className="text-gray-400 font-bold">:</span>
-        <div className="flex flex-col items-center bg-emerald-600 text-white rounded-lg px-2.5 py-1 min-w-[42px]">
-          <span className="text-base font-bold leading-none">
+        <span
+          className="text-gray-400 font-bold"
+          style={{ color: '#94A3B8', WebkitTextFillColor: '#94A3B8' }}
+        >
+          :
+        </span>
+        <div
+          className="flex flex-col items-center bg-emerald-600 text-white rounded-lg px-2.5 py-1 min-w-[42px]"
+          style={{ backgroundColor: '#059669', color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+        >
+          <span
+            className="text-base font-bold leading-none"
+            style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF' }}
+          >
             {String(seconds).padStart(2, '0')}
           </span>
-          <span className="text-[10px] text-emerald-200 mt-0.5">giây</span>
+          <span
+            className="text-[10px] text-emerald-200 mt-0.5"
+            style={{ color: '#A7F3D0', WebkitTextFillColor: '#A7F3D0' }}
+          >
+            giây
+          </span>
         </div>
       </div>
     </div>
