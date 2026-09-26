@@ -10,6 +10,7 @@ import { ProductDetailPage } from '@/features/products/pages/ProductDetailPage';
 import { CreateProductPage } from '@/features/products/pages/CreateProductPage';
 import { EditProductPage } from '@/features/products/pages/EditProductPage';
 import { MyProductsPage } from '@/features/products/pages/MyProductsPage';
+import { AdminProductApprovalsPage } from '@/features/products/pages/AdminProductApprovalsPage';
 import { FavoritesPage } from '@/features/favorites/pages/FavoritesPage';
 import { BuyingOrdersPage } from '@/features/orders/pages/BuyingOrdersPage';
 import { SellingOrdersPage } from '@/features/orders/pages/SellingOrdersPage';
@@ -20,7 +21,8 @@ import { NotificationsPage } from '@/features/notifications';
 import { AuctionRedirectPage } from '@/features/auctions/pages/AuctionRedirectPage';
 import { AdminReportsPage } from '@/features/reports/pages/AdminReportsPage';
 import { AdminCommunityMomentsPage } from '@/features/communityMoments';
-import { FeedbackPage, AdminFeedbackPage } from '@/features/feedback';
+import { FeedbackPage, AdminFeedbackPage, AdminSupportPage } from '@/features/feedback';
+import { TutorialProvider, TutorialOverlayModal, AdminTutorialsPage } from '@/features/tutorials';
 import { AccountRestrictedPage } from '@/features/auth/pages/AccountRestrictedPage';
 import { usePrivateRealtime } from '@/app/realtime/usePrivateRealtime';
 
@@ -43,177 +45,210 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
           <BrowserRouter>
-            <PrivateRealtimeBridge />
-            <div className="min-h-screen bg-brand-cream text-brand-text flex flex-col">
-            <Header />
-            <main className="flex-1">
-              <Routes>
-                {/* Home Page */}
-                <Route path="/" element={<HomePage />} />
+            <TutorialProvider>
+              <PrivateRealtimeBridge />
+              <div className="min-h-screen bg-brand-cream text-brand-text flex flex-col">
+                <Header />
+                <main className="flex-1">
+                  <Routes>
+                    {/* Home Page */}
+                    <Route path="/" element={<HomePage />} />
 
-                {/* Profile Page (Protected) */}
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Profile Page (Protected) */}
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <ProfilePage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Public User Profile (Public, both /users/:id and /profile/:id supported) */}
-                <Route path="/users/:userId" element={<PublicProfilePage />} />
-                <Route path="/profile/:userId" element={<PublicProfilePage />} />
+                    {/* Public User Profile (Public, both /users/:id and /profile/:id supported) */}
+                    <Route path="/users/:userId" element={<PublicProfilePage />} />
+                    <Route path="/profile/:userId" element={<PublicProfilePage />} />
 
-                {/* Account Restricted Page (Public / Authenticated with restricted status) */}
-                <Route path="/account-restricted" element={<AccountRestrictedPage />} />
+                    {/* Account Restricted Page (Public / Authenticated with restricted status) */}
+                    <Route path="/account-restricted" element={<AccountRestrictedPage />} />
 
-                {/* Product Detail (Public / Optional Auth) */}
-                <Route path="/products/:productId" element={<ProductDetailPage />} />
+                    {/* Product Detail (Public / Optional Auth) */}
+                    <Route path="/products/:productId" element={<ProductDetailPage />} />
 
-                {/* Create Product (Protected) */}
-                <Route
-                  path="/products/new"
-                  element={
-                    <ProtectedRoute>
-                      <CreateProductPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Create Product (Protected) */}
+                    <Route
+                      path="/products/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateProductPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Edit Product (Protected) */}
-                <Route
-                  path="/products/:productId/edit"
-                  element={
-                    <ProtectedRoute>
-                      <EditProductPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Edit Product (Protected) */}
+                    <Route
+                      path="/products/:productId/edit"
+                      element={
+                        <ProtectedRoute>
+                          <EditProductPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Favorites Page (Protected) */}
-                <Route
-                  path="/favorites"
-                  element={
-                    <ProtectedRoute>
-                      <FavoritesPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Favorites Page (Protected) */}
+                    <Route
+                      path="/favorites"
+                      element={
+                        <ProtectedRoute>
+                          <FavoritesPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Seller My Products (Protected) */}
-                <Route
-                  path="/my-products"
-                  element={
-                    <ProtectedRoute>
-                      <MyProductsPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Seller My Products (Protected) */}
+                    <Route
+                      path="/my-products"
+                      element={
+                        <ProtectedRoute>
+                          <MyProductsPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Buying Orders (Protected) */}
-                <Route
-                  path="/orders/buying"
-                  element={
-                    <ProtectedRoute>
-                      <BuyingOrdersPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Buying Orders (Protected) */}
+                    <Route
+                      path="/orders/buying"
+                      element={
+                        <ProtectedRoute>
+                          <BuyingOrdersPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Selling Orders (Protected) */}
-                <Route
-                  path="/orders/selling"
-                  element={
-                    <ProtectedRoute>
-                      <SellingOrdersPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Selling Orders (Protected) */}
+                    <Route
+                      path="/orders/selling"
+                      element={
+                        <ProtectedRoute>
+                          <SellingOrdersPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Order Detail (Protected) */}
-                <Route
-                  path="/orders/:orderId"
-                  element={
-                    <ProtectedRoute>
-                      <OrderDetailPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Order Detail (Protected) */}
+                    <Route
+                      path="/orders/:orderId"
+                      element={
+                        <ProtectedRoute>
+                          <OrderDetailPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Messages List (Protected) */}
-                <Route
-                  path="/messages"
-                  element={
-                    <ProtectedRoute>
-                      <ConversationsPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Messages List (Protected) */}
+                    <Route
+                      path="/messages"
+                      element={
+                        <ProtectedRoute>
+                          <ConversationsPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Chat Thread (Protected) */}
-                <Route
-                  path="/messages/:conversationId"
-                  element={
-                    <ProtectedRoute>
-                      <ChatThreadPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Chat Thread (Protected) */}
+                    <Route
+                      path="/messages/:conversationId"
+                      element={
+                        <ProtectedRoute>
+                          <ChatThreadPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Notifications (Protected) */}
-                <Route
-                  path="/notifications"
-                  element={
-                    <ProtectedRoute>
-                      <NotificationsPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Notifications (Protected) */}
+                    <Route
+                      path="/notifications"
+                      element={
+                        <ProtectedRoute>
+                          <NotificationsPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Admin Reports Queue (Protected, ADMIN only) */}
-                <Route
-                  path="/admin/reports"
-                  element={
-                    <ProtectedRoute requiredRole="ADMIN">
-                      <AdminReportsPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Admin Product Approvals Queue (Protected, ADMIN only) */}
+                    <Route
+                      path="/admin/product-approvals"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <AdminProductApprovalsPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Admin Community Moments Queue (Protected, ADMIN only) */}
-                <Route
-                  path="/admin/community-moments"
-                  element={
-                    <ProtectedRoute requiredRole="ADMIN">
-                      <AdminCommunityMomentsPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Admin Reports Queue (Protected, ADMIN only) */}
+                    <Route
+                      path="/admin/reports"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <AdminReportsPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Auction Redirect (Public / Optional Auth) */}
-                <Route path="/auctions/:auctionId" element={<AuctionRedirectPage />} />
+                    {/* Admin Community Moments Queue (Protected, ADMIN only) */}
+                    <Route
+                      path="/admin/community-moments"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <AdminCommunityMomentsPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Feedback Page (Public) */}
-                <Route path="/feedback" element={<FeedbackPage />} />
+                    {/* Auction Redirect (Public / Optional Auth) */}
+                    <Route path="/auctions/:auctionId" element={<AuctionRedirectPage />} />
 
-                {/* Admin Feedback Moderation Queue (Protected, ADMIN only) */}
-                <Route
-                  path="/admin/feedback"
-                  element={
-                    <ProtectedRoute requiredRole="ADMIN">
-                      <AdminFeedbackPage />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Feedback Page (Public) */}
+                    <Route path="/feedback" element={<FeedbackPage />} />
 
-                {/* Fallback Catch-all */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* Admin Feedback Moderation Queue (Protected, ADMIN only) */}
+                    <Route
+                      path="/admin/feedback"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <AdminFeedbackPage />
+                        </ProtectedRoute>
+                      }
+                    />
 
-              </Routes>
-            </main>
-          </div>
-        </BrowserRouter>
+                    {/* Admin Support Contributions Ledger (Protected, ADMIN only) */}
+                    <Route
+                      path="/admin/support"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <AdminSupportPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Admin Tutorials CMS (Protected, ADMIN only) */}
+                    <Route
+                      path="/admin/tutorials"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <AdminTutorialsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Fallback Catch-all */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+
+                  </Routes>
+                </main>
+                <TutorialOverlayModal />
+              </div>
+            </TutorialProvider>
+          </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
 );

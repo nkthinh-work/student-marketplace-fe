@@ -6,6 +6,7 @@ import { PublicFeedbackList } from '../components/PublicFeedbackList';
 import { MyFeedbackSection } from '../components/MyFeedbackSection';
 import { CreatorProfileCard } from '../components/CreatorProfileCard';
 import { VietQRSupportCard } from '../components/VietQRSupportCard';
+import { SupporterLeaderboard } from '../components/SupporterLeaderboard';
 
 export const FeedbackPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -31,8 +32,23 @@ export const FeedbackPage: React.FC = () => {
         </div>
       )}
 
-      {/* 1. Hero Headline Copy */}
-      <header className="text-center space-y-2 px-2 pt-1 sm:pt-2">
+      {/* 1. Creator Profile Card Section */}
+      <section>
+        <CreatorProfileCard support={support} isLoading={isSupportLoading} />
+      </section>
+
+      {/* 2. Fixed VietQR Support Card Section */}
+      <section>
+        <VietQRSupportCard support={support} isLoading={isSupportLoading} />
+      </section>
+
+      {/* 3. Bảng tri ân (Supporter Leaderboard) Section */}
+      <section>
+        <SupporterLeaderboard />
+      </section>
+
+      {/* 4. Feedback Headline Copy */}
+      <header className="text-center space-y-2 px-2 pt-3 sm:pt-4 border-t border-brand-border/60">
         <h1 className="text-xl sm:text-2xl font-bold text-brand-text leading-snug tracking-tight">
           Bọn mình nhận gạch đá để xây chợ vững chắc hơn
         </h1>
@@ -41,7 +57,7 @@ export const FeedbackPage: React.FC = () => {
         </p>
       </header>
 
-      {/* 2. Compact Feedback Form */}
+      {/* 5. Compact Feedback Form */}
       <section>
         <FeedbackForm
           onSubmitted={handleSubmitted}
@@ -49,24 +65,14 @@ export const FeedbackPage: React.FC = () => {
         />
       </section>
 
-      {/* 3. My Feedback Section (Owner History & Hard Delete) */}
+      {/* 6. My Feedback Section (Owner History & Hard Delete) */}
       <section>
         <MyFeedbackSection />
       </section>
 
-      {/* 4. Public Community Feed */}
+      {/* 7. Public Community Feed */}
       <section>
         <PublicFeedbackList />
-      </section>
-
-      {/* 5. Creator Profile Card Section */}
-      <section>
-        <CreatorProfileCard support={support} isLoading={isSupportLoading} />
-      </section>
-
-      {/* 6. Fixed VietQR Support Card Section */}
-      <section>
-        <VietQRSupportCard support={support} isLoading={isSupportLoading} />
       </section>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  getRecentDailyNeeds,
   getTodayDailyNeeds,
   getMyTodayDailyNeed,
   getMyDailyNeedSummary,
@@ -11,11 +12,20 @@ import { DailyNeedCreateOrUpdatePayload } from './types';
 
 export const dailyNeedKeys = {
   all: ['daily-needs'] as const,
+  recent: (limit = 10) => [...dailyNeedKeys.all, 'recent', limit] as const,
   today: () => [...dailyNeedKeys.all, 'today'] as const,
   myToday: () => [...dailyNeedKeys.all, 'my-today'] as const,
   mySummary: () => [...dailyNeedKeys.all, 'my-summary'] as const,
   userToday: (userId?: number | null) =>
     [...dailyNeedKeys.all, 'users', userId, 'today'] as const,
+};
+
+export const useRecentDailyNeeds = (limit = 10) => {
+  return useQuery({
+    queryKey: dailyNeedKeys.recent(limit),
+    queryFn: () => getRecentDailyNeeds(limit),
+    staleTime: 30_000,
+  });
 };
 
 export const useTodayDailyNeeds = () => {
@@ -71,6 +81,7 @@ export const useUpsertDailyNeed = (currentUserId?: number | null) => {
       queryClient.setQueryData(dailyNeedKeys.myToday(), data);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: dailyNeedKeys.today() }),
+        queryClient.invalidateQueries({ queryKey: dailyNeedKeys.recent() }),
         queryClient.invalidateQueries({ queryKey: dailyNeedKeys.mySummary() }),
         currentUserId
           ? queryClient.invalidateQueries({
@@ -91,6 +102,7 @@ export const useDeleteDailyNeed = (currentUserId?: number | null) => {
       queryClient.setQueryData(dailyNeedKeys.myToday(), null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: dailyNeedKeys.today() }),
+        queryClient.invalidateQueries({ queryKey: dailyNeedKeys.recent() }),
         queryClient.invalidateQueries({ queryKey: dailyNeedKeys.mySummary() }),
         currentUserId
           ? queryClient.invalidateQueries({

@@ -7,6 +7,16 @@ import {
   DailyNeedCreateOrUpdatePayload,
 } from './types';
 
+export const getRecentDailyNeeds = async (
+  limit: number = 10
+): Promise<DailyNeedListResponse> => {
+  const clampedLimit = Math.max(1, Math.min(limit, 10));
+  const response = await apiClient.get<DailyNeedListResponse>(
+    `/api/v1/daily-needs/recent?limit=${clampedLimit}`
+  );
+  return response.data;
+};
+
 export const getTodayDailyNeeds = async (): Promise<DailyNeedListResponse> => {
   const response = await apiClient.get<DailyNeedListResponse>('/api/v1/daily-needs/today');
   return response.data;

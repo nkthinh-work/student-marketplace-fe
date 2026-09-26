@@ -7,5 +7,7 @@ export * from './components/MyFeedbackSection';
 export * from './components/CreatorProfileCard';
 export * from './components/VietQRSupportCard';
 export * from './components/AdminFeedbackDetailModal';
+export * from './components/SupporterLeaderboard';
 export * from './pages/FeedbackPage';
 export * from './pages/AdminFeedbackPage';
+export * from './pages/AdminSupportPage';

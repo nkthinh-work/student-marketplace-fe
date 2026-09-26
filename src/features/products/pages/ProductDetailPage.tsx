@@ -82,11 +82,8 @@ export function ProductDetailPage() {
           patchProductViewCountInQueryCaches(queryClient, product.product_id, res.view_count);
         }
       })
-      .catch((err) => {
-        // Fail-open: view count is non-critical analytics, don't disrupt user browsing
-        if (process.env.NODE_ENV === 'development') {
-          console.debug('[ProductDetailPage] View registration non-critical error:', err);
-        }
+      .catch(() => {
+        // Bỏ qua lỗi vì lượt xem không làm gián đoạn trải nghiệm duyệt tin người dùng
       });
   }, [product?.product_id, queryClient]);
 

@@ -1,7 +1,10 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useTodayDailyNeeds } from '../hooks';
+import { Link, useNavigate } from 'react-router-dom';
+import { useRecentDailyNeeds } from '../hooks';
 import { DailyNeed } from '../types';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { DailyNeedModal } from './DailyNeedModal';
+import { Sparkles } from 'lucide-react';
 
 interface DailyNoteChipProps {
   note: DailyNeed;
@@ -62,24 +65,26 @@ const DailyNoteChip: React.FC<DailyNoteChipProps> = ({ note }) => {
 };
 
 interface MarqueeLaneProps {
-  notes: DailyNeed[];
+  slots: DailyNeed[];
   direction: 'rtl' | 'ltr';
   speedPxPerSec: number;
   laneKey: string;
+  isSecondaryRow?: boolean;
 }
 
 const MarqueeLane: React.FC<MarqueeLaneProps> = ({
-  notes,
+  slots,
   direction,
   speedPxPerSec,
   laneKey,
+  isSecondaryRow = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const setARef = useRef<HTMLDivElement>(null);
   const offsetPxRef = useRef<number>(0);
 
-  // Reduced motion support: active if document explicitly declares reduced motion
+  // Reduced motion support
   const isReducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia &&
@@ -87,71 +92,9 @@ const MarqueeLane: React.FC<MarqueeLaneProps> = ({
     (document.documentElement.getAttribute('data-reduced-motion') === 'true' ||
       document.body.classList.contains('reduced-motion'));
 
-  // Default to 3 repeats so Track A is wide enough on desktop prior to measurement
-  const [repeatCount, setRepeatCount] = useState<number>(3);
-
-  // Construct display items for Track A
-  const displayItems = useMemo(() => {
-    if (notes.length === 0) return [];
-    const count = Math.max(1, repeatCount);
-    const result: { note: DailyNeed; repeatIndex: number }[] = [];
-    for (let r = 0; r < count; r++) {
-      for (const note of notes) {
-        result.push({ note, repeatIndex: r });
-      }
-    }
-    return result;
-  }, [notes, repeatCount]);
-
-  // Derive necessary repeatCount so Track A width covers visible container + 50% margin
-  useEffect(() => {
-    if (notes.length === 0) return;
-
-    const measureAndAdjust = () => {
-      if (!containerRef.current || !setARef.current) return;
-      const containerWidth = containerRef.current.clientWidth;
-      const trackAWidth = setARef.current.getBoundingClientRect().width;
-
-      if (containerWidth <= 0 || trackAWidth <= 0) return;
-
-      const estimatedBaseWidth = trackAWidth / Math.max(1, repeatCount);
-      if (estimatedBaseWidth > 0) {
-        const neededRepeat = Math.min(
-          12,
-          Math.max(2, Math.ceil((containerWidth * 1.5) / estimatedBaseWidth) + 1)
-        );
-        if (neededRepeat !== repeatCount) {
-          setRepeatCount(neededRepeat);
-        }
-      }
-    };
-
-    const rafId = requestAnimationFrame(measureAndAdjust);
-
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
-      ro = new ResizeObserver(() => {
-        requestAnimationFrame(measureAndAdjust);
-      });
-      ro.observe(containerRef.current);
-    }
-
-    if (typeof document !== 'undefined' && document.fonts?.ready) {
-      document.fonts.ready.then(() => {
-        requestAnimationFrame(measureAndAdjust);
-      });
-    }
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      if (ro) ro.disconnect();
-    };
-  }, [notes, repeatCount]);
-
   // Deterministic requestAnimationFrame motion driver
-  // Mutates ONLY stripRef.current.style.transform directly on the DOM element
   useEffect(() => {
-    if (isReducedMotion || notes.length === 0) return;
+    if (isReducedMotion || slots.length === 0) return;
 
     let animId: number | null = null;
     let previousTimestamp: number | null = null;
@@ -175,7 +118,6 @@ const MarqueeLane: React.FC<MarqueeLaneProps> = ({
       let dt = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
 
-      // Clamp dt to avoid jumps after background tab pause
       if (dt > 100) dt = 100;
       if (dt < 0) dt = 0;
 
@@ -184,7 +126,6 @@ const MarqueeLane: React.FC<MarqueeLaneProps> = ({
         offsetPxRef.current %= trackAWidth;
       }
 
-      // RTL moves strip leftwards (-offset); LTR moves strip rightwards (offset - trackAWidth)
       const x = direction === 'rtl' ? -offsetPxRef.current : offsetPxRef.current - trackAWidth;
       stripRef.current.style.transform = `translate3d(${x.toFixed(2)}px, 0, 0)`;
 
@@ -198,15 +139,18 @@ const MarqueeLane: React.FC<MarqueeLaneProps> = ({
         cancelAnimationFrame(animId);
       }
     };
-  }, [notes, repeatCount, speedPxPerSec, direction, isReducedMotion]);
+  }, [slots, speedPxPerSec, direction, isReducedMotion]);
 
   if (isReducedMotion) {
     return (
-      <div className="relative w-full min-w-0 h-[28px] sm:h-[30px] flex items-center overflow-x-auto hide-scrollbar">
+      <div
+        className="relative w-full min-w-0 h-[28px] sm:h-[30px] flex items-center overflow-x-auto hide-scrollbar"
+        aria-hidden={isSecondaryRow}
+      >
         <div className="flex items-center gap-2 shrink-0 pr-2">
-          {notes.map((note) => (
+          {slots.map((note, slotIndex) => (
             <DailyNoteChip
-              key={`${laneKey}-reduced-${note.daily_need_id}`}
+              key={`${laneKey}-reduced-${note.daily_need_id}-${slotIndex}`}
               note={note}
             />
           ))}
@@ -219,8 +163,8 @@ const MarqueeLane: React.FC<MarqueeLaneProps> = ({
     <div
       ref={containerRef}
       className="relative w-full min-w-0 h-[28px] sm:h-[30px] flex items-center overflow-hidden"
+      aria-hidden={isSecondaryRow}
     >
-      {/* Moving continuous strip: Driven purely by deterministic rAF mutating transform */}
       <div
         ref={stripRef}
         data-marquee-strip={direction}
@@ -230,22 +174,22 @@ const MarqueeLane: React.FC<MarqueeLaneProps> = ({
           transform: 'translate3d(0px, 0, 0)',
         }}
       >
-        {/* Logical Track A: Semantic primary set */}
+        {/* Logical Track A: 10 presentation slots */}
         <div ref={setARef} data-marquee-track="A" className="flex items-center gap-2 shrink-0 pr-2">
-          {displayItems.map((item, idx) => (
+          {slots.map((note, slotIndex) => (
             <DailyNoteChip
-              key={`${laneKey}-trackA-${item.repeatIndex}-${idx}-${item.note.daily_need_id}`}
-              note={item.note}
+              key={`${laneKey}-trackA-${note.daily_need_id}-${slotIndex}`}
+              note={note}
             />
           ))}
         </div>
 
-        {/* Logical Track B: Exact structural duplicate of Track A for seamless infinite loop */}
+        {/* Logical Track B: Purely presentational duplicate for seamless infinite animation */}
         <div aria-hidden="true" data-marquee-track="B" className="flex items-center gap-2 shrink-0 pr-2">
-          {displayItems.map((item, idx) => (
+          {slots.map((note, slotIndex) => (
             <DailyNoteChip
-              key={`${laneKey}-trackB-${item.repeatIndex}-${idx}-${item.note.daily_need_id}`}
-              note={item.note}
+              key={`${laneKey}-trackB-${note.daily_need_id}-${slotIndex}`}
+              note={note}
             />
           ))}
         </div>
@@ -253,148 +197,156 @@ const MarqueeLane: React.FC<MarqueeLaneProps> = ({
     </div>
   );
 };
-
-
-const DEFAULT_DAILY_NOTES: DailyNeed[] = [
-  {
-    daily_need_id: -1,
-    content: 'Chào mừng bạn đến với Chợ PTITers! Đăng nhật ký hôm nay để giữ chuỗi.',
-    note_date: '',
-    created_at: '',
-    updated_at: '',
-    author: {
-      user_id: 0,
-      full_name: 'PTITers',
-      avatar_url: null,
-    },
-  },
-  {
-    daily_need_id: -2,
-    content: 'Trao đổi sách giáo trình, tài liệu học tập và đồ dùng sinh viên tiện lợi.',
-    note_date: '',
-    created_at: '',
-    updated_at: '',
-    author: {
-      user_id: 0,
-      full_name: 'Góc học tập',
-      avatar_url: null,
-    },
-  },
-  {
-    daily_need_id: -3,
-    content: 'Cần tìm bạn cùng phòng trọ hoặc nhượng lại phòng gần cơ sở Hà Đông.',
-    note_date: '',
-    created_at: '',
-    updated_at: '',
-    author: {
-      user_id: 0,
-      full_name: 'Sinh viên PTIT',
-      avatar_url: null,
-    },
-  },
-  {
-    daily_need_id: -4,
-    content: 'Chia sẻ nhu cầu hoặc trạng thái trong ngày để kết nối cùng bạn bè!',
-    note_date: '',
-    created_at: '',
-    updated_at: '',
-    author: {
-      user_id: 0,
-      full_name: 'Chợ PTIT',
-      avatar_url: null,
-    },
-  },
-];
 
 export const DailyNeedsMarquee: React.FC = () => {
-  const { data } = useTodayDailyNeeds();
+  const { data, isLoading, isError } = useRecentDailyNeeds(10);
+  const { firebaseUser } = useAuth();
+  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Always guaranteed to have notes: if data?.items is empty/null, use DEFAULT_DAILY_NOTES
-  const allNotes = useMemo(() => {
+  // Maximum 10 REAL daily journal items across dates
+  const realNotes = useMemo(() => {
     const items = data?.items || [];
-    if (items.length > 0) {
-      return items.slice(0, 10);
-    }
-    return DEFAULT_DAILY_NOTES;
+    return items.slice(0, 10);
   }, [data?.items]);
 
-  // Distribute items across two lanes so both lanes always run:
-  // If 1 note, both lanes run with that note.
-  // If multiple notes, row 1 takes even indices, row 2 takes odd indices.
-  const row1Notes = useMemo(
-    () => (allNotes.length === 1 ? allNotes : allNotes.filter((_, idx) => idx % 2 === 0)),
-    [allNotes]
-  );
-  const row2Notes = useMemo(
-    () => (allNotes.length === 1 ? allNotes : allNotes.filter((_, idx) => idx % 2 === 1)),
-    [allNotes]
-  );
+  // Fill presentation pool to exactly 10 slots if 1 <= realNotes.length < 10
+  const displaySlots = useMemo(() => {
+    if (realNotes.length === 0) return [];
+    if (realNotes.length >= 10) return realNotes.slice(0, 10);
+    const slots: DailyNeed[] = [];
+    for (let i = 0; i < 10; i++) {
+      const item = realNotes[i % realNotes.length];
+      if (item) {
+        slots.push(item);
+      }
+    }
+    return slots;
+  }, [realNotes]);
+
+  // Row 1 uses displaySlots directly
+  const row1Slots = displaySlots;
+
+  // Row 2 uses the same 10-slot pool rotated/offset by 1 slot deterministically
+  const row2Slots = useMemo(() => {
+    if (displaySlots.length === 0) return [];
+    return [...displaySlots.slice(1), ...displaySlots.slice(0, 1)];
+  }, [displaySlots]);
+
+  const handleShareClick = () => {
+    if (!firebaseUser) {
+      navigate('/login');
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
+  const hasNotes = realNotes.length > 0;
 
   return (
-    <div className="mb-3 sm:mb-4 rounded-2xl bg-white border border-stone-200/90 shadow-xs flex items-stretch overflow-hidden">
-      {/* Left attached speaker/megaphone badge: flush with container and marquee viewport */}
-      <div
-        data-ui-role="journal-speaker"
-        className="ui-journal-speaker w-8 sm:w-9 flex items-center justify-center shrink-0 self-stretch select-none m-0 p-0 relative z-10"
-        title="Nhật ký hôm nay"
-        aria-label="Nhật ký hôm nay"
-        style={{ backgroundColor: '#722F37', marginRight: '-1px' }}
-      >
-        <svg
-          data-ui-role="journal-megaphone"
-          className="ui-journal-megaphone w-4 h-4 shrink-0"
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="#FCD34D"
-          strokeWidth="2.25"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          style={{ color: '#FCD34D', stroke: '#FCD34D' }}
+    <>
+      <div className="mb-3 sm:mb-4 rounded-2xl bg-white border border-stone-200/90 shadow-xs flex items-stretch overflow-hidden">
+        {/* Left attached speaker/megaphone badge */}
+        <div
+          data-ui-role="journal-speaker"
+          className="ui-journal-speaker w-8 sm:w-9 flex items-center justify-center shrink-0 self-stretch select-none m-0 p-0 relative z-10"
+          title="Nhật ký sinh viên"
+          aria-label="Nhật ký sinh viên"
+          style={{ backgroundColor: '#722F37', marginRight: '-1px' }}
         >
-          <path
-            d="m3 11 18-5v12L3 14v-3z"
+          <svg
+            data-ui-role="journal-megaphone"
+            className="ui-journal-megaphone w-4 h-4 shrink-0"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
             stroke="#FCD34D"
             strokeWidth="2.25"
             strokeLinecap="round"
             strokeLinejoin="round"
-          />
-          <path
-            d="M11.6 16.8a3 3 0 1 1-5.8-1.6"
-            stroke="#FCD34D"
-            strokeWidth="2.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+            aria-hidden="true"
+            style={{ color: '#FCD34D', stroke: '#FCD34D' }}
+          >
+            <path
+              d="m3 11 18-5v12L3 14v-3z"
+              stroke="#FCD34D"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M11.6 16.8a3 3 0 1 1-5.8-1.6"
+              stroke="#FCD34D"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+
+        {/* Right content area */}
+        <div
+          data-ui-role="marquee-viewport"
+          className="flex-1 min-w-0 py-1.5 sm:py-2 pl-0 pr-2 flex flex-col justify-center overflow-hidden bg-white m-0 border-l-0"
+          style={{ paddingLeft: 0, marginLeft: 0, borderLeftWidth: 0 }}
+        >
+          {isLoading ? (
+            /* Loading Skeleton: Small shimmer bar, no false empty flash */
+            <div className="flex items-center gap-2 px-3 py-1.5 animate-pulse">
+              <div className="h-5 w-24 bg-stone-200/80 rounded-lg shrink-0" />
+              <div className="h-5 w-40 bg-stone-100 rounded-lg shrink-0 hidden sm:block" />
+              <div className="h-5 flex-1 bg-stone-100/60 rounded-lg" />
+            </div>
+          ) : isError ? (
+            /* Safe compact unavailable state */
+            <div className="flex items-center px-3 py-1 text-xs text-stone-400">
+              <span>Tạm thời không thể tải nhật ký.</span>
+            </div>
+          ) : !hasNotes ? (
+            /* Dedicated Zero-Journal Clean Empty State: NO fake journal card */
+            <div className="flex items-center justify-between gap-2 px-3 py-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-xs text-stone-500 truncate">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">Chưa có nhật ký nào. Hãy là người đầu tiên chia sẻ ✨</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleShareClick}
+                className="shrink-0 text-xs font-semibold text-brand-burgundy hover:text-brand-burgundy-dark hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Chia sẻ ngay</span>
+              </button>
+            </div>
+          ) : (
+            /* Always render TWO continuous marquee lanes in opposite directions when >=1 real note exists */
+            <div className="flex flex-col gap-1.5">
+              <MarqueeLane
+                slots={row1Slots}
+                direction="rtl"
+                speedPxPerSec={40}
+                laneKey="lane-top"
+                isSecondaryRow={false}
+              />
+              <MarqueeLane
+                slots={row2Slots}
+                direction="ltr"
+                speedPxPerSec={36}
+                laneKey="lane-bottom"
+                isSecondaryRow={true}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Right content area: seamless white background holding two marquee lanes with 0px left gutter */}
-      <div
-        data-ui-role="marquee-viewport"
-        className="flex-1 min-w-0 py-1.5 sm:py-2 pl-0 pr-2 flex flex-col justify-center gap-1.5 overflow-hidden bg-white m-0 border-l-0"
-        style={{ paddingLeft: 0, marginLeft: 0, borderLeftWidth: 0 }}
-      >
-        {/* Lane 1: RIGHT -> LEFT (speed 40 px/sec) */}
-        <MarqueeLane
-          notes={row1Notes}
-          direction="rtl"
-          speedPxPerSec={40}
-          laneKey="lane-top"
+      {isModalOpen && (
+        <DailyNeedModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
         />
-
-        {/* Lane 2: LEFT -> RIGHT (speed 36 px/sec) */}
-        <MarqueeLane
-          notes={row2Notes}
-          direction="ltr"
-          speedPxPerSec={36}
-          laneKey="lane-bottom"
-        />
-      </div>
-    </div>
+      )}
+    </>
   );
 };
-
 

@@ -3,6 +3,7 @@ import type { CategorySummary } from '@/features/categories/types';
 export type ListingType = 'FIXED_PRICE' | 'AUCTION';
 export type ProductStatus = 'AVAILABLE' | 'HIDDEN' | 'SOLD_OUT';
 export type SellerUpdatableStatus = 'AVAILABLE' | 'HIDDEN';
+export type ProductApprovalStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface SellerSummary {
   user_id: number;
@@ -92,6 +93,10 @@ export interface SellerProductResponse {
   available_stock: number;
   status: ProductStatus;
   moderation_status: ProductModerationStatus;
+  approval_status: ProductApprovalStatus;
+  submitted_for_review_at?: string | null;
+  reviewed_at?: string | null;
+  review_note?: string | null;
   view_count: number;
   thumbnail_url?: string | null;
   category: CategorySummary;
@@ -125,6 +130,7 @@ export interface ProductFilterParams {
 
 export interface SellerProductFilterParams {
   status?: ProductStatus;
+  approval_status?: ProductApprovalStatus;
   limit?: number;
   cursor?: string;
 }
@@ -152,3 +158,49 @@ export interface ProductViewResponse {
   counted: boolean;
 }
 
+export interface AdminProductApprovalSummary {
+  product_id: number;
+  title: string;
+  price: number | string;
+  listing_type: ListingType;
+  thumbnail_url?: string | null;
+  category: CategorySummary;
+  seller: SellerSummary;
+  image_count: number;
+  submitted_for_review_at?: string | null;
+  approval_status: ProductApprovalStatus;
+  created_at: string;
+}
+
+export interface AdminProductApprovalListResponse {
+  items: AdminProductApprovalSummary[];
+  next_cursor?: string | null;
+  has_more: boolean;
+}
+
+export interface AdminProductApprovalDetailResponse {
+  product_id: number;
+  title: string;
+  description?: string | null;
+  listing_type: ListingType;
+  price: number | string;
+  stock: number;
+  status: ProductStatus;
+  approval_status: ProductApprovalStatus;
+  moderation_status: ProductModerationStatus;
+  submitted_for_review_at?: string | null;
+  reviewed_by?: number | null;
+  reviewed_at?: string | null;
+  review_note?: string | null;
+  thumbnail_url?: string | null;
+  images: ProductImageResponse[];
+  category: CategorySummary;
+  seller: SellerDetailSummary;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminApprovalDecisionRequest {
+  decision: 'APPROVE' | 'REJECT';
+  note?: string | null;
+}

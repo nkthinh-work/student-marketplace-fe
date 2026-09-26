@@ -7,6 +7,7 @@ import {
   Loader2,
   Inbox,
   Filter,
+  AlertCircle,
 } from 'lucide-react';
 import {
   useNotifications,
@@ -17,6 +18,7 @@ import { NotificationItem } from '../components/NotificationItem';
 
 export const NotificationsPage: React.FC = () => {
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const {
     data,
@@ -33,6 +35,13 @@ export const NotificationsPage: React.FC = () => {
   const { mutate: markAllAsRead, isPending: isMarkingAll } = useMarkAllRead();
 
   const allItems = data?.pages.flatMap((page) => page.items) ?? [];
+
+  const handleShowToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8 animate-in fade-in duration-200">
@@ -151,7 +160,11 @@ export const NotificationsPage: React.FC = () => {
       ) : (
         <div className="space-y-2.5">
           {allItems.map((item) => (
-            <NotificationItem key={item.notification_id} notification={item} />
+            <NotificationItem
+              key={item.notification_id}
+              notification={item}
+              onErrorToast={handleShowToast}
+            />
           ))}
 
           {/* Load more button */}
@@ -170,6 +183,14 @@ export const NotificationsPage: React.FC = () => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Floating Error Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-bottom-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>

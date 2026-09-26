@@ -9,6 +9,7 @@ import {
   getUnreadCount,
   markAllRead,
   markRead,
+  deleteNotification,
 } from './api';
 
 export const NOTIFICATION_QUERY_KEYS = {
@@ -67,6 +68,75 @@ export function useMarkAllRead() {
     mutationFn: () => markAllRead(),
     onSuccess: () => {
       queryClient.setQueryData(NOTIFICATION_QUERY_KEYS.unreadCount(), { count: 0 });
+      queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEYS.all });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (notificationId: number) => deleteNotification(notificationId),
+    onMutate: async (notificationId: number) => {
+      await queryClient.cancelQueries({ queryKey: NOTIFICATION_QUERY_KEYS.all });
+
+      const prevUnread = queryClient.getQueryData<{ count: number }>(
+        NOTIFICATION_QUERY_KEYS.unreadCount()
+      );
+      const prevLists = queryClient.getQueriesData({
+        queryKey: NOTIFICATION_QUERY_KEYS.lists(),
+      });
+
+      // Check if target notification is unread across pages
+      let isTargetUnread = false;
+      for (const [, listData] of prevLists) {
+        const pages = (listData as any)?.pages || [];
+        for (const page of pages) {
+          const match = page.items?.find((item: any) => item.notification_id === notificationId);
+          if (match && !match.is_read) {
+            isTargetUnread = true;
+            break;
+          }
+        }
+        if (isTargetUnread) break;
+      }
+
+      if (isTargetUnread) {
+        queryClient.setQueryData<{ count: number }>(
+          NOTIFICATION_QUERY_KEYS.unreadCount(),
+          (old) => ({ count: Math.max(0, (old?.count ?? 1) - 1) })
+        );
+      }
+
+      // Optimistically remove from list queries
+      queryClient.setQueriesData(
+        { queryKey: NOTIFICATION_QUERY_KEYS.lists() },
+        (oldData: any) => {
+          if (!oldData || !oldData.pages) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              items: page.items?.filter((item: any) => item.notification_id !== notificationId) ?? [],
+            })),
+          };
+        }
+      );
+
+      return { prevUnread, prevLists };
+    },
+    onError: (_err, _notificationId, context) => {
+      if (context?.prevUnread) {
+        queryClient.setQueryData(NOTIFICATION_QUERY_KEYS.unreadCount(), context.prevUnread);
+      }
+      if (context?.prevLists) {
+        for (const [key, data] of context.prevLists) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEYS.all });
     },
   });

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams, useLocation, useMatch } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useCurrentUser } from '@/features/users/hooks';
+import { useTutorial } from '@/features/tutorials';
 import { Avatar } from '@/components/common/Avatar';
 import {
   Menu,
@@ -21,10 +22,36 @@ import {
   ShieldAlert,
   Camera,
   MessageSquareQuote,
+  HeartHandshake,
+  CirclePlay,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useUnreadCount } from '@/features/notifications/hooks';
 import { coordinateSearchDismissAndScroll, cleanupSearchCoordinator } from '@/lib/searchScrollCoordinator';
 
+
+interface NotificationBellIconProps {
+  iconClassName: string;
+  unreadCount: number;
+}
+
+function NotificationBellIcon({ iconClassName, unreadCount }: NotificationBellIconProps) {
+  const displayCount = unreadCount >= 100 ? '99+' : unreadCount;
+  return (
+    <span className="relative inline-flex items-center justify-center shrink-0">
+      <Bell className={iconClassName} />
+      {unreadCount > 0 && (
+        <span
+          data-ui-role="notification-unread-badge"
+          aria-hidden="true"
+          className="ui-notification-badge"
+        >
+          {displayCount}
+        </span>
+      )}
+    </span>
+  );
+}
 
 export function Header() {
   const { firebaseUser, signOut } = useAuth();
@@ -39,6 +66,12 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const { openTutorial } = useTutorial();
+
+  const handleOpenTutorial = () => {
+    setMenuOpen(false);
+    openTutorial();
+  };
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -297,28 +330,14 @@ export function Header() {
 
                   <Link
                     to="/notifications"
-                    className="relative icon-btn-interactive flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10 active:bg-white/15 focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label="Thông báo"
+                    className="icon-btn-interactive flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10 active:bg-white/15 focus-visible:outline-2 focus-visible:outline-white"
+                    aria-label={unreadCount > 0 ? `Thông báo (${unreadCount >= 100 ? '99+' : unreadCount} chưa đọc)` : 'Thông báo'}
                     id="header-notifications-btn"
                   >
-                    <Bell className="h-5 w-5 text-white" />
-                    {unreadCount > 0 && (
-                      <span
-                        data-ui-role="notification-unread-badge"
-                        className="ui-notification-badge"
-                        style={{
-                          position: 'absolute',
-                          top: '1px',
-                          right: '1px',
-                          backgroundColor: '#FBBF24',
-                          color: '#1C1917',
-                          WebkitTextFillColor: '#1C1917',
-                          border: '2px solid #722F37',
-                        }}
-                      >
-                        {unreadCount >= 100 ? '99+' : unreadCount}
-                      </span>
-                    )}
+                    <NotificationBellIcon
+                      iconClassName="h-5 w-5 text-white"
+                      unreadCount={unreadCount}
+                    />
                   </Link>
                 </>
               )}
@@ -454,8 +473,18 @@ export function Header() {
 
               {/* Navigation Links with IA regrouping */}
               <div className="flex flex-1 min-h-0 flex-col gap-3 p-4 overflow-y-auto overscroll-contain">
-                {/* Trang chủ alone */}
+                {/* Tutorial + Trang chủ */}
                 <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={handleOpenTutorial}
+                    className="w-full flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-brand-burgundy hover:bg-brand-soft-pink/60 transition-colors cursor-pointer text-left"
+                    aria-label="Mở Tutorial"
+                  >
+                    <CirclePlay className="h-4 w-4 text-brand-burgundy shrink-0" />
+                    <span>Tutorial</span>
+                  </button>
+
                   <Link
                     to="/"
                     onClick={() => setMenuOpen(false)}
@@ -578,31 +607,19 @@ export function Header() {
                     <Link
                       to="/notifications"
                       onClick={() => setMenuOpen(false)}
+                      aria-label={unreadCount > 0 ? `Thông báo (${unreadCount >= 100 ? '99+' : unreadCount} chưa đọc)` : 'Thông báo'}
                       aria-current={location.pathname.startsWith('/notifications') ? 'page' : undefined}
-                      className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs sm:text-sm no-underline transition-colors ${
+                      className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm no-underline transition-colors ${
                         location.pathname.startsWith('/notifications')
                           ? 'font-semibold text-brand-burgundy bg-brand-soft-pink'
                           : 'font-medium text-brand-text hover:bg-brand-soft-pink/60'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <Bell className={`h-4 w-4 ${location.pathname.startsWith('/notifications') ? 'text-brand-burgundy' : 'text-brand-text-secondary'}`} />
-                        <span>Thông báo</span>
-                      </div>
-                      {unreadCount > 0 && (
-                        <span
-                          className="ui-notification-badge"
-                          style={{
-                            position: 'static',
-                            backgroundColor: '#FBBF24',
-                            color: '#1C1917',
-                            WebkitTextFillColor: '#1C1917',
-                            border: '1px solid #722F37',
-                          }}
-                        >
-                          {unreadCount >= 100 ? '99+' : unreadCount}
-                        </span>
-                      )}
+                      <NotificationBellIcon
+                        iconClassName={`h-4 w-4 ${location.pathname.startsWith('/notifications') ? 'text-brand-burgundy' : 'text-brand-text-secondary'}`}
+                        unreadCount={unreadCount}
+                      />
+                      <span>Thông báo</span>
                     </Link>
                     <Link
                       to="/messages"
@@ -662,6 +679,19 @@ export function Header() {
                       Quản trị
                     </span>
                     <Link
+                      to="/admin/product-approvals"
+                      onClick={() => setMenuOpen(false)}
+                      aria-current={location.pathname.startsWith('/admin/product-approvals') ? 'page' : undefined}
+                      className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm no-underline transition-colors ${
+                        location.pathname.startsWith('/admin/product-approvals')
+                          ? 'font-semibold text-brand-burgundy bg-brand-soft-pink'
+                          : 'font-medium text-brand-text hover:bg-brand-soft-pink/60'
+                      }`}
+                    >
+                      <ClipboardCheck className={`h-4 w-4 ${location.pathname.startsWith('/admin/product-approvals') ? 'text-brand-burgundy' : 'text-brand-text-secondary'}`} />
+                      <span>Kiểm duyệt tin đăng</span>
+                    </Link>
+                    <Link
                       to="/admin/reports"
                       onClick={() => setMenuOpen(false)}
                       aria-current={location.pathname.startsWith('/admin/reports') ? 'page' : undefined}
@@ -699,6 +729,32 @@ export function Header() {
                     >
                       <MessageSquareQuote className={`h-4 w-4 ${location.pathname.startsWith('/admin/feedback') ? 'text-brand-burgundy' : 'text-brand-text-secondary'}`} />
                       <span>Feedback người dùng</span>
+                    </Link>
+                    <Link
+                      to="/admin/support"
+                      onClick={() => setMenuOpen(false)}
+                      aria-current={location.pathname.startsWith('/admin/support') ? 'page' : undefined}
+                      className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm no-underline transition-colors ${
+                        location.pathname.startsWith('/admin/support')
+                          ? 'font-semibold text-brand-burgundy bg-brand-soft-pink'
+                          : 'font-medium text-brand-text hover:bg-brand-soft-pink/60'
+                      }`}
+                    >
+                      <HeartHandshake className={`h-4 w-4 ${location.pathname.startsWith('/admin/support') ? 'text-brand-burgundy' : 'text-brand-text-secondary'}`} />
+                      <span>Ủng hộ</span>
+                    </Link>
+                    <Link
+                      to="/admin/tutorials"
+                      onClick={() => setMenuOpen(false)}
+                      aria-current={location.pathname.startsWith('/admin/tutorials') ? 'page' : undefined}
+                      className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm no-underline transition-colors ${
+                        location.pathname.startsWith('/admin/tutorials')
+                          ? 'font-semibold text-brand-burgundy bg-brand-soft-pink'
+                          : 'font-medium text-brand-text hover:bg-brand-soft-pink/60'
+                      }`}
+                    >
+                      <CirclePlay className={`h-4 w-4 ${location.pathname.startsWith('/admin/tutorials') ? 'text-brand-burgundy' : 'text-brand-text-secondary'}`} />
+                      <span>Quản lý Tutorial</span>
                     </Link>
                   </div>
                 )}

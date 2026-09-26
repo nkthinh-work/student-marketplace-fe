@@ -8,6 +8,8 @@ import {
   productKeys,
 } from '../hooks';
 import { uploadProductImage } from '../api';
+import { ImageCropDialog } from '@/components/common/ImageCropDialog';
+import { PRODUCT_IMAGE_CROP_CONFIG } from '@/components/common/cropUtils';
 import {
   Upload,
   Trash2,
@@ -42,6 +44,8 @@ export function ProductImageManager({
 }: ProductImageManagerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadingQueueItem[]>([]);
+  const [pendingCropFiles, setPendingCropFiles] = useState<File[]>([]);
+  const [currentCropIndex, setCurrentCropIndex] = useState<number>(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
@@ -87,7 +91,7 @@ export function ProductImageManager({
       } catch (err: unknown) {
         const errorMsg =
           (err as { response?: { data?: { detail?: string } } })?.response?.data
-            ?.detail || 'Upload ảnh thất bại. Vui lòng thử lại.';
+            ?.detail || 'Tải ảnh lên thất bại. Vui lòng thử lại.';
 
         setUploadQueue((prev) =>
           prev.map((i) =>
@@ -143,7 +147,7 @@ export function ProductImageManager({
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const newItems: UploadingQueueItem[] = [];
+    const validFiles: File[] = [];
 
     files.forEach((file) => {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
@@ -156,20 +160,50 @@ export function ProductImageManager({
         return;
       }
 
-      const previewUrl = URL.createObjectURL(file);
-      newItems.push({
-        tempId: `${Date.now()}-${Math.random()}`,
-        file,
-        previewUrl,
-        status: 'queued',
-      });
+      validFiles.push(file);
     });
-
-    setUploadQueue((prev) => [...prev, ...newItems]);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+
+    if (validFiles.length > 0) {
+      setPendingCropFiles(validFiles);
+      setCurrentCropIndex(0);
+    }
+  };
+
+  const handleCropConfirm = (croppedFile: File, previewUrl: string) => {
+    setUploadQueue((prev) => [
+      ...prev,
+      {
+        tempId: `${Date.now()}-${Math.random()}`,
+        file: croppedFile,
+        previewUrl,
+        status: 'queued',
+      },
+    ]);
+
+    if (currentCropIndex + 1 < pendingCropFiles.length) {
+      setCurrentCropIndex((prev) => prev + 1);
+    } else {
+      setPendingCropFiles([]);
+      setCurrentCropIndex(0);
+    }
+  };
+
+  const handleCropSkip = () => {
+    if (currentCropIndex + 1 < pendingCropFiles.length) {
+      setCurrentCropIndex((prev) => prev + 1);
+    } else {
+      setPendingCropFiles([]);
+      setCurrentCropIndex(0);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setPendingCropFiles([]);
+    setCurrentCropIndex(0);
   };
 
   const handleRetry = (tempId: string) => {
@@ -235,7 +269,7 @@ export function ProductImageManager({
       {/* Upload Action Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="text-sm font-bold text-brand-text">Hình ảnh sản phẩm</h4>
+          <h4 className="text-sm font-bold text-brand-text">Ảnh sản phẩm (không bắt buộc)</h4>
           <p className="text-xs text-brand-text-muted">
             Tải lên hình ảnh rõ nét (định dạng JPG, PNG, WEBP, tối đa 10MB/ảnh)
           </p>
@@ -421,6 +455,22 @@ export function ProductImageManager({
           ))}
         </div>
       )}
+
+      {/* Presentation Image Cropper Modal */}
+      <ImageCropDialog
+        isOpen={pendingCropFiles.length > 0 && currentCropIndex < pendingCropFiles.length}
+        file={pendingCropFiles[currentCropIndex] || null}
+        config={PRODUCT_IMAGE_CROP_CONFIG}
+        title="Chỉnh sửa khung hình sản phẩm"
+        stepInfo={
+          pendingCropFiles.length > 1
+            ? `Ảnh ${currentCropIndex + 1} / ${pendingCropFiles.length}`
+            : undefined
+        }
+        onConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+        onSkip={pendingCropFiles.length > 1 ? handleCropSkip : undefined}
+      />
     </div>
   );
 }

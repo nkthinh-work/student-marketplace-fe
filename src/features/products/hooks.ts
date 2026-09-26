@@ -19,6 +19,10 @@ import {
   deleteProductImage,
   setProductThumbnail,
   reorderProductImages,
+  submitProductReview,
+  getAdminProductApprovals,
+  getAdminProductApprovalDetail,
+  decideAdminProductApproval,
 } from './api';
 import type {
   ProductFilterParams,
@@ -27,6 +31,7 @@ import type {
   ProductUpdatePayload,
   ImageReorderRequest,
   ProductListResponse,
+  AdminApprovalDecisionRequest,
 } from './types';
 
 // Query key factory cho Products
@@ -38,6 +43,10 @@ export const productKeys = {
   detail: (id: number) => [...productKeys.details(), id] as const,
   myLists: () => [...productKeys.all, 'me'] as const,
   myProducts: (params?: SellerProductFilterParams) => [...productKeys.myLists(), params || {}] as const,
+  adminApprovals: () => [...productKeys.all, 'admin-approvals'] as const,
+  adminApprovalList: (params?: { state?: string; limit?: number; cursor?: string }) =>
+    [...productKeys.adminApprovals(), 'list', params || {}] as const,
+  adminApprovalDetail: (id: number) => [...productKeys.adminApprovals(), 'detail', id] as const,
 };
 
 // Hook infinite scroll danh sách sản phẩm public theo cursor
@@ -274,4 +283,55 @@ export function patchProductViewCountInQueryCaches(
       return oldData;
     },
   );
+}
+
+export function useSubmitProductReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (productId: number) => submitProductReview(productId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.myLists() });
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(data.product_id) });
+    },
+  });
+}
+
+export function useAdminProductApprovals(params?: {
+  state?: string;
+  limit?: number;
+  cursor?: string;
+}) {
+  return useQuery({
+    queryKey: productKeys.adminApprovalList(params),
+    queryFn: () => getAdminProductApprovals(params),
+    staleTime: 10 * 1000,
+  });
+}
+
+export function useAdminProductApprovalDetail(productId?: number) {
+  return useQuery({
+    queryKey: productKeys.adminApprovalDetail(productId || 0),
+    queryFn: () => getAdminProductApprovalDetail(productId!),
+    enabled: Boolean(productId),
+    staleTime: 10 * 1000,
+  });
+}
+
+export function useDecideAdminProductApproval() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      productId,
+      data,
+    }: {
+      productId: number;
+      data: AdminApprovalDecisionRequest;
+    }) => decideAdminProductApproval(productId, data),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.adminApprovals() });
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(updated.product_id) });
+      queryClient.invalidateQueries({ queryKey: productKeys.publicLists() });
+      queryClient.invalidateQueries({ queryKey: productKeys.myLists() });
+    },
+  });
 }

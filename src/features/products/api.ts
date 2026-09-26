@@ -10,6 +10,10 @@ import type {
   ProductImageResponse,
   ImageReorderRequest,
   ProductViewResponse,
+  SellerProductResponse,
+  AdminProductApprovalListResponse,
+  AdminProductApprovalDetailResponse,
+  AdminApprovalDecisionRequest,
 } from './types';
 
 // Lấy danh sách sản phẩm public (hỗ trợ cursor pagination, tìm kiếm, lọc)
@@ -53,11 +57,13 @@ export async function getProduct(productId: number): Promise<ProductDetailRespon
   return response.data;
 }
 
-// Lấy danh sách sản phẩm của seller hiện tại
 export async function getMyProducts(params?: SellerProductFilterParams): Promise<SellerProductListResponse> {
   const queryParams: Record<string, string | number> = {};
   if (params?.status) {
     queryParams.status = params.status;
+  }
+  if (params?.approval_status) {
+    queryParams.approval_status = params.approval_status;
   }
   if (params?.limit) {
     queryParams.limit = params.limit;
@@ -156,3 +162,45 @@ export async function registerProductView(
   return response.data;
 }
 
+// Gửi tin đăng để quản trị viên kiểm duyệt
+export async function submitProductReview(productId: number): Promise<SellerProductResponse> {
+  const response = await apiClient.post<SellerProductResponse>(
+    `/api/v1/products/${productId}/submit-review`
+  );
+  return response.data;
+}
+
+// Lấy danh sách tin đăng chờ duyệt (Admin)
+export async function getAdminProductApprovals(params?: {
+  state?: string;
+  limit?: number;
+  cursor?: string;
+}): Promise<AdminProductApprovalListResponse> {
+  const response = await apiClient.get<AdminProductApprovalListResponse>(
+    '/api/v1/admin/product-approvals',
+    { params }
+  );
+  return response.data;
+}
+
+// Lấy chi tiết tin đăng kiểm duyệt (Admin)
+export async function getAdminProductApprovalDetail(
+  productId: number
+): Promise<AdminProductApprovalDetailResponse> {
+  const response = await apiClient.get<AdminProductApprovalDetailResponse>(
+    `/api/v1/admin/product-approvals/${productId}`
+  );
+  return response.data;
+}
+
+// Quyết định duyệt hoặc từ chối tin đăng (Admin)
+export async function decideAdminProductApproval(
+  productId: number,
+  payload: AdminApprovalDecisionRequest
+): Promise<AdminProductApprovalDetailResponse> {
+  const response = await apiClient.post<AdminProductApprovalDetailResponse>(
+    `/api/v1/admin/product-approvals/${productId}/decision`,
+    payload
+  );
+  return response.data;
+}
