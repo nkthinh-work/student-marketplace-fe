@@ -265,7 +265,9 @@ export function usePrivateRealtime() {
 
               if (convId && msgId) {
                 const currentUserId = currentUserRef.current?.user_id;
-                const isSelf = currentUserId === actorUserId;
+                const isSelf = Boolean(
+                  currentUserId && Number(currentUserId) === Number(actorUserId)
+                );
 
                 // 1. Immediate optimistic cache update for low-latency UX
                 queryClient.setQueriesData(

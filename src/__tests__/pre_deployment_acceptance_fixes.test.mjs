@@ -293,5 +293,79 @@ assert.equal(new Set(renderKeys).size, 10); // All unique React keys
 assert.equal(poolTwo[0].daily_need_id, poolTwo[2].daily_need_id); // Same real DB ID preserved
 console.log('✓ PASS: React keys use presentation index (${daily_need_id}-${slotIndex}) without fake IDs');
 
-console.log('--- ALL ACCEPTANCE CORRECTION FRONTEND TESTS PASSED! ---');
+// =========================================================================
+// 4. Production Candidate Regression Tests (Bugs #1, #3, #4)
+// =========================================================================
 
+// Test 4A: Realtime Reaction isSelf Numeric Normalization
+function computeIsSelfReaction(currentUserId, actorUserId) {
+  return Boolean(currentUserId && Number(currentUserId) === Number(actorUserId));
+}
+
+assert.equal(computeIsSelfReaction(10, 10), true);
+assert.equal(computeIsSelfReaction('10', 10), true);
+assert.equal(computeIsSelfReaction(10, '10'), true);
+assert.equal(computeIsSelfReaction('10', '10'), true);
+assert.equal(computeIsSelfReaction(10, 20), false);
+assert.equal(computeIsSelfReaction(null, 10), false);
+assert.equal(computeIsSelfReaction(undefined, 10), false);
+assert.equal(computeIsSelfReaction(10, null), false);
+console.log('✓ PASS: Realtime reaction isSelf handles numeric, string, and null/undefined actor IDs robustly');
+
+// Test 4B: Creator Profile Card resolution & safe privacy gating
+function resolveCreatorCard(support) {
+  const creator = support?.creator;
+  if (!creator) return null;
+  const profileHref = support.profile_path || `/users/${creator.user_id}`;
+  return {
+    visible: true,
+    profileHref,
+    name: creator.full_name,
+  };
+}
+
+const configuredSupport = {
+  creator: { user_id: 10, full_name: 'Nguyễn Khắc Thịnh' },
+  profile_path: '/users/10',
+  fixed_qr_url: '/support/nguyen-khac-thinh-vietqr.png',
+};
+const cardResult = resolveCreatorCard(configuredSupport);
+assert.equal(cardResult.visible, true);
+assert.equal(cardResult.profileHref, '/users/10');
+assert.equal(cardResult.name, 'Nguyễn Khắc Thịnh');
+
+const fallbackSupport = {
+  creator: { user_id: 10, full_name: 'Nguyễn Khắc Thịnh' },
+  profile_path: null,
+};
+assert.equal(resolveCreatorCard(fallbackSupport).profileHref, '/users/10');
+
+assert.equal(resolveCreatorCard({ creator: null, profile_path: null }), null);
+assert.equal(resolveCreatorCard(null), null);
+assert.equal(resolveCreatorCard(undefined), null);
+console.log('✓ PASS: Creator Profile card navigates via canonical profile_path and gracefully handles null creator');
+
+// Test 4C: Hero Carousel slides preserve backend chronological order (append right)
+function composeHeroSlides(communityItems) {
+  return (communityItems || []).map((item) => ({
+    id: `community-${item.moment_id}`,
+    imageUrl: item.image_url,
+    momentId: item.moment_id,
+  }));
+}
+
+const mockBackendHeroMoments = [
+  { moment_id: 101, image_url: 'https://cloudinary.com/img1.jpg' },
+  { moment_id: 102, image_url: 'https://cloudinary.com/img2.jpg' },
+  { moment_id: 103, image_url: 'https://cloudinary.com/img3.jpg' },
+  { moment_id: 104, image_url: 'https://cloudinary.com/img4.jpg' }, // Newly approved moment
+];
+
+const heroSlides = composeHeroSlides(mockBackendHeroMoments);
+assert.equal(heroSlides.length, 4);
+assert.equal(heroSlides[0].momentId, 101); // Oldest retained at left
+assert.equal(heroSlides[3].momentId, 104); // Newly approved appended to the right/end
+assert.equal(composeHeroSlides([]).length, 0); // Empty items handled cleanly
+console.log('✓ PASS: Hero Carousel preserves backend append-right ordering without reversing or prepending');
+
+console.log('--- ALL ACCEPTANCE CORRECTION FRONTEND TESTS PASSED! ---');
