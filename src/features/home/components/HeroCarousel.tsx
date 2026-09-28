@@ -166,19 +166,20 @@ export function HeroCarousel() {
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3 sm:p-5 pointer-events-none">
-                  {slide.note ? (
-                    <span
-                      className={`text-xs sm:text-sm font-medium text-white drop-shadow-md truncate bg-black/50 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-white/15 select-none ${
-                        activeSlides.length > 1
-                          ? 'max-w-[calc(50%-16px)] sm:max-w-[45%] md:max-w-[55%]'
-                          : 'max-w-[calc(100%-60px)] sm:max-w-[calc(100%-80px)] md:max-w-[65%]'
-                      }`}
-                    >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+                {slide.note ? (
+                  <div
+                    className={`absolute left-2.5 sm:left-4 z-10 pointer-events-none ${
+                      activeSlides.length > 1
+                        ? 'bottom-6 sm:bottom-7 max-w-[calc(100%-68px)] sm:max-w-[70%] md:max-w-[60%]'
+                        : 'bottom-2.5 sm:bottom-3 max-w-[calc(100%-68px)] sm:max-w-[75%] md:max-w-[65%]'
+                    }`}
+                  >
+                    <span className="inline-block text-xs sm:text-sm font-medium text-white drop-shadow-md bg-black/50 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-white/15 select-none whitespace-normal break-words leading-tight sm:leading-snug">
                       {slide.note}
                     </span>
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -190,20 +191,20 @@ export function HeroCarousel() {
               <button
                 onClick={prevSlide}
                 aria-label="Slide trước"
-                className="icon-btn-interactive absolute left-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all hover:bg-black/60"
+                className="icon-btn-interactive absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all hover:bg-black/60"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={nextSlide}
                 aria-label="Slide kế tiếp"
-                className="icon-btn-interactive absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all hover:bg-black/60"
+                className="icon-btn-interactive absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all hover:bg-black/60"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
 
               {/* Dots Indicator */}
-              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
                 {activeSlides.map((_, idx) => (
                   <button
                     key={idx}
@@ -226,7 +227,7 @@ export function HeroCarousel() {
             onClick={handleCameraClick}
             aria-label="Chia sẻ khoảnh khắc"
             title="Chia sẻ khoảnh khắc nhận hàng"
-            className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-[#5E232B]/95 hover:bg-[#5E232B] text-white shadow-md border border-white/20 active:scale-95 transition-transform backdrop-blur-xs focus-visible:outline-2 focus-visible:outline-white"
+            className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-[#5E232B]/95 hover:bg-[#5E232B] text-white shadow-md border border-white/20 active:scale-95 transition-transform backdrop-blur-xs focus-visible:outline-2 focus-visible:outline-white"
           >
             <Camera className="h-5 w-5 text-[#E3B566]" />
           </button>

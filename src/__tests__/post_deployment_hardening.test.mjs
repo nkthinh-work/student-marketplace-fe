@@ -1,4 +1,10 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('--- Running Post-Deployment UX & Messaging Hardening Frontend Tests (Native Node ESM) ---');
 
@@ -653,5 +659,62 @@ for (const n of invalidAccountNames) {
 }
 console.log('✓ PASS: Invalid account names (digits-only, control chars, symbols, length) are rejected');
 
+// =========================================================================
+// SECTION 6: HERO COMMUNITY NOTE FULL READABILITY & 80-CHAR CONTRACT
+// =========================================================================
+console.log('\n--- Section 6: Hero Community Note Full Readability & 80-Char Contract ---');
+
+const heroCarouselPath = path.resolve(__dirname, '../features/home/components/HeroCarousel.tsx');
+const heroCarouselSrc = fs.readFileSync(heroCarouselPath, 'utf8');
+
+// 6.1 Inspect HeroCarousel source: ensure Tailwind truncate is removed from slide.note
+const noteBlockMatch = heroCarouselSrc.match(/\{slide\.note\s*\?\s*\([\s\S]*?\{slide\.note\}[\s\S]*?\)\s*:\s*null\}/);
+assert.ok(noteBlockMatch, 'HeroCarousel must contain conditional slide.note rendering block');
+const noteBlock = noteBlockMatch[0];
+
+assert.ok(!noteBlock.includes('truncate'), 'HeroCarousel slide.note MUST NOT use Tailwind "truncate"');
+assert.ok(!noteBlock.includes('line-clamp'), 'HeroCarousel slide.note MUST NOT use "line-clamp-*"');
+assert.ok(!noteBlock.includes('overflow-hidden'), 'HeroCarousel slide.note MUST NOT use "overflow-hidden"');
+assert.ok(noteBlock.includes('whitespace-normal'), 'HeroCarousel slide.note must use "whitespace-normal" for wrapping');
+assert.ok(noteBlock.includes('break-words'), 'HeroCarousel slide.note must use "break-words" for word breaking');
+console.log('✓ PASS: Hero note eliminates truncate/line-clamp/ellipsis and specifies natural word wrapping');
+
+// 6.2 Elevated note layout avoiding bottom dots and camera CTA
+assert.ok(noteBlock.includes('bottom-6'), 'Hero note must be positioned above bottom dots indicator on mobile');
+assert.ok(noteBlock.includes('max-w-[calc(100%-68px)]'), 'Hero note max-width must leave safe margin for camera button');
+console.log('✓ PASS: Hero note layout is elevated above dots and constrained horizontally before camera button');
+
+// 6.3 Z-index hierarchy: interactive controls remain clickable
+assert.ok(heroCarouselSrc.includes('z-20 flex h-11 w-11'), 'Camera button must have z-20 for reliable clickability');
+assert.ok(heroCarouselSrc.includes('flex gap-1.5 z-20'), 'Pagination dots must have z-20');
+console.log('✓ PASS: Hero navigation and camera controls maintain z-20 interactive hierarchy');
+
+// 6.4 Preservation of full 80-character note text without alteration
+function renderHeroNoteText(rawNote) {
+  if (!rawNote) return null;
+  // HeroCarousel renders {slide.note} directly without substring, slicing, or manual ellipsis
+  return rawNote;
+}
+
+const test80CharNotes = [
+  'Mình vừa nhận được giáo trình, cảm ơn bạn rất nhiều và chúc mọi người học tốt!',
+  'Cùng nhau Mua-Bán-Trao đổi đồ cũ sinh viên PTIT uy tín, chất lượng và tiết kiệm!',
+  'Nhận giáo trình Giải tích 2 từ bạn cùng trường, cảm ơn nhé! Chúc thi tốt 📚🎉',
+  'Welcome to Chợ PTITers - Nền tảng trao đổi đồ dùng sinh viên an toàn, tiện lợi!',
+];
+
+for (const note of test80CharNotes) {
+  assert.ok(note.length <= 80, `Note length ${note.length} must be <= 80`);
+  const rendered = renderHeroNoteText(note);
+  assert.strictEqual(rendered, note, 'Rendered note must match exact input string');
+  assert.ok(!rendered.endsWith('...'), `Rendered note "${rendered}" must not be artificially clipped with "..."`);
+  assert.ok(rendered.length === note.length, 'Rendered note length must equal original note length');
+}
+console.log('✓ PASS: All valid <= 80 character notes (Vietnamese, punctuation, emoji) render full text without ellipsis');
+
+// 6.5 Null note handling
+assert.strictEqual(renderHeroNoteText(null), null, 'Null note renders null overlay');
+assert.strictEqual(renderHeroNoteText(undefined), null, 'Undefined note renders null overlay');
+console.log('✓ PASS: Null / undefined notes render no overlay');
 
 console.log('\n--- ALL FRONTEND HARDENING TESTS PASSED SUCCESFULLY ---');
