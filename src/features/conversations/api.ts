@@ -13,6 +13,7 @@ import {
   MessageItem,
   MessageListResponse,
   MessageReactionSummaryResponse,
+  OfficialSupportGroupMetadata,
   OwnedGroupSummaryResponse,
   PendingApprovalActionPayload,
   PendingApprovalListResponse,
@@ -79,6 +80,13 @@ export async function respondToGroupInvite(
   const { data } = await apiClient.post<{ success: boolean; status: string; requires_approval?: boolean }>(
     `/api/v1/conversations/invites/${inviteId}/respond`,
     { action }
+  );
+  return data;
+}
+
+export async function getOfficialSupportGroup(): Promise<OfficialSupportGroupMetadata> {
+  const { data } = await apiClient.get<OfficialSupportGroupMetadata>(
+    '/api/v1/conversations/official-support'
   );
   return data;
 }

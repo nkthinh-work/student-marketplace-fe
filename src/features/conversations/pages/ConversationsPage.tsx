@@ -26,8 +26,9 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react';
-import { useConversations, useGroupInvites, useOwnedGroupCount } from '../hooks';
-import { ConversationCard, SortableConversationCard } from '../components/ConversationCard';
+import { useConversations, useGroupInvites, useOwnedGroupCount, useOfficialSupportGroup } from '../hooks';
+import { SortableConversationCard } from '../components/ConversationCard';
+import { OfficialSupportCard } from '../components/OfficialSupportCard';
 import { GroupCreateModal } from '../components/GroupCreateModal';
 import { GroupInvitesList } from '../components/GroupInvitesList';
 import { useCurrentUser } from '@/features/users/hooks';
@@ -41,22 +42,6 @@ export function reconcileConversationOrder(
   if (serverList.length === 0) return [];
   if (activeTab === 'INVITES') return serverList;
 
-  if (activeTab === 'GROUP') {
-    const officialGroup = serverList.find((c) => Boolean(c.is_official_support));
-    const ordinaryList = serverList.filter((c) => !c.is_official_support);
-
-    const serverMap = new Map<number, ConversationSummary>();
-    ordinaryList.forEach((c) => serverMap.set(c.conversation_id, c));
-
-    const validSavedIds = savedOrder.filter((id) => serverMap.has(id));
-    const ordered = validSavedIds.map((id) => serverMap.get(id)!);
-    const savedSet = new Set(validSavedIds);
-    const newItems = ordinaryList.filter((c) => !savedSet.has(c.conversation_id));
-
-    const reconciledOrdinary = [...ordered, ...newItems];
-    return officialGroup ? [officialGroup, ...reconciledOrdinary] : reconciledOrdinary;
-  }
-
   const serverMap = new Map<number, ConversationSummary>();
   serverList.forEach((c) => serverMap.set(c.conversation_id, c));
 
@@ -67,6 +52,7 @@ export function reconcileConversationOrder(
 
   return [...ordered, ...newItems];
 }
+
 
 export const ConversationsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -143,22 +129,26 @@ export const ConversationsPage: React.FC = () => {
     }
   }, [storageKey]);
 
-  // Reconciled conversations
-  const orderedConversations = useMemo(() => {
-    return reconcileConversationOrder(rawConversations, customOrder, activeTab);
-  }, [rawConversations, customOrder, activeTab]);
+  const {
+    data: officialSupport,
+    isLoading: isOfficialLoading,
+    isError: isOfficialError,
+  } = useOfficialSupportGroup();
 
-  const officialGroup = useMemo(() => {
-    return activeTab === 'GROUP'
-      ? orderedConversations.find((c) => Boolean(c.is_official_support))
-      : undefined;
-  }, [activeTab, orderedConversations]);
+  // Filter out official support conversation from rawConversations if present (duplicate guard)
+  const filteredServerConversations = useMemo(() => {
+    if (activeTab === 'GROUP' && officialSupport?.conversation_id) {
+      return rawConversations.filter(
+        (c) => c.conversation_id !== officialSupport.conversation_id
+      );
+    }
+    return rawConversations;
+  }, [rawConversations, activeTab, officialSupport?.conversation_id]);
 
+  // Reconciled ordinary conversations
   const ordinaryConversations = useMemo(() => {
-    return activeTab === 'GROUP'
-      ? orderedConversations.filter((c) => !c.is_official_support)
-      : orderedConversations;
-  }, [activeTab, orderedConversations]);
+    return reconcileConversationOrder(filteredServerConversations, customOrder, activeTab);
+  }, [filteredServerConversations, customOrder, activeTab]);
 
   const ordinaryGroupIds = useMemo(() => {
     return ordinaryConversations.map((c) => c.conversation_id);
@@ -344,6 +334,20 @@ export const ConversationsPage: React.FC = () => {
         {/* Tab 1 & 2: Direct / Group */}
         {activeTab !== 'INVITES' && (
           <>
+            {/* Special System Entry: Official Support Card (Group tab only, strictly outside DnD & SortableContext) */}
+            {activeTab === 'GROUP' && (
+              <div className="mb-2.5">
+                {isOfficialLoading ? (
+                  <div className="h-20 bg-white border border-stone-200/60 rounded-2xl animate-pulse" />
+                ) : officialSupport ? (
+                  <OfficialSupportCard officialSupport={officialSupport} />
+                ) : isOfficialError ? (
+                  <div className="p-3 bg-stone-50 border border-stone-200/60 rounded-2xl text-xs text-stone-500 text-center">
+                    Nhóm hỗ trợ chính thức tạm thời không khả dụng.
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             {/* Reorder instructions & Reset button (shown if ordinary list has multiple items) */}
             {!isLoading && ordinaryConversations.length > 1 && (
@@ -365,7 +369,7 @@ export const ConversationsPage: React.FC = () => {
             {/* Loading Skeleton */}
             {isLoading && (
               <div className="space-y-3">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3].map((i) => (
                   <div
                     key={i}
                     className="h-20 bg-white border border-stone-200/60 rounded-2xl animate-pulse"
@@ -381,118 +385,96 @@ export const ConversationsPage: React.FC = () => {
               </div>
             )}
 
-            {/* Empty State */}
-            {!isLoading && !isError && orderedConversations.length === 0 && (
+            {/* Empty State for DIRECT */}
+            {!isLoading && !isError && activeTab === 'DIRECT' && ordinaryConversations.length === 0 && (
               <div className="bg-white border border-stone-200/80 rounded-2xl p-8 sm:p-12 text-center shadow-xs">
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-stone-100 flex items-center justify-center text-stone-400 mb-3">
-                  {activeTab === 'DIRECT' ? (
-                    <MessageSquare className="w-7 h-7" />
-                  ) : (
-                    <Users className="w-7 h-7" />
-                  )}
+                  <MessageSquare className="w-7 h-7" />
                 </div>
                 <h3 className="text-base font-semibold text-stone-900 mb-1">
-                  {activeTab === 'DIRECT'
-                    ? 'Chưa có tin nhắn trực tiếp nào'
-                    : 'Chưa tham gia nhóm nào'}
+                  Chưa có tin nhắn trực tiếp nào
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-500 max-w-sm mx-auto">
-                  {activeTab === 'DIRECT'
-                    ? 'Khi bạn nhắn tin với người bán trên sản phẩm hoặc đơn hàng, cuộc trò chuyện sẽ hiển thị tại đây.'
-                    : 'Bạn có thể tạo nhóm riêng hoặc tham gia khi nhận được lời mời.'}
+                  Khi bạn nhắn tin với người bán trên sản phẩm hoặc đơn hàng, cuộc trò chuyện sẽ hiển thị tại đây.
                 </p>
               </div>
             )}
 
-            {/* Conversations List with Drag & Drop Reordering */}
-            {!isLoading && orderedConversations.length > 0 && (
+            {/* Ordinary Conversations List with Drag & Drop Reordering */}
+            {!isLoading && ordinaryConversations.length > 0 && (
               <div className="space-y-2.5">
-                {/* Structurally Pinned Official Support Group (rendered strictly OUTSIDE SortableContext and DndContext) */}
-                {officialGroup && (
-                  <ConversationCard
-                    key={officialGroup.conversation_id}
-                    conversation={officialGroup}
-                    isPinned={true}
-                    isReorderable={false}
-                    justDraggedRef={justDraggedRef}
-                  />
-                )}
-
-                {/* Ordinary Conversations inside DndContext and SortableContext */}
-                {ordinaryConversations.length > 0 && (
-                  <DndContext
-                    sensors={sensors}
-                    modifiers={[restrictToVerticalAxis]}
-                    collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragCancel={handleDragCancel}
-                    onDragEnd={handleDragEnd}
+                <DndContext
+                  sensors={sensors}
+                  modifiers={[restrictToVerticalAxis]}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragCancel={handleDragCancel}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={ordinaryGroupIds}
+                    strategy={verticalListSortingStrategy}
                   >
-                    <SortableContext
-                      items={ordinaryGroupIds}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="space-y-2.5">
-                        {ordinaryConversations.map((conv) => (
-                          <SortableConversationCard
-                            key={conv.conversation_id}
-                            conversation={conv}
-                            isReorderable={ordinaryConversations.length > 1}
-                            justDraggedRef={justDraggedRef}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                )}
+                    <div className="space-y-2.5">
+                      {ordinaryConversations.map((conv) => (
+                        <SortableConversationCard
+                          key={conv.conversation_id}
+                          conversation={conv}
+                          isReorderable={ordinaryConversations.length > 1}
+                          justDraggedRef={justDraggedRef}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
 
-                {/* Create-Group Onboarding Promo (placed cleanly AFTER the pinned community card) */}
-                {activeTab === 'GROUP' && (groupSummary?.owned_group_count ?? 0) === 0 && (
-                  <div className="p-4 sm:p-5 rounded-2xl bg-white border border-rose-100 shadow-xs mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0 text-brand-burgundy">
-                        <Users className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-stone-900">
-                          Tự tạo nhóm của bạn...
-                        </h4>
-                        <p className="text-xs text-stone-500 mt-0.5 max-w-md leading-relaxed">
-                          Tạo không gian riêng để cùng bạn bè trao đổi tài liệu, ôn thi hoặc mua bán theo nhóm sinh viên PTIT.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsCreateGroupOpen(true)}
-                      className="self-start sm:self-center px-4 py-2 bg-brand-burgundy hover:bg-brand-burgundy/90 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 active:scale-95"
-                    >
-                      Tạo nhóm ngay
-                    </button>
+            {/* Create-Group Onboarding Promo (placed cleanly below official card and ordinary groups if 0 owned groups) */}
+            {activeTab === 'GROUP' && (groupSummary?.owned_group_count ?? 0) === 0 && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-rose-100 shadow-xs mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0 text-brand-burgundy">
+                    <Users className="w-5 h-5" />
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-sm font-bold text-stone-900">
+                      Tự tạo nhóm của bạn...
+                    </h4>
+                    <p className="text-xs text-stone-500 mt-0.5 max-w-md leading-relaxed">
+                      Tạo không gian riêng để cùng bạn bè trao đổi tài liệu, ôn thi hoặc mua bán theo nhóm sinh viên PTIT.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateGroupOpen(true)}
+                  className="self-start sm:self-center px-4 py-2 bg-brand-burgundy hover:bg-brand-burgundy/90 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 active:scale-95 cursor-pointer"
+                >
+                  Tạo nhóm ngay
+                </button>
+              </div>
+            )}
 
-                {/* Load More Button */}
-                {hasNextPage && (
-                  <div className="pt-3 text-center">
-                    <button
-                      onClick={() => fetchNextPage()}
-                      disabled={isFetchingNextPage}
-                      className="px-4 py-2 text-xs font-semibold text-brand-burgundy bg-white border border-stone-200 hover:bg-stone-50 rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5"
-                    >
-                      {isFetchingNextPage ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Đang tải...</span>
-                        </>
-                      ) : (
-                        <span>Xem thêm</span>
-                      )}
-                    </button>
-                  </div>
-                )}
+            {/* Load More Button */}
+            {hasNextPage && (
+              <div className="pt-3 text-center">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-4 py-2 text-xs font-semibold text-brand-burgundy bg-white border border-stone-200 hover:bg-stone-50 rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5"
+                >
+                  {isFetchingNextPage ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang tải...</span>
+                    </>
+                  ) : (
+                    <span>Xem thêm</span>
+                  )}
+                </button>
+              </div>
+            )}
           </>
         )}
 

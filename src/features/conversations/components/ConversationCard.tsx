@@ -6,15 +6,12 @@ import {
   User as UserIcon,
   Users,
   GripVertical,
-  Pin,
-  Sparkles,
 } from 'lucide-react';
 import type { DraggableAttributes } from '@dnd-kit/core';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { Avatar } from '@/components/common/Avatar';
 import { ConversationSummary } from '../types';
 import { parseServerDateTime } from '@/lib/formatters';
-import { useJoinOfficialSupportGroup } from '../hooks';
 
 export interface ConversationCardProps {
   conversation: ConversationSummary;
@@ -40,11 +37,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   isDragging = false,
 }) => {
   const navigate = useNavigate();
-  const joinSupportGroupMutation = useJoinOfficialSupportGroup();
 
   const isGroup = conversation.type === 'GROUP';
   const isDirect = conversation.type === 'DIRECT';
-  const isOfficialSupport = Boolean(conversation.is_official_support);
 
   const other = conversation.other_participant;
   const hasUnread = conversation.unread_count > 0;
@@ -75,7 +70,11 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
         return date.toLocaleTimeString('vi-VN', {
           hour: '2-digit',
           minute: '2-digit',
+          hour12: false,
         });
+      }
+      if (diffDays === 1) {
+        return 'Hôm qua';
       }
       if (diffDays < 7) {
         return date.toLocaleDateString('vi-VN', { weekday: 'short' });
@@ -89,7 +88,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     }
   }, [conversation.last_message_at]);
 
-  const handleCardClick = async (e: React.MouseEvent) => {
+  const handleCardClick = (e: React.MouseEvent) => {
     // If just finished a drag operation, suppress click navigation
     if (justDraggedRef?.current) {
       e.preventDefault();
@@ -102,15 +101,6 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       return;
     }
 
-    // If official support group and membership is required (is_joined === false), join here before opening
-    if (isOfficialSupport && conversation.is_joined === false) {
-      try {
-        await joinSupportGroupMutation.mutateAsync();
-      } catch (err) {
-        console.error('Failed to join official support group on click:', err);
-      }
-    }
-
     navigate(`/messages/${conversation.conversation_id}`, {
       state: {
         fromApp: true,
@@ -120,16 +110,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     });
   };
 
-  const handleKeyDown = async (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      if (isOfficialSupport && conversation.is_joined === false) {
-        try {
-          await joinSupportGroupMutation.mutateAsync();
-        } catch (err) {
-          console.error('Failed to join official support group on keydown:', err);
-        }
-      }
       navigate(`/messages/${conversation.conversation_id}`, {
         state: {
           fromApp: true,
@@ -145,11 +128,11 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       ref={cardRef}
       style={cardStyle}
       {...dragAttributes}
-      {...(isReorderable && !isPinned && !isOfficialSupport ? dragListeners : {})}
+      {...(isReorderable && !isPinned ? dragListeners : {})}
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
       onContextMenu={(e) => {
-        if (isReorderable && !isPinned && !isOfficialSupport) {
+        if (isReorderable && !isPinned) {
           e.preventDefault();
         }
       }}
@@ -159,8 +142,6 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       className={`group relative flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all select-none cursor-pointer outline-none ${
         isDragging
           ? 'z-30 opacity-95 scale-[1.01] shadow-xl border-brand-burgundy/60 ring-2 ring-brand-burgundy/30 bg-white cursor-grabbing'
-          : isOfficialSupport
-          ? 'bg-gradient-to-r from-rose-50/70 via-white to-white border-brand-burgundy/25 shadow-2xs hover:border-brand-burgundy/50 ring-1 ring-brand-burgundy/5'
           : hasUnread
           ? 'bg-rose-50/40 border-brand-burgundy/20 hover:bg-rose-50/70 shadow-xs'
           : 'bg-white border-stone-200/80 hover:bg-stone-50/80 hover:border-stone-300'
@@ -168,47 +149,24 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     >
       {/* Avatar */}
       <div className="relative shrink-0 pointer-events-none">
-        {isOfficialSupport ? (
-          <div
-            role="img"
-            aria-label={displayName}
-            className="relative inline-flex items-center justify-center overflow-hidden shrink-0 select-none h-12 w-12 rounded-2xl bg-gradient-to-br from-brand-burgundy to-rose-900 border border-rose-800 shadow-2xs"
-          >
-            <img
-              src="/logo.svg"
-              alt=""
-              aria-hidden="true"
-              className="h-7 w-7 shrink-0 object-contain select-none"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                if (fallback) fallback.style.display = 'flex';
-              }}
-            />
-            <div style={{ display: 'none' }} className="items-center justify-center">
-              <Sparkles className="w-6 h-6 text-amber-300" />
-            </div>
-          </div>
-        ) : (
-          <Avatar
-            src={avatarUrl}
-            name={displayName}
-            rounded="2xl"
-            size="lg"
-            className={`border ${
-              isGroup
-                ? 'bg-brand-burgundy/10 text-brand-burgundy border-brand-burgundy/20'
-                : 'bg-stone-100 text-stone-500 border-stone-200'
-            }`}
-            fallbackIcon={
-              isGroup ? (
-                <Users className="w-6 h-6" />
-              ) : (
-                <UserIcon className="w-6 h-6 text-stone-400" />
-              )
-            }
-          />
-        )}
+        <Avatar
+          src={avatarUrl}
+          name={displayName}
+          rounded="2xl"
+          size="lg"
+          className={`border ${
+            isGroup
+              ? 'bg-brand-burgundy/10 text-brand-burgundy border-brand-burgundy/20'
+              : 'bg-stone-100 text-stone-500 border-stone-200'
+          }`}
+          fallbackIcon={
+            isGroup ? (
+              <Users className="w-6 h-6" />
+            ) : (
+              <UserIcon className="w-6 h-6 text-stone-400" />
+            )
+          }
+        />
       </div>
 
       {/* Content */}
@@ -219,28 +177,12 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
               className={`text-sm truncate ${
                 hasUnread
                   ? 'font-bold text-stone-900'
-                  : isOfficialSupport
-                  ? 'font-bold text-stone-900'
                   : 'font-medium text-stone-800'
               }`}
             >
               {displayName}
             </h3>
-            {isOfficialSupport && (
-              <>
-                <span className="shrink-0 text-[9px] px-2 py-0.5 rounded-full bg-rose-100 text-brand-burgundy font-bold uppercase tracking-wider">
-                  Chính thức
-                </span>
-                <span
-                  title="Đã ghim"
-                  aria-label="Đã ghim"
-                  className="shrink-0 text-brand-burgundy flex items-center"
-                >
-                  <Pin className="w-3 h-3 fill-brand-burgundy/80 text-brand-burgundy rotate-45" />
-                </span>
-              </>
-            )}
-            {isGroup && !isOfficialSupport && conversation.member_count && (
+            {isGroup && conversation.member_count && (
               <span className="shrink-0 text-[10px] text-stone-400 font-normal">
                 ({conversation.member_count})
               </span>
@@ -261,21 +203,18 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
           </div>
         </div>
 
-        {conversation.product_context && isDirect && (
-          <div className="mb-1">
-            <span className="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 font-normal truncate max-w-[200px]">
-              {conversation.product_context.title}
-            </span>
-          </div>
-        )}
-
+        {/* Bottom: Message Preview + Unread Count */}
         <div className="flex items-center justify-between gap-2">
           <p
-            className={`text-xs truncate ${
-              hasUnread ? 'font-semibold text-stone-900' : 'text-stone-500'
+            className={`text-xs truncate leading-relaxed ${
+              hasUnread
+                ? 'font-medium text-stone-800'
+                : 'text-stone-400'
             }`}
           >
-            {conversation.last_message_preview || 'Bắt đầu cuộc trò chuyện...'}
+            {conversation.last_message_preview || (
+              <span className="italic text-stone-400/80">Chưa có tin nhắn nào</span>
+            )}
           </p>
 
           {hasUnread && (
@@ -289,7 +228,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       </div>
 
       {/* Reorder Grip Handle Visual Affordance - Ordinary reorderable groups only */}
-      {isReorderable && !isOfficialSupport && !isPinned && (
+      {isReorderable && !isPinned && (
         <div
           title="Giữ và kéo để sắp xếp"
           className="p-1 text-stone-300 group-hover:text-stone-400 flex items-center justify-center shrink-0 pointer-events-none"
@@ -302,7 +241,6 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 };
 
 export const SortableConversationCard: React.FC<ConversationCardProps> = (props) => {
-  const isPinned = Boolean(props.isPinned || props.conversation.is_official_support);
   const {
     attributes,
     listeners,
@@ -312,7 +250,7 @@ export const SortableConversationCard: React.FC<ConversationCardProps> = (props)
     isDragging,
   } = useSortable({
     id: props.conversation.conversation_id,
-    disabled: !props.isReorderable || isPinned,
+    disabled: !props.isReorderable,
   });
 
   const combinedStyle: React.CSSProperties = {
@@ -337,7 +275,7 @@ export const SortableConversationCard: React.FC<ConversationCardProps> = (props)
       cardRef={setNodeRef}
       cardStyle={combinedStyle}
       dragAttributes={attributes}
-      dragListeners={props.isReorderable && !isPinned ? listeners : undefined}
+      dragListeners={props.isReorderable ? listeners : undefined}
       isDragging={isDragging}
     />
   );

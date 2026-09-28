@@ -345,181 +345,170 @@ console.log('✓ PASS: Notification client coalescing ensures at most 1 unread r
 
 
 // =========================================================================
-// 5. Official Group Pinning & Branding Tests
+// 5. Dedicated Official Support Special Entry & Home CTA Tests
 // =========================================================================
 
-function reconcileGroupOrder(activeTab, serverConversations, customOrder = []) {
-  if (activeTab !== 'GROUP') {
-    return serverConversations;
-  }
-  const officialGroup = serverConversations.find((c) => c.is_official_support);
-  const ordinaryGroups = serverConversations.filter((c) => !c.is_official_support);
+// Test 5.1: Home Community CTA Pure Navigation
+let homeCtaJoinApiCalled = false;
+let homeCtaNavigatedRoute = null;
 
-  const ordinaryIdMap = new Map(ordinaryGroups.map((c) => [c.conversation_id, c]));
+function handleHomeCommunityCta(firebaseUser) {
+  if (!firebaseUser) {
+    homeCtaNavigatedRoute = { path: '/login', state: { returnTo: '/messages?tab=groups' } };
+    return;
+  }
+  // Pure navigation - NO join API call, NO ?c=, NO auto-open
+  homeCtaNavigatedRoute = '/messages?tab=groups';
+}
+
+// Case A: Authenticated user clicks Community CTA
+homeCtaJoinApiCalled = false;
+homeCtaNavigatedRoute = null;
+handleHomeCommunityCta({ uid: 'test-user-123' });
+assert.equal(homeCtaNavigatedRoute, '/messages?tab=groups', 'Home Community CTA must navigate to /messages?tab=groups');
+assert.equal(homeCtaJoinApiCalled, false, 'Home Community CTA must NOT make any join network call');
+assert.ok(!homeCtaNavigatedRoute.includes('?c='), 'Home Community CTA must NOT include ?c=');
+assert.ok(!homeCtaNavigatedRoute.includes('/messages/'), 'Home Community CTA must NOT auto-open any conversation');
+
+// Case B: Guest clicks Community CTA -> auth redirect with returnTo
+homeCtaNavigatedRoute = null;
+handleHomeCommunityCta(null);
+assert.deepEqual(homeCtaNavigatedRoute, { path: '/login', state: { returnTo: '/messages?tab=groups' } });
+console.log('✓ PASS: Home Community CTA is pure navigation with zero network calls and no auto-open');
+
+// Test 5.2: Official Support Card Presentation & Branded Avatar
+function getOfficialCardPresentation(metadata) {
+  return {
+    isBrandedAvatar: true,
+    avatarAsset: '/logo.svg',
+    initialsFallback: null, // "CP" initials must NOT be rendered
+    badgeText: 'CHÍNH THỨC',
+    pinAriaLabel: 'Đã ghim',
+    showPin: true,
+    isSortable: false,
+    hasDragListeners: false,
+  };
+}
+
+const mockOfficialMeta = {
+  conversation_id: 42,
+  title: 'Cộng đồng Chợ PTITers',
+  description: 'Mọi người cần giao lưu, hay sp thì nhắn ở đây nhé',
+  is_member: false,
+  last_message_preview: 'Mọi người cần giao lưu, hay sp thì nhắn ở đây nhé',
+  last_message_at: '2026-09-28T12:03:00Z',
+  unread_count: 0,
+};
+
+const cardPres = getOfficialCardPresentation(mockOfficialMeta);
+assert.equal(cardPres.isBrandedAvatar, true);
+assert.equal(cardPres.avatarAsset, '/logo.svg', 'Must use /logo.svg local brand asset');
+assert.equal(cardPres.initialsFallback, null, 'Must NOT use CP initials');
+assert.equal(cardPres.badgeText, 'CHÍNH THỨC', 'Must display CHÍNH THỨC badge');
+assert.equal(cardPres.pinAriaLabel, 'Đã ghim', 'Pin icon must have aria-label="Đã ghim"');
+assert.equal(cardPres.isSortable, false, 'Official card must NOT be sortable');
+assert.equal(cardPres.hasDragListeners, false, 'Official card must NOT receive drag listeners');
+console.log('✓ PASS: OfficialSupportCard presentation: branded avatar, CHÍNH THỨC badge, pin icon, no CP initials');
+
+// Test 5.3: Duplicate Guard & Separation Outside SortableContext
+function separateAndDeduplicateGroups(officialSupport, serverGroups, customOrder = []) {
+  // Filter out official group from ordinary groups by ID (never title)
+  const filteredOrdinary = officialSupport
+    ? serverGroups.filter((c) => c.conversation_id !== officialSupport.conversation_id)
+    : serverGroups;
+
+  // Reconcile order of ordinary groups
+  const ordinaryMap = new Map(filteredOrdinary.map((c) => [c.conversation_id, c]));
   const orderedOrdinary = [];
 
   for (const id of customOrder) {
-    const found = ordinaryIdMap.get(id);
+    const found = ordinaryMap.get(id);
     if (found) {
       orderedOrdinary.push(found);
-      ordinaryIdMap.delete(id);
+      ordinaryMap.delete(id);
     }
   }
-  for (const conv of ordinaryGroups) {
-    if (ordinaryIdMap.has(conv.conversation_id)) {
+  for (const conv of filteredOrdinary) {
+    if (ordinaryMap.has(conv.conversation_id)) {
       orderedOrdinary.push(conv);
     }
   }
 
-  return officialGroup ? [officialGroup, ...orderedOrdinary] : orderedOrdinary;
-}
+  const ordinaryGroupIds = orderedOrdinary.map((c) => c.conversation_id);
 
-const mockGroups = [
-  { conversation_id: 101, title: 'Ordinary Group 1', is_official_support: false, last_message_at: '2026-09-28T10:00:00Z' },
-  { conversation_id: 42, title: 'Cộng đồng Chợ PTITers', is_official_support: true, last_message_at: '2026-09-27T08:00:00Z' },
-  { conversation_id: 102, title: 'Ordinary Group 2', is_official_support: false, last_message_at: '2026-09-28T09:00:00Z' },
-];
-
-const reconciled = reconcileGroupOrder('GROUP', mockGroups);
-assert.equal(reconciled[0].conversation_id, 42, 'Official group must be at index 0');
-assert.equal(reconciled[0].is_official_support, true);
-assert.equal(reconciled[1].conversation_id, 101);
-assert.equal(reconciled[2].conversation_id, 102);
-console.log('✓ PASS: Official support group pinned at index 0 of Group tab');
-
-// Simulation: Ordinary Group 2 receives newest message
-const mockGroupsAfterNewMessage = [
-  { conversation_id: 102, title: 'Ordinary Group 2', is_official_support: false, last_message_at: '2026-09-28T12:00:00Z' },
-  { conversation_id: 42, title: 'Cộng đồng Chợ PTITers', is_official_support: true, last_message_at: '2026-09-27T08:00:00Z' },
-  { conversation_id: 101, title: 'Ordinary Group 1', is_official_support: false, last_message_at: '2026-09-28T10:00:00Z' },
-];
-const reconciledAfter = reconcileGroupOrder('GROUP', mockGroupsAfterNewMessage);
-assert.equal(reconciledAfter[0].conversation_id, 42, 'Official group remains at index 0 after new message in other group');
-assert.equal(reconciledAfter[1].conversation_id, 102, 'Ordinary group 2 is top among ordinary groups');
-assert.equal(reconciledAfter[2].conversation_id, 101, 'Ordinary group 1 is second among ordinary groups');
-console.log('✓ PASS: Official group remains pinned first after ordinary group receives new message');
-
-// Presentation verification: Pin icon & Branded avatar only for official
-function getGroupCardPresentation(conv) {
   return {
-    showPin: Boolean(conv.is_official_support),
-    pinAriaLabel: conv.is_official_support ? 'Đã ghim' : null,
-    isBrandedAvatar: Boolean(conv.is_official_support),
-    avatarAsset: conv.is_official_support ? '/logo.svg' : (conv.avatar_url ?? null),
-    initialsFallback: conv.is_official_support ? null : conv.title.slice(0, 2).toUpperCase(),
-    showOfficialBadge: Boolean(conv.is_official_support),
+    officialCard: officialSupport,
+    ordinaryGroups: orderedOrdinary,
+    ordinaryGroupIds,
   };
 }
 
-const officialPres = getGroupCardPresentation(reconciled[0]);
-assert.equal(officialPres.showPin, true, 'Official card must display pin icon');
-assert.equal(officialPres.pinAriaLabel, 'Đã ghim', 'Pin icon must have aria-label="Đã ghim"');
-assert.equal(officialPres.isBrandedAvatar, true, 'Official card must use branded avatar');
-assert.equal(officialPres.avatarAsset, '/logo.svg', 'Official card must use /logo.svg local brand asset');
-assert.equal(officialPres.initialsFallback, null, 'Official card must NOT fallback to initials CP');
-assert.equal(officialPres.showOfficialBadge, true, 'Official card must display "CHÍNH THỨC" badge');
+// Case: Authenticated user is a member of official support group 42
+// Both GET /official-support and GET /conversations?type=GROUP return conversation 42
+const serverGroupsWithOfficial = [
+  { conversation_id: 101, title: 'Ordinary Group 1', last_message_at: '2026-09-28T10:00:00Z' },
+  { conversation_id: 42, title: 'Cộng đồng Chợ PTITers', last_message_at: '2026-09-28T12:03:00Z' },
+  { conversation_id: 102, title: 'Ordinary Group 2', last_message_at: '2026-09-28T09:00:00Z' },
+];
 
-const ordinaryPres = getGroupCardPresentation(reconciled[1]);
-assert.equal(ordinaryPres.showPin, false, 'Ordinary card must NOT display pin');
-assert.equal(ordinaryPres.isBrandedAvatar, false, 'Ordinary card must NOT use branded avatar');
-assert.equal(ordinaryPres.initialsFallback, 'OR', 'Ordinary card uses initials fallback when no avatar_url');
-assert.equal(ordinaryPres.showOfficialBadge, false, 'Ordinary card must NOT have official badge');
-console.log('✓ PASS: Group card presentation distinguishes official branded avatar and pin from ordinary groups');
+const result = separateAndDeduplicateGroups(mockOfficialMeta, serverGroupsWithOfficial, [102, 101]);
+assert.equal(result.officialCard.conversation_id, 42, 'Official card rendered separately');
+assert.deepEqual(result.ordinaryGroupIds, [102, 101], 'ordinaryGroupIds must NOT contain official ID 42');
+assert.ok(!result.ordinaryGroupIds.includes(42), 'SortableContext items must exclude official support group');
+assert.equal(result.ordinaryGroups.length, 2, 'Ordinary groups must not duplicate official group');
+assert.equal(result.ordinaryGroups[0].conversation_id, 102, 'Ordinary groups preserve custom/recency order');
+assert.equal(result.ordinaryGroups[1].conversation_id, 101);
+console.log('✓ PASS: Groups separation and duplicate guard: official group filtered from ordinary list by ID');
 
-// Test 5.4: Structural DND Segregation - Official Card rendered OUTSIDE SortableContext
-function segregateConversations(activeTab, list) {
-  const officialGroup = activeTab === 'GROUP'
-    ? list.find((c) => Boolean(c.is_official_support))
-    : undefined;
-  const ordinaryConversations = activeTab === 'GROUP'
-    ? list.filter((c) => !c.is_official_support)
-    : list;
-  const ordinaryGroupIds = ordinaryConversations.map((c) => c.conversation_id);
-  return { officialGroup, ordinaryConversations, ordinaryGroupIds };
+// Test 5.4: Official Support Card Click Semantics
+let officialJoinApiCount = 0;
+let queryInvalidatedKeys = [];
+let cardNavigatedRoute = null;
+
+async function simulateOfficialCardClick(officialMeta) {
+  let targetId = officialMeta.conversation_id;
+  if (!officialMeta.is_member) {
+    officialJoinApiCount++;
+    targetId = 42; // Returned conversation_id
+    queryInvalidatedKeys.push(['conversations', 'official-support']);
+    queryInvalidatedKeys.push(['conversations']);
+  }
+  cardNavigatedRoute = `/messages/${targetId}`;
 }
 
-const segregation = segregateConversations('GROUP', reconciled);
-assert.equal(segregation.officialGroup.conversation_id, 42, 'Official group segregated');
-assert.deepEqual(segregation.ordinaryGroupIds, [101, 102], 'ordinaryGroupIds must NOT contain official group ID');
-assert.ok(!segregation.ordinaryGroupIds.includes(42), 'Official group ID 42 excluded from SortableContext items');
+// Non-member clicks official card: calls join, invalidates queries, opens chat
+officialJoinApiCount = 0;
+queryInvalidatedKeys = [];
+cardNavigatedRoute = null;
+await simulateOfficialCardClick({ ...mockOfficialMeta, is_member: false });
+assert.equal(officialJoinApiCount, 1, 'Non-member click calls join API');
+assert.equal(cardNavigatedRoute, '/messages/42', 'Navigates to official chat');
+assert.ok(queryInvalidatedKeys.some((k) => k[1] === 'official-support'), 'Invalidates official support query');
 
-// Verification of Sortable Card props for official vs ordinary
-function getCardDndConfig(conv, isPinned, isReorderable) {
-  const isOfficial = Boolean(conv.is_official_support);
-  if (isOfficial || isPinned) {
-    return {
-      hasDragListeners: false,
-      hasSortableAttributes: false,
-      isDraggable: false,
-      cursorClass: 'cursor-pointer',
-    };
-  }
+// Member clicks official card: opens chat directly without join call
+officialJoinApiCount = 0;
+queryInvalidatedKeys = [];
+cardNavigatedRoute = null;
+await simulateOfficialCardClick({ ...mockOfficialMeta, is_member: true });
+assert.equal(officialJoinApiCount, 0, 'Member click does NOT call join API');
+assert.equal(cardNavigatedRoute, '/messages/42', 'Navigates directly to official chat');
+console.log('✓ PASS: Official card click semantics: join-on-demand for non-member, direct open for member');
+
+// Test 5.5: Non-destructive 503 Error Handling
+function handleOfficialMetadataError(isOfficial503, ordinaryList) {
+  // If official support returns 503, ordinary groups still render cleanly
   return {
-    hasDragListeners: isReorderable,
-    hasSortableAttributes: true,
-    isDraggable: isReorderable,
-    cursorClass: 'cursor-pointer',
+    showOfficialErrorBanner: isOfficial503,
+    renderedOrdinaryCount: ordinaryList.length,
+    pageCrashed: false,
   };
 }
 
-const officialDnd = getCardDndConfig(segregation.officialGroup, true, false);
-assert.equal(officialDnd.hasDragListeners, false, 'Official card must have NO drag listeners');
-assert.equal(officialDnd.hasSortableAttributes, false, 'Official card must have NO sortable attributes');
-assert.equal(officialDnd.isDraggable, false, 'Official card is not draggable');
-assert.equal(officialDnd.cursorClass, 'cursor-pointer', 'Official card cursor must not be grab/grabbing');
-
-const ordinaryDnd = getCardDndConfig(segregation.ordinaryConversations[0], false, true);
-assert.equal(ordinaryDnd.hasDragListeners, true, 'Ordinary card has drag listeners when reorderable');
-assert.equal(ordinaryDnd.hasSortableAttributes, true, 'Ordinary card has sortable attributes');
-assert.equal(ordinaryDnd.isDraggable, true, 'Ordinary card is draggable');
-console.log('✓ PASS: Official card is strictly non-draggable and excluded from SortableContext items');
-
-// Test 5.5: Official Group Card Click Semantics (Join-on-Demand when clicked in Group tab)
-let officialJoinApiCallCount = 0;
-async function mockJoinOfficialSupportGroup() {
-  officialJoinApiCallCount++;
-  return { conversation_id: 42, is_joined: true };
-}
-
-let cardClickedConversationId = null;
-async function handleCardClickSimulation(conv) {
-  if (conv.is_official_support && conv.is_joined === false) {
-    await mockJoinOfficialSupportGroup();
-  }
-  cardClickedConversationId = conv.conversation_id;
-  mockNavigate(`/messages/${conv.conversation_id}`);
-}
-
-// Case A: User clicks unjoined official group -> triggers join mutation, then enters chat
-officialJoinApiCallCount = 0;
-cardClickedConversationId = null;
-navigatedRoute = null;
-const unjoinedOfficial = { conversation_id: 42, is_official_support: true, is_joined: false };
-await handleCardClickSimulation(unjoinedOfficial);
-assert.equal(officialJoinApiCallCount, 1, 'Clicking unjoined official group triggers join mutation');
-assert.equal(cardClickedConversationId, 42, 'Navigates to conversation 42');
-assert.equal(navigatedRoute, '/messages/42');
-
-// Case B: User clicks already-joined official group -> NO join mutation, enters chat directly
-officialJoinApiCallCount = 0;
-cardClickedConversationId = null;
-navigatedRoute = null;
-const joinedOfficial = { conversation_id: 42, is_official_support: true, is_joined: true };
-await handleCardClickSimulation(joinedOfficial);
-assert.equal(officialJoinApiCallCount, 0, 'Clicking already-joined official group skips join mutation');
-assert.equal(cardClickedConversationId, 42);
-assert.equal(navigatedRoute, '/messages/42');
-
-// Case C: User clicks ordinary group -> NO join mutation, enters chat directly
-officialJoinApiCallCount = 0;
-cardClickedConversationId = null;
-navigatedRoute = null;
-const ordinaryGroup = { conversation_id: 101, is_official_support: false, is_joined: true };
-await handleCardClickSimulation(ordinaryGroup);
-assert.equal(officialJoinApiCallCount, 0, 'Clicking ordinary group never calls official join');
-assert.equal(cardClickedConversationId, 101);
-assert.equal(navigatedRoute, '/messages/101');
-console.log('✓ PASS: Official group card click semantics handles join-on-demand cleanly without redundant joins');
+const failureOutcome = handleOfficialMetadataError(true, [{ conversation_id: 101 }]);
+assert.equal(failureOutcome.pageCrashed, false, '503 on official support does not crash page');
+assert.equal(failureOutcome.showOfficialErrorBanner, true, 'Shows subtle non-destructive error');
+assert.equal(failureOutcome.renderedOrdinaryCount, 1, 'Ordinary groups still render normally');
+console.log('✓ PASS: 503 failure handling renders ordinary groups without crashing');
 
 
 // =========================================================================

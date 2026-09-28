@@ -181,7 +181,16 @@ export interface ConversationSummary {
   last_message_at: string | null;
   unread_count: number;
   created_at: string;
-  is_official_support?: boolean;
+}
+
+export interface OfficialSupportGroupMetadata {
+  conversation_id: number;
+  title: string;
+  description?: string | null;
+  is_member: boolean;
+  last_message_preview?: string | null;
+  last_message_at?: string | null;
+  unread_count?: number;
 }
 
 export interface ConversationListResponse {
@@ -208,7 +217,6 @@ export interface ConversationDetailResponse {
   product_context?: ProductContextSummary | null;
   created_at: string;
   requires_approval?: boolean;
-  is_official_support?: boolean;
 }
 
 export interface PendingApprovalItem {

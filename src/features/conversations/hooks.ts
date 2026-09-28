@@ -17,6 +17,7 @@ import {
   getGroupPendingApprovals,
   getInviteCandidates,
   getMessages,
+  getOfficialSupportGroup,
   getOwnedGroupCount,
   getSharedAttachments,
   getSharedAttachmentsSummary,
@@ -238,12 +239,24 @@ export function useRespondGroupInvite() {
   });
 }
 
+export function useOfficialSupportGroup() {
+  return useQuery({
+    queryKey: ['conversations', 'official-support'],
+    queryFn: () => getOfficialSupportGroup(),
+    staleTime: 30000,
+    retry: 1,
+  });
+}
+
 export function useJoinOfficialSupportGroup() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => joinOfficialSupportGroup(),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ['conversations', 'official-support'],
+      });
       queryClient.invalidateQueries({
         queryKey: conversationKeys.detail(data.conversation_id),
       });
