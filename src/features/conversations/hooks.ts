@@ -17,14 +17,12 @@ import {
   getGroupPendingApprovals,
   getInviteCandidates,
   getMessages,
-  getOfficialCommunity,
   getOwnedGroupCount,
   getSharedAttachments,
   getSharedAttachmentsSummary,
   inviteMembersToGroup,
-  joinOfficialCommunity,
+  joinOfficialSupportGroup,
   leaveGroup,
-  leaveOfficialCommunity,
   listGroupInvites,
   listGroupMembers,
   markConversationRead,
@@ -56,6 +54,7 @@ import {
   SharedAttachmentSummary,
 } from './types';
 import { isAccessRevokedError } from '@/lib/apiErrors';
+import { NOTIFICATION_QUERY_KEYS } from '../notifications/hooks';
 
 
 export const conversationKeys = {
@@ -70,7 +69,6 @@ export const conversationKeys = {
   messages: (id: number, params?: Record<string, unknown>) =>
     [...conversationKeys.messageLists(id), params || {}] as const,
   invites: () => [...conversationKeys.all, 'invites'] as const,
-  community: () => [...conversationKeys.all, 'community'] as const,
   members: (id: number) => [...conversationKeys.detail(id), 'members'] as const,
   attachments: (id: number, params?: Record<string, unknown>) =>
     [...conversationKeys.detail(id), 'attachments', params || {}] as const,
@@ -240,39 +238,14 @@ export function useRespondGroupInvite() {
   });
 }
 
-export function useOfficialCommunity() {
-  return useQuery({
-    queryKey: conversationKeys.community(),
-    queryFn: () => getOfficialCommunity(),
-  });
-}
-
-export function useJoinOfficialCommunity() {
+export function useJoinOfficialSupportGroup() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (conversationId: number) =>
-      joinOfficialCommunity(conversationId),
-    onSuccess: (_, conversationId) => {
-      queryClient.invalidateQueries({ queryKey: conversationKeys.community() });
+    mutationFn: () => joinOfficialSupportGroup(),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: conversationKeys.detail(conversationId),
-      });
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
-    },
-  });
-}
-
-export function useLeaveOfficialCommunity() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (conversationId: number) =>
-      leaveOfficialCommunity(conversationId),
-    onSuccess: (_, conversationId) => {
-      queryClient.invalidateQueries({ queryKey: conversationKeys.community() });
-      queryClient.invalidateQueries({
-        queryKey: conversationKeys.detail(conversationId),
+        queryKey: conversationKeys.detail(data.conversation_id),
       });
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
     },
@@ -456,6 +429,10 @@ export function useMarkConversationRead(conversationId: number) {
         // Invalidate inbox list so unread counter updates immediately
         queryClient.invalidateQueries({
           queryKey: conversationKeys.lists(),
+        });
+        // Invalidate notifications so Bell badge and list refresh (since the conversation notification is marked read)
+        queryClient.invalidateQueries({
+          queryKey: NOTIFICATION_QUERY_KEYS.all,
         });
       }
     },

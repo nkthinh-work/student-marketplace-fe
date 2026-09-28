@@ -28,7 +28,6 @@ import {
 } from 'lucide-react';
 import { useConversations, useGroupInvites, useOwnedGroupCount } from '../hooks';
 import { ConversationCard } from '../components/ConversationCard';
-import { CommunityBanner } from '../components/CommunityBanner';
 import { GroupCreateModal } from '../components/GroupCreateModal';
 import { GroupInvitesList } from '../components/GroupInvitesList';
 import { useCurrentUser } from '@/features/users/hooks';
@@ -45,32 +44,12 @@ export function reconcileConversationOrder(
   const serverMap = new Map<number, ConversationSummary>();
   serverList.forEach((c) => serverMap.set(c.conversation_id, c));
 
-  if (activeTab === 'GROUP') {
-    const community = serverList.find((c) => c.type === 'COMMUNITY');
-    const others = serverList.filter((c) => c.type !== 'COMMUNITY');
-    const othersMap = new Map<number, ConversationSummary>();
-    others.forEach((c) => othersMap.set(c.conversation_id, c));
-
-    // Filter valid saved others
-    const validSavedOthersIds = savedOrder.filter((id) => othersMap.has(id));
-    const orderedOthers = validSavedOthersIds.map((id) => othersMap.get(id)!);
-
-    // Append new groups from server
-    const savedSet = new Set(validSavedOthersIds);
-    const newOthers = others.filter((c) => !savedSet.has(c.conversation_id));
-    const reconciledOthers = [...orderedOthers, ...newOthers];
-
-    // Community ALWAYS forced to index 0
-    return community ? [community, ...reconciledOthers] : reconciledOthers;
-  }
-
-  // DIRECT Tab
   const validSavedIds = savedOrder.filter((id) => serverMap.has(id));
-  const orderedDirect = validSavedIds.map((id) => serverMap.get(id)!);
+  const ordered = validSavedIds.map((id) => serverMap.get(id)!);
   const savedSet = new Set(validSavedIds);
-  const newDirect = serverList.filter((c) => !savedSet.has(c.conversation_id));
+  const newItems = serverList.filter((c) => !savedSet.has(c.conversation_id));
 
-  return [...orderedDirect, ...newDirect];
+  return [...ordered, ...newItems];
 }
 
 export const ConversationsPage: React.FC = () => {
@@ -219,18 +198,8 @@ export const ConversationsPage: React.FC = () => {
 
     if (oldIndex === -1 || targetIndex === -1) return;
 
-    // Enforce Community invariant at index 0 in GROUP tab
-    const minIndex =
-      activeTab === 'GROUP' && list[0]?.type === 'COMMUNITY' ? 1 : 0;
-    if (targetIndex < minIndex) return;
-
     const newList = arrayMove(list, oldIndex, targetIndex);
-    const idsToSave =
-      activeTab === 'GROUP'
-        ? newList.filter((c) => c.type !== 'COMMUNITY').map((c) => c.conversation_id)
-        : newList.map((c) => c.conversation_id);
-
-    saveOrder(idsToSave);
+    saveOrder(newList.map((c) => c.conversation_id));
   };
 
   return (
@@ -340,8 +309,6 @@ export const ConversationsPage: React.FC = () => {
         {/* Tab 1 & 2: Direct / Group */}
         {activeTab !== 'INVITES' && (
           <>
-            {/* If Group tab, show official community pinned banner if not yet seen */}
-            {activeTab === 'GROUP' && <CommunityBanner />}
 
             {/* Reorder instructions & Reset button (shown if list has multiple items) */}
             {!isLoading && orderedConversations.length > 1 && (
@@ -417,17 +384,14 @@ export const ConversationsPage: React.FC = () => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2.5">
-                    {orderedConversations.map((conv) => {
-                      const isComm = conv.type === 'COMMUNITY';
-                      return (
-                        <ConversationCard
-                          key={conv.conversation_id}
-                          conversation={conv}
-                          isReorderable={!isComm && orderedConversations.length > 1}
-                          justDraggedRef={justDraggedRef}
-                        />
-                      );
-                    })}
+                    {orderedConversations.map((conv) => (
+                      <ConversationCard
+                        key={conv.conversation_id}
+                        conversation={conv}
+                        isReorderable={orderedConversations.length > 1}
+                        justDraggedRef={justDraggedRef}
+                      />
+                    ))}
                   </div>
                 </SortableContext>
               </DndContext>

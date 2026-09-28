@@ -134,15 +134,14 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
   const myRole = conversation.my_role || myMember?.role;
   const isOwner = myRole === 'OWNER';
   const isAdmin = myRole === 'ADMIN';
-  const isCommunity = conversation.type === 'COMMUNITY';
 
-  // Regular GROUP & COMMUNITY: all active members (OWNER, ADMIN, MEMBER) can invite
+  // Regular GROUP: all active members (OWNER, ADMIN, MEMBER) can invite
   const canInvite = Boolean(myRole);
 
   const updateGroupMetadataMutation = useUpdateGroupMetadata(convId);
   const { data: pendingApprovalsData } = useGroupPendingApprovals(
     convId,
-    Boolean(isOwner && !isCommunity && isOpen)
+    Boolean(isOwner && isOpen)
   );
   const processPendingApprovalMutation = useProcessGroupPendingApproval();
   const [processingInviteId, setProcessingInviteId] = useState<number | null>(null);
@@ -191,7 +190,7 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
       state: {
         fromApp: true,
         returnTo: `/messages/${convId}`,
-        returnLabel: isCommunity ? 'Quay lại cộng đồng' : 'Quay lại nhóm',
+        returnLabel: 'Quay lại nhóm',
         source: 'conversation-member',
       },
     });
@@ -288,7 +287,7 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
   };
 
   const handleDeleteGroup = async () => {
-    if (!isOwner || isCommunity) return;
+    if (!isOwner) return;
     setActionError(null);
     try {
       await deleteGroupMutation.mutateAsync();
@@ -338,7 +337,7 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-stone-200 bg-stone-50/60 shrink-0">
             <h3 className="text-sm font-bold text-stone-900">
-              Thông tin {isCommunity ? 'Cộng đồng' : 'Nhóm'}
+              Thông tin Nhóm
             </h3>
             <button
               type="button"
@@ -364,7 +363,7 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
                 <Users className="w-8 h-8" />
               </div>
               <h4 className="text-base font-bold text-stone-900">
-                {conversation.title || (isCommunity ? 'Cộng đồng Chợ PTITers' : 'Nhóm trò chuyện')}
+                {conversation.title || 'Nhóm trò chuyện'}
               </h4>
               {conversation.description && (
                 <p className="text-xs text-stone-600 mt-1 max-w-xs leading-relaxed">
@@ -417,7 +416,7 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
             {activeMainTab === 'members' && (
               <div className="space-y-3">
                 {/* OWNER-only: Approval Settings & Pending Approvals */}
-                {isOwner && !isCommunity && (
+                {isOwner && (
                   <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/80 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -630,8 +629,8 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
                             </div>
                           </div>
 
-                          {/* Edit Own Nickname Button (Regular Group only) */}
-                          {isMe && !isCommunity && (
+                          {/* Edit Own Nickname Button */}
+                          {isMe && (
                             <div className="relative shrink-0 ml-1">
                               <button
                                 type="button"
@@ -968,34 +967,32 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
             )}
           </div>
 
-          {/* Bottom Actions (Only for non-community) */}
-          {!isCommunity && (
-            <div className="p-3 border-t border-stone-200 bg-stone-50/50 space-y-2 shrink-0">
-              {/* Leave Group Button */}
+          {/* Bottom Actions */}
+          <div className="p-3 border-t border-stone-200 bg-stone-50/50 space-y-2 shrink-0">
+            {/* Leave Group Button */}
+            <button
+              type="button"
+              onClick={handleLeaveGroup}
+              disabled={leaveGroupMutation.isPending}
+              className="w-full py-2 px-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Rời khỏi nhóm</span>
+            </button>
+
+            {/* Delete Group Button (OWNER only) */}
+            {isOwner && (
               <button
                 type="button"
-                onClick={handleLeaveGroup}
-                disabled={leaveGroupMutation.isPending}
-                className="w-full py-2 px-3 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleteGroupMutation.isPending}
+                className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Rời khỏi nhóm</span>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa nhóm trò chuyện</span>
               </button>
-
-              {/* Delete Group Button (OWNER only) */}
-              {isOwner && (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={deleteGroupMutation.isPending}
-                  className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Xóa nhóm trò chuyện</span>
-                </button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

@@ -22,7 +22,6 @@ import {
   useMessages,
   useSendMessage,
   useMarkConversationRead,
-  useJoinOfficialCommunity,
   useGroupMembers,
 } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
@@ -37,7 +36,6 @@ import { DirectInfoDrawer } from '../components/DirectInfoDrawer';
 import { ChatProductContextCard } from '../components/ChatProductContextCard';
 import { MessageMentionInput, ReplyMessageSummary } from '../types';
 import { useCurrentUser } from '@/features/users/hooks';
-import { markCommunityPromoSeen } from '../utils/promo';
 import { getSafeBackAction } from '@/lib/navigation';
 
 interface ChatScrollRestorationState {
@@ -69,10 +67,9 @@ export const ChatThreadPage: React.FC = () => {
 
   const isDirect = conversation?.type === 'DIRECT';
   const isGroup = conversation?.type === 'GROUP';
-  const isCommunity = conversation?.type === 'COMMUNITY';
 
   const tabFallback =
-    isGroup || isCommunity ? '/messages?tab=group' : '/messages?tab=direct';
+    isGroup ? '/messages?tab=group' : '/messages?tab=direct';
   const { handleBack } = getSafeBackAction(location.state, tabFallback);
 
   const {
@@ -86,20 +83,19 @@ export const ChatThreadPage: React.FC = () => {
 
   const sendMessageMutation = useSendMessage(conversationId);
   const markReadMutation = useMarkConversationRead(conversationId);
-  const joinCommunityMutation = useJoinOfficialCommunity();
 
   const { data: groupMembers = [] } = useGroupMembers(
-    isGroup || isCommunity ? conversationId || 0 : 0
+    isGroup ? conversationId || 0 : 0
   );
 
   const memberNicknameMap = useMemo(() => {
     const map = new Map<number, string | null>();
-    if (!isGroup && !isCommunity) return map;
+    if (!isGroup) return map;
     for (const m of groupMembers) {
       map.set(m.user_id, m.nickname || null);
     }
     return map;
-  }, [isGroup, isCommunity, groupMembers]);
+  }, [isGroup, groupMembers]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const shellContainerRef = useRef<HTMLDivElement>(null);
@@ -237,12 +233,6 @@ export const ChatThreadPage: React.FC = () => {
     }
   }, [messages, scrollToBottom]);
 
-  // Authoritative trigger: mark community discovery promo seen ONLY after thread successfully opens
-  useEffect(() => {
-    if (conversation && conversation.type === 'COMMUNITY' && currentUser?.user_id) {
-      markCommunityPromoSeen(currentUser.user_id);
-    }
-  }, [conversation, currentUser?.user_id]);
 
   // Scroll Restoration & Transient 500ms Settlement Observer
   const hasRestoredScrollRef = useRef<boolean>(false);
@@ -572,8 +562,7 @@ export const ChatThreadPage: React.FC = () => {
 
   const headerTitle = isDirect
     ? otherUser?.full_name || 'Người dùng'
-    : conversation?.title ||
-      (isCommunity ? 'Cộng đồng Chợ PTITers' : 'Nhóm trò chuyện');
+    : conversation?.title || 'Nhóm trò chuyện';
 
   return (
     <div
@@ -623,7 +612,7 @@ export const ChatThreadPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          /* Group / Community: Symmetrically Centered Identity with subtitle info (Clickable to open Group Info) */
+          /* Group: Symmetrically Centered Identity with subtitle info (Clickable to open Group Info) */
           <div
             className="flex-1 min-w-0 flex flex-col items-center justify-center text-center px-1 cursor-pointer group hover:opacity-85 transition-opacity"
             onClick={() => setIsGroupInfoOpen(true)}
@@ -635,35 +624,20 @@ export const ChatThreadPage: React.FC = () => {
               }
             }}
           >
-            {isCommunity ? (
-              <div className="flex flex-col items-center justify-center text-center max-w-full">
-                <h2 className="text-sm font-bold text-stone-900 group-hover:text-brand-burgundy transition-colors truncate max-w-full leading-tight">
-                  {headerTitle}
-                </h2>
-                <div className="flex items-center justify-center gap-1.5 mt-0.5 text-[11px] text-stone-500">
-                  <span className="inline-flex items-center justify-center text-center whitespace-nowrap text-[9px] px-2 py-0.5 rounded-full bg-rose-100 text-brand-burgundy font-semibold uppercase tracking-wider leading-none">
-                    Chính thức
-                  </span>
-                  <span className="text-stone-300">·</span>
-                  <span>{conversation?.member_count || 0} thành viên</span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center max-w-full">
-                <h2 className="text-sm font-bold text-stone-900 group-hover:text-brand-burgundy transition-colors truncate max-w-full leading-tight">
-                  {headerTitle}
-                </h2>
-                <span className="text-[11px] text-stone-400 mt-0.5">
-                  {conversation?.member_count || 0} thành viên
-                </span>
-              </div>
-            )}
+            <div className="flex flex-col items-center justify-center text-center max-w-full">
+              <h2 className="text-sm font-bold text-stone-900 group-hover:text-brand-burgundy transition-colors truncate max-w-full leading-tight">
+                {headerTitle}
+              </h2>
+              <span className="text-[11px] text-stone-400 mt-0.5">
+                {conversation?.member_count || 0} thành viên
+              </span>
+            </div>
           </div>
         )}
 
         {/* Right Slot: Info Button */}
         <div className="w-9 h-9 flex-none flex items-center justify-end">
-          {isGroup || isCommunity ? (
+          {isGroup ? (
             <button
               type="button"
               onClick={() => setIsGroupInfoOpen(true)}
@@ -687,23 +661,6 @@ export const ChatThreadPage: React.FC = () => {
         </div>
       </header>
 
-
-      {/* Community Join Alert Banner (if user hasn't joined community yet) */}
-      {isCommunity && !conversation?.is_joined && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-xs text-amber-800">
-          <span>Bạn đang xem lịch sử trò chuyện cộng đồng.</span>
-          <button
-            type="button"
-            onClick={() =>
-              joinCommunityMutation.mutate(conversation.conversation_id)
-            }
-            disabled={joinCommunityMutation.isPending}
-            className="px-3 py-1 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 transition-colors shadow-2xs"
-          >
-            Tham gia để gửi tin nhắn
-          </button>
-        </div>
-      )}
 
       {/* Product Context Banner if 1-1 conversation is linked to a product */}
       {isDirect && conversation?.product_context && (
@@ -759,7 +716,7 @@ export const ChatThreadPage: React.FC = () => {
         {/* Message bubbles */}
         {!isMsgsLoading &&
           messages.map((msg) =>
-            (isGroup || isCommunity) && msg.type === 'SYSTEM' ? (
+            isGroup && msg.type === 'SYSTEM' ? (
               <GroupSystemMessage key={msg.message_id} message={msg} />
             ) : (
               <MessageBubble
@@ -767,11 +724,10 @@ export const ChatThreadPage: React.FC = () => {
                 message={msg}
                 conversationId={conversationId || msg.conversation_id}
                 showSenderInfo={!isDirect}
-                isCommunity={isCommunity}
-                senderNickname={(isGroup || isCommunity) ? memberNicknameMap.get(msg.sender_id) : undefined}
-                memberNicknameMap={(isGroup || isCommunity) ? Object.fromEntries(memberNicknameMap) : undefined}
+                senderNickname={isGroup ? memberNicknameMap.get(msg.sender_id) : undefined}
+                memberNicknameMap={isGroup ? Object.fromEntries(memberNicknameMap) : undefined}
                 onReply={(m) => {
-                  const sName = ((isGroup || isCommunity) && memberNicknameMap.get(m.sender_id)) || m.sender_name || 'Người dùng';
+                  const sName = (isGroup && memberNicknameMap.get(m.sender_id)) || m.sender_name || 'Người dùng';
                   let preview = m.content ? m.content.trim() : '';
                   if (!preview) {
                     const firstAtt = m.attachments?.[0];
@@ -806,7 +762,7 @@ export const ChatThreadPage: React.FC = () => {
       </div>
 
       {/* Message Composer Footer */}
-      {(!isCommunity || conversation?.is_joined) && (
+      {conversation && (
         <MessageComposer
           onSend={handleSend}
           disabled={sendMessageMutation.isPending}
@@ -827,7 +783,7 @@ export const ChatThreadPage: React.FC = () => {
       )}
 
       {/* Group Info Drawer */}
-      {conversation && (isGroup || isCommunity) && (
+      {conversation && isGroup && (
         <GroupInfoDrawer
           conversation={conversation}
           isOpen={isGroupInfoOpen}

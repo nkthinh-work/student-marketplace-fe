@@ -1,44 +1,29 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ArrowRight, Loader2, Sparkles } from 'lucide-react';
-import { useJoinOfficialCommunity, useOfficialCommunity } from '../hooks';
+import { Users, Loader2, Sparkles } from 'lucide-react';
+import { useJoinOfficialSupportGroup } from '../hooks';
 import { useCurrentUser } from '@/features/users/hooks';
 import { getCommunityPromoSeen } from '../utils/promo';
 
 export const CommunityBanner: React.FC = () => {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
-  const { data: community, isLoading } = useOfficialCommunity();
-  const joinMutation = useJoinOfficialCommunity();
+  const joinMutation = useJoinOfficialSupportGroup();
 
   // If user has already visited/opened the official community chat, hide discovery promo card
   const isSeen = getCommunityPromoSeen(user?.user_id);
   if (isSeen) return null;
 
-  if (isLoading) {
-    return (
-      <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 animate-pulse h-24 mb-3" />
-    );
-  }
-
-  if (!community) return null;
-
-  const isJoined = community.is_joined;
-
   const handleClick = async () => {
-    if (isJoined) {
-      navigate(`/messages/${community.conversation_id}`);
-    } else {
-      try {
-        await joinMutation.mutateAsync(community.conversation_id);
-        navigate(`/messages/${community.conversation_id}`);
-      } catch (err: any) {
-        alert(
-          err.response?.data?.detail ||
-            err.message ||
-            'Không thể tham gia cộng đồng.'
-        );
-      }
+    try {
+      const res = await joinMutation.mutateAsync();
+      navigate(`/messages/${res.conversation_id}`);
+    } catch (err: any) {
+      alert(
+        err.response?.data?.detail ||
+          err.message ||
+          'Không thể tham gia cộng đồng.'
+      );
     }
   };
 
@@ -56,15 +41,14 @@ export const CommunityBanner: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-white leading-tight">
-                {community.title || 'Cộng đồng Chợ PTITers'}
+                Cộng đồng Chợ PTITers
               </h3>
               <span className="inline-flex items-center justify-center text-center whitespace-nowrap text-[10px] px-2.5 py-0.5 rounded-full bg-white/20 font-semibold text-rose-100 uppercase tracking-wider leading-none">
                 Chính thức
               </span>
             </div>
             <p className="text-xs text-rose-100/90 mt-1 max-w-md leading-relaxed">
-              {community.description ||
-                'Kênh giao lưu, thông báo sinh hoạt, hỗ trợ và trao đổi mua bán chung toàn trường PTIT.'}
+              Kênh giao lưu, thông báo sinh hoạt, hỗ trợ và trao đổi mua bán chung toàn trường PTIT.
             </p>
           </div>
         </div>
@@ -77,11 +61,6 @@ export const CommunityBanner: React.FC = () => {
         >
           {joinMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin text-brand-burgundy" />
-          ) : isJoined ? (
-            <>
-              <span>Vào trò chuyện</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </>
           ) : (
             <>
               <Users className="w-3.5 h-3.5" />

@@ -15,6 +15,7 @@ import {
   useMarkAllRead,
 } from '../hooks';
 import { NotificationItem } from '../components/NotificationItem';
+import { NotificationSoundToggle } from '../components/NotificationSoundToggle';
 
 export const NotificationsPage: React.FC = () => {
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -83,44 +84,48 @@ export const NotificationsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="mb-4 flex items-center gap-2 border-b border-brand-border/60 pb-3">
-        <button
-          type="button"
-          onClick={() => setUnreadOnly(false)}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all ${
-            !unreadOnly
-              ? 'bg-brand-burgundy text-white shadow-xs'
-              : 'text-brand-text-secondary hover:bg-black/5'
-          }`}
-        >
-          <Bell className="h-3.5 w-3.5" />
-          <span>Tất cả</span>
-        </button>
+      {/* Filter Tabs & Sound Settings */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-brand-border/60 pb-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setUnreadOnly(false)}
+            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all ${
+              !unreadOnly
+                ? 'bg-brand-burgundy text-white shadow-xs'
+                : 'text-brand-text-secondary hover:bg-black/5'
+            }`}
+          >
+            <Bell className="h-3.5 w-3.5" />
+            <span>Tất cả</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setUnreadOnly(true)}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all ${
-            unreadOnly
-              ? 'bg-brand-burgundy text-white shadow-xs'
-              : 'text-brand-text-secondary hover:bg-black/5'
-          }`}
-        >
-          <Filter className="h-3.5 w-3.5" />
-          <span>Chưa đọc</span>
-          {unreadCount > 0 && (
-            <span
-              className={`ml-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                unreadOnly
-                  ? 'bg-white text-brand-burgundy'
-                  : 'bg-brand-burgundy text-white'
-              }`}
-            >
-              {unreadCount >= 100 ? '99+' : unreadCount}
-            </span>
-          )}
-        </button>
+          <button
+            type="button"
+            onClick={() => setUnreadOnly(true)}
+            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all ${
+              unreadOnly
+                ? 'bg-brand-burgundy text-white shadow-xs'
+                : 'text-brand-text-secondary hover:bg-black/5'
+            }`}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            <span>Chưa đọc</span>
+            {unreadCount > 0 && (
+              <span
+                className={`ml-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                  unreadOnly
+                    ? 'bg-white text-brand-burgundy'
+                    : 'bg-brand-burgundy text-white'
+                }`}
+              >
+                {unreadCount >= 100 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <NotificationSoundToggle />
       </div>
 
       {/* Content List */}

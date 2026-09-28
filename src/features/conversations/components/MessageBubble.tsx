@@ -15,7 +15,6 @@ interface MessageBubbleProps {
   message: MessageItem;
   conversationId?: number;
   showSenderInfo?: boolean;
-  isCommunity?: boolean;
   onBeforeNavigateAway?: () => void;
   senderNickname?: string | null;
   onReply?: (message: MessageItem) => void;
@@ -26,7 +25,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   conversationId,
   showSenderInfo = false,
-  isCommunity = false,
   onBeforeNavigateAway,
   senderNickname,
   onReply,
@@ -342,7 +340,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 state: {
                   fromApp: true,
                   returnTo: `/messages/${message.conversation_id}`,
-                  returnLabel: isCommunity ? 'Quay lại cộng đồng' : 'Quay lại nhóm',
+                  returnLabel: 'Quay lại nhóm',
                   source: 'conversation-member',
                 },
               });
@@ -374,7 +372,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   state: {
                     fromApp: true,
                     returnTo: `/messages/${message.conversation_id}`,
-                    returnLabel: isCommunity ? 'Quay lại cộng đồng' : 'Quay lại nhóm',
+                    returnLabel: 'Quay lại nhóm',
                     source: 'conversation-member',
                   },
                 });

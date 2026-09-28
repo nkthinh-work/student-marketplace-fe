@@ -67,7 +67,7 @@ export const DirectPurchaseModal: React.FC<DirectPurchaseModalProps> = ({
       const created = await createOrderMutation.mutateAsync(payload);
       onClose();
       navigate(`/orders/${created.order_id}`);
-    } catch (err: unknown) {
+    } catch {
       // Error handled by mutation state
     }
   };

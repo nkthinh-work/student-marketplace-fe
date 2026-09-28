@@ -35,7 +35,7 @@ interface MessageComposerProps {
   ) => void;
   disabled?: boolean;
   placeholder?: string;
-  conversationType?: 'DIRECT' | 'GROUP' | 'COMMUNITY';
+  conversationType?: 'DIRECT' | 'GROUP';
   otherUserId?: number;
   otherUserName?: string;
   conversationId?: number;

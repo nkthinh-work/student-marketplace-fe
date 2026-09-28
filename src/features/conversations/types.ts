@@ -1,4 +1,4 @@
-export type ConversationType = 'DIRECT' | 'GROUP' | 'COMMUNITY';
+export type ConversationType = 'DIRECT' | 'GROUP';
 export type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 export type InviteStatus = 'PENDING' | 'PENDING_APPROVAL' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'PRODUCT_CARD' | 'ORDER_CARD' | 'SYSTEM';

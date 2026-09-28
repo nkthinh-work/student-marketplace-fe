@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Star } from "lucide-react";
 import { StarRating } from "./StarRating";
 import { useSellerRecentReviews } from "../hooks";
@@ -59,13 +59,8 @@ export const RecentReviewsMarquee: React.FC<RecentReviewsMarqueeProps> = ({
   userId,
   reviewCount,
 }) => {
-  // If known that seller has 0 reviews, avoid rendering
-  if (reviewCount === 0) {
-    return null;
-  }
-
   const { data, isLoading, isError } = useSellerRecentReviews(userId, 5);
-  const items = data?.items || [];
+  const items = useMemo(() => data?.items || [], [data?.items]);
 
   const trackRef = useRef<HTMLDivElement>(null);
   const setARef = useRef<HTMLDivElement>(null);
@@ -162,7 +157,7 @@ export const RecentReviewsMarquee: React.FC<RecentReviewsMarqueeProps> = ({
   }, [items]);
 
   // 0 Reviews or loading/error
-  if (isLoading || isError || items.length === 0) {
+  if (reviewCount === 0 || isLoading || isError || items.length === 0) {
     return null;
   }
 

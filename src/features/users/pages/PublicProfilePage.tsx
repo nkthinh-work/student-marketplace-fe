@@ -281,15 +281,17 @@ export const PublicProfilePage: React.FC = () => {
               {user.full_name}
             </h1>
 
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                <Shield className="h-3.5 w-3.5" />
-                {user.role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên PTIT'}
-              </span>
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <div>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  <Shield className="h-3.5 w-3.5" />
+                  {user.role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên PTIT'}
+                </span>
+              </div>
 
               <span className="inline-flex items-center gap-1 text-xs text-brand-text-muted">
                 <Calendar className="h-3.5 w-3.5" />
-                <span>Thành viên từ {formatDate(user.created_at)}</span>
+                <span>Tham gia từ {formatDate(user.created_at)}</span>
               </span>
             </div>
 

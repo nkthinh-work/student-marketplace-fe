@@ -83,30 +83,13 @@ export async function respondToGroupInvite(
   return data;
 }
 
-export async function getOfficialCommunity(): Promise<ConversationDetailResponse> {
-  const { data } = await apiClient.get<ConversationDetailResponse>(
-    '/api/v1/conversations/community'
+export async function joinOfficialSupportGroup(): Promise<{ conversation_id: number }> {
+  const { data } = await apiClient.post<{ conversation_id: number }>(
+    '/api/v1/conversations/official-support/join'
   );
   return data;
 }
 
-export async function joinOfficialCommunity(
-  conversationId: number
-): Promise<{ success: boolean }> {
-  const { data } = await apiClient.post<{ success: boolean }>(
-    `/api/v1/conversations/community/${conversationId}/join`
-  );
-  return data;
-}
-
-export async function leaveOfficialCommunity(
-  conversationId: number
-): Promise<{ success: boolean }> {
-  const { data } = await apiClient.post<{ success: boolean }>(
-    `/api/v1/conversations/community/${conversationId}/leave`
-  );
-  return data;
-}
 
 export async function getConversations(params?: {
   type?: string;

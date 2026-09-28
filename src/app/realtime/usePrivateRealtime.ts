@@ -8,6 +8,7 @@ import { conversationKeys, invalidateAttachmentCaches } from '@/features/convers
 import { handleConversationAccessRevoked } from '@/features/conversations/accessRevocation';
 import { CURRENT_USER_KEY, useCurrentUser } from '@/features/users/hooks';
 import { NOTIFICATION_QUERY_KEYS } from '@/features/notifications/hooks';
+import { playNotificationSound } from '@/features/notifications/sound';
 import { getWebSocketBaseUrl } from '@/lib/websocket';
 
 export interface PrivateRealtimeEvent {
@@ -255,6 +256,14 @@ export function usePrivateRealtime() {
               queryClient.invalidateQueries({
                 queryKey: NOTIFICATION_QUERY_KEYS.all,
                 refetchType: 'active',
+              });
+
+              // Play subtle in-app notification sound respecting active conversation suppression and burst cooldown
+              const notif = data.notification as { type?: string; ref_type?: string; ref_id?: number } | undefined;
+              const isChat = notif?.type === 'NEW_MESSAGE' && notif?.ref_type === 'CONVERSATION';
+              playNotificationSound({
+                conversationId: isChat ? notif?.ref_id : null,
+                isChatMessage: isChat,
               });
             } else if (data.type === 'MESSAGE_REACTIONS_UPDATED') {
               const convId = data.conversation_id as number;

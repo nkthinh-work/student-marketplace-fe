@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { HeroCarousel } from '../components/HeroCarousel';
+import { HomeDiscoveryHelpCard } from '../components/HomeDiscoveryHelpCard';
 import { CategoryBar } from '../components/CategoryBar';
 import { HomeDiscoveryCarousel } from '../components/HomeDiscoveryCarousel';
 import { ProductFeedSection } from '@/features/products/components/ProductFeedSection';
@@ -280,7 +281,12 @@ export function HomePage() {
         </div>
       )}
 
-      {/* 3. Daily Journal Marquee (Directly below Welcome Card, before Categories) */}
+      {/* 3. Newcomer Discovery & Help Card */}
+      <div className="mb-3 sm:mb-4">
+        <HomeDiscoveryHelpCard />
+      </div>
+
+      {/* 4. Daily Journal Marquee (Directly below Discovery Card, before Categories) */}
       <DailyNeedsMarquee />
 
       {/* 4. Sticky CategoryBar — top-[56px] with invariant geometry (0px gap directly under fixed 56px Header) */}

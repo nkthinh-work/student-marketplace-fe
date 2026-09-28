@@ -215,7 +215,7 @@ export const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>
             stopRecording();
           }
         }, 200);
-      } catch (err) {
+      } catch {
         if (recordingSessionRef.current === currentSession) {
           setErrorMessage(
             'Không thể truy cập microphone. Vui lòng cấp quyền ghi âm.'
