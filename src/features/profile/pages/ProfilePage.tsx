@@ -14,6 +14,7 @@ import {
 import {
   userUpdateSchema,
   bankAccountSchema,
+  normalizeVietnamPhone,
   type UserUpdateForm,
   type BankAccountFormValues,
 } from '@/features/users/schemas';
@@ -127,6 +128,7 @@ export function ProfilePage() {
     reset,
     formState: { errors, isDirty },
   } = useForm<UserUpdateForm>({
+    mode: 'onBlur',
     resolver: zodResolver(userUpdateSchema),
     defaultValues: {
       full_name: '',
@@ -138,12 +140,15 @@ export function ProfilePage() {
   });
 
   // Bank Form
+  const [bankSubmitError, setBankSubmitError] = useState<string | null>(null);
+
   const {
     register: registerBank,
     handleSubmit: handleSubmitBank,
     reset: resetBank,
     formState: { errors: bankErrors, isSubmitting: isBankSubmitting },
   } = useForm<BankAccountFormValues>({
+    mode: 'onBlur',
     resolver: zodResolver(bankAccountSchema),
     defaultValues: {
       bank_bin: '',
@@ -183,6 +188,7 @@ export function ProfilePage() {
   };
 
   const handleOpenBankModal = () => {
+    setBankSubmitError(null);
     if (bankAccount) {
       resetBank({
         bank_bin: bankAccount.bank_bin,
@@ -200,13 +206,22 @@ export function ProfilePage() {
   };
 
   const handleSaveBankAccount = async (data: BankAccountFormValues) => {
+    setBankSubmitError(null);
     try {
       await updateBankMutation.mutateAsync(data);
       setIsBankModalOpen(false);
       setBankSuccessMessage('Cập nhật tài khoản nhận tiền thành công!');
       setTimeout(() => setBankSuccessMessage(null), 4000);
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Lỗi lưu tài khoản ngân hàng:', err);
+      const detail = err?.response?.data?.detail;
+      let msg = 'Không thể lưu tài khoản ngân hàng. Vui lòng kiểm tra lại.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail[0]?.msg) {
+        msg = detail[0].msg;
+      }
+      setBankSubmitError(msg);
     }
   };
 
@@ -225,8 +240,11 @@ export function ProfilePage() {
     try {
       setSuccessMessage(null);
 
+      const normalizedPhone = data.phone?.trim() ? normalizeVietnamPhone(data.phone) : undefined;
+
       const payload = {
         ...data,
+        phone: normalizedPhone || undefined,
         social_links: socialLinks.map((item) => ({
           platform: item.platform,
           url: item.url,
@@ -624,7 +642,8 @@ export function ProfilePage() {
             </label>
             <div className="relative">
               <input
-                type="text"
+                type="tel"
+                inputMode="numeric"
                 {...register('phone')}
                 placeholder="VD: 0912345678"
                 className="input-focus-brand w-full rounded-xl border border-brand-border bg-white px-4 py-2.5 text-sm tabular-nums text-brand-text outline-none focus:border-brand-burgundy"
@@ -866,8 +885,9 @@ export function ProfilePage() {
                 </label>
                 <input
                   type="text"
+                  inputMode="numeric"
                   {...registerBank('account_number')}
-                  placeholder="Nhập số tài khoản ngân hàng"
+                  placeholder="Nhập số tài khoản ngân hàng (chỉ chữ số)"
                   className="w-full rounded-xl border border-brand-border bg-white px-3.5 py-2.5 text-sm tabular-nums text-brand-text outline-none focus:border-brand-burgundy focus:ring-1 focus:ring-brand-burgundy"
                 />
                 {bankErrors.account_number && (
@@ -890,6 +910,12 @@ export function ProfilePage() {
                 )}
               </div>
 
+              {bankSubmitError && (
+                <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 leading-relaxed">
+                  {bankSubmitError}
+                </div>
+              )}
+
               <div className="rounded-xl bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-800">
                 <span className="font-semibold">Lưu ý:</span> Vui lòng nhập chính xác số tài khoản và tên chủ tài khoản thụ hưởng. Hệ thống sẽ tạo mã QR chuẩn VietQR (NAPAS) dựa trên các thông tin này.
               </div>
@@ -904,7 +930,7 @@ export function ProfilePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isBankSubmitting || updateBankMutation.isPending}
+                  disabled={isBankSubmitting || updateBankMutation.isPending || Object.keys(bankErrors).length > 0}
                   className="flex-1 rounded-xl bg-brand-burgundy py-2.5 text-xs font-semibold text-white hover:bg-brand-burgundy-dark disabled:opacity-50"
                 >
                   {updateBankMutation.isPending ? 'Đang lưu...' : 'Lưu tài khoản'}

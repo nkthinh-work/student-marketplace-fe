@@ -27,7 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import { useConversations, useGroupInvites, useOwnedGroupCount } from '../hooks';
-import { ConversationCard } from '../components/ConversationCard';
+import { ConversationCard, SortableConversationCard } from '../components/ConversationCard';
 import { GroupCreateModal } from '../components/GroupCreateModal';
 import { GroupInvitesList } from '../components/GroupInvitesList';
 import { useCurrentUser } from '@/features/users/hooks';
@@ -40,6 +40,22 @@ export function reconcileConversationOrder(
 ): ConversationSummary[] {
   if (serverList.length === 0) return [];
   if (activeTab === 'INVITES') return serverList;
+
+  if (activeTab === 'GROUP') {
+    const officialGroup = serverList.find((c) => Boolean(c.is_official_support));
+    const ordinaryList = serverList.filter((c) => !c.is_official_support);
+
+    const serverMap = new Map<number, ConversationSummary>();
+    ordinaryList.forEach((c) => serverMap.set(c.conversation_id, c));
+
+    const validSavedIds = savedOrder.filter((id) => serverMap.has(id));
+    const ordered = validSavedIds.map((id) => serverMap.get(id)!);
+    const savedSet = new Set(validSavedIds);
+    const newItems = ordinaryList.filter((c) => !savedSet.has(c.conversation_id));
+
+    const reconciledOrdinary = [...ordered, ...newItems];
+    return officialGroup ? [officialGroup, ...reconciledOrdinary] : reconciledOrdinary;
+  }
 
   const serverMap = new Map<number, ConversationSummary>();
   serverList.forEach((c) => serverMap.set(c.conversation_id, c));
@@ -69,10 +85,12 @@ export const ConversationsPage: React.FC = () => {
 
   const rawTab = searchParams.get('tab')?.toUpperCase();
   const activeTab: 'DIRECT' | 'GROUP' | 'INVITES' =
-    rawTab === 'GROUP' ? 'GROUP' : rawTab === 'INVITES' ? 'INVITES' : 'DIRECT';
+    rawTab === 'GROUP' || rawTab === 'GROUPS' ? 'GROUP' : rawTab === 'INVITES' ? 'INVITES' : 'DIRECT';
+
 
   const handleTabChange = (tab: 'DIRECT' | 'GROUP' | 'INVITES') => {
-    setSearchParams({ tab: tab.toLowerCase() }, { replace: true });
+    const tabParam = tab === 'GROUP' ? 'groups' : tab === 'INVITES' ? 'invites' : 'direct';
+    setSearchParams({ tab: tabParam }, { replace: true });
   };
 
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
@@ -129,6 +147,22 @@ export const ConversationsPage: React.FC = () => {
   const orderedConversations = useMemo(() => {
     return reconcileConversationOrder(rawConversations, customOrder, activeTab);
   }, [rawConversations, customOrder, activeTab]);
+
+  const officialGroup = useMemo(() => {
+    return activeTab === 'GROUP'
+      ? orderedConversations.find((c) => Boolean(c.is_official_support))
+      : undefined;
+  }, [activeTab, orderedConversations]);
+
+  const ordinaryConversations = useMemo(() => {
+    return activeTab === 'GROUP'
+      ? orderedConversations.filter((c) => !c.is_official_support)
+      : orderedConversations;
+  }, [activeTab, orderedConversations]);
+
+  const ordinaryGroupIds = useMemo(() => {
+    return ordinaryConversations.map((c) => c.conversation_id);
+  }, [ordinaryConversations]);
 
   const saveOrder = (newOrder: number[]) => {
     setCustomOrder(newOrder);
@@ -192,14 +226,15 @@ export const ConversationsPage: React.FC = () => {
     const activeId = Number(active.id);
     const overId = Number(over.id);
 
-    const list = [...orderedConversations];
+    const list = [...ordinaryConversations];
     const oldIndex = list.findIndex((c) => c.conversation_id === activeId);
     const targetIndex = list.findIndex((c) => c.conversation_id === overId);
 
     if (oldIndex === -1 || targetIndex === -1) return;
 
     const newList = arrayMove(list, oldIndex, targetIndex);
-    saveOrder(newList.map((c) => c.conversation_id));
+    const idsToSave = newList.map((c) => c.conversation_id);
+    saveOrder(idsToSave);
   };
 
   return (
@@ -310,8 +345,8 @@ export const ConversationsPage: React.FC = () => {
         {activeTab !== 'INVITES' && (
           <>
 
-            {/* Reorder instructions & Reset button (shown if list has multiple items) */}
-            {!isLoading && orderedConversations.length > 1 && (
+            {/* Reorder instructions & Reset button (shown if ordinary list has multiple items) */}
+            {!isLoading && ordinaryConversations.length > 1 && (
               <div className="flex items-center justify-between text-[11px] text-stone-400 mb-2 px-1">
                 <span>Giữ và kéo để sắp xếp thứ tự cuộc trò chuyện</span>
                 {hasCustomOrder && (
@@ -371,30 +406,46 @@ export const ConversationsPage: React.FC = () => {
 
             {/* Conversations List with Drag & Drop Reordering */}
             {!isLoading && orderedConversations.length > 0 && (
-              <DndContext
-                sensors={sensors}
-                modifiers={[restrictToVerticalAxis]}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragCancel={handleDragCancel}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={orderedConversations.map((c) => c.conversation_id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-2.5">
-                    {orderedConversations.map((conv) => (
-                      <ConversationCard
-                        key={conv.conversation_id}
-                        conversation={conv}
-                        isReorderable={orderedConversations.length > 1}
-                        justDraggedRef={justDraggedRef}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              <div className="space-y-2.5">
+                {/* Structurally Pinned Official Support Group (rendered strictly OUTSIDE SortableContext and DndContext) */}
+                {officialGroup && (
+                  <ConversationCard
+                    key={officialGroup.conversation_id}
+                    conversation={officialGroup}
+                    isPinned={true}
+                    isReorderable={false}
+                    justDraggedRef={justDraggedRef}
+                  />
+                )}
+
+                {/* Ordinary Conversations inside DndContext and SortableContext */}
+                {ordinaryConversations.length > 0 && (
+                  <DndContext
+                    sensors={sensors}
+                    modifiers={[restrictToVerticalAxis]}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragCancel={handleDragCancel}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={ordinaryGroupIds}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-2.5">
+                        {ordinaryConversations.map((conv) => (
+                          <SortableConversationCard
+                            key={conv.conversation_id}
+                            conversation={conv}
+                            isReorderable={ordinaryConversations.length > 1}
+                            justDraggedRef={justDraggedRef}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
             )}
 
                 {/* Create-Group Onboarding Promo (placed cleanly AFTER the pinned community card) */}

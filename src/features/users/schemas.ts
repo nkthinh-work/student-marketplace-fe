@@ -1,5 +1,31 @@
 import { z } from 'zod';
 
+export function normalizeVietnamPhone(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const trimmed = phone.trim();
+  if (!trimmed) return null;
+
+  // Only allow digits, spaces, '.', '-', and optional leading '+'
+  if (!/^\+?[0-9\s.-]+$/.test(trimmed)) {
+    return null;
+  }
+
+  // Remove visual separators
+  let cleaned = trimmed.replace(/[\s.-]/g, '');
+
+  if (cleaned.startsWith('+84')) {
+    cleaned = '0' + cleaned.slice(3);
+  } else if (cleaned.startsWith('84') && cleaned.length === 11) {
+    cleaned = '0' + cleaned.slice(2);
+  }
+
+  // Canonical valid VN mobile: exactly 10 digits starting with 03, 05, 07, 08, 09
+  if (/^0[35789]\d{8}$/.test(cleaned)) {
+    return cleaned;
+  }
+  return null;
+}
+
 export const userUpdateSchema = z.object({
   full_name: z
     .string()
@@ -8,9 +34,17 @@ export const userUpdateSchema = z.object({
     .optional(),
   phone: z
     .string()
-    .max(20, 'Số điện thoại tối đa 20 ký tự')
     .optional()
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .refine(
+      (val) => {
+        if (!val || val.trim() === '') return true;
+        return normalizeVietnamPhone(val) !== null;
+      },
+      {
+        message: 'Số điện thoại không hợp lệ. Vui lòng nhập số di động Việt Nam 10 chữ số.',
+      }
+    ),
   show_phone_publicly: z.boolean().optional(),
   social_links: z
     .array(
@@ -97,14 +131,26 @@ export const bankAccountSchema = z.object({
   account_number: z
     .string()
     .trim()
-    .min(4, 'Số tài khoản tối thiểu 4 ký tự')
-    .max(30, 'Số tài khoản tối đa 30 ký tự')
-    .regex(/^[a-zA-Z0-9]+$/, 'Số tài khoản chỉ gồm chữ cái và chữ số'),
+    .min(4, 'Số tài khoản tối thiểu 4 chữ số')
+    .max(30, 'Số tài khoản tối đa 30 chữ số')
+    .regex(/^\d+$/, 'Số tài khoản chỉ được chứa chữ số (0-9)'),
   account_name: z
     .string()
     .trim()
     .min(2, 'Tên chủ tài khoản tối thiểu 2 ký tự')
-    .max(100, 'Tên chủ tài khoản tối đa 100 ký tự'),
+    .max(100, 'Tên chủ tài khoản tối đa 100 ký tự')
+    .refine(
+      (val) => /[a-zA-ZÀ-ỹ]/.test(val),
+      'Tên chủ tài khoản phải chứa chữ cái'
+    )
+    .refine(
+      (val) => !Array.from(val).some((ch) => ch.charCodeAt(0) <= 31 || ch.charCodeAt(0) === 127),
+      'Tên chủ tài khoản không được chứa ký tự điều khiển'
+    )
+    .refine(
+      (val) => /^[\p{L}\s.'-]+$/u.test(val),
+      'Tên chủ tài khoản chỉ được chứa chữ cái, khoảng trắng và dấu tên hợp lệ'
+    ),
 });
 
 export type BankAccountFormValues = z.infer<typeof bankAccountSchema>;

@@ -64,7 +64,7 @@ export interface SoldProductListResponse {
 
 export interface UserUpdate {
   full_name?: string;
-  phone?: string;
+  phone?: string | null;
   show_phone_publicly?: boolean;
   social_links?: SocialLinkItem[];
   bio?: string;

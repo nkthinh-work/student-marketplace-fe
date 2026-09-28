@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, BookOpen, Users, Loader2, AlertCircle } from 'lucide-react';
+import { Compass, BookOpen, Users } from 'lucide-react';
 import { useTutorial } from '@/features/tutorials/context/TutorialContext';
-import { useJoinOfficialSupportGroup } from '@/features/conversations/hooks';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface HomeDiscoveryHelpCardProps {
@@ -15,27 +14,18 @@ export const HomeDiscoveryHelpCard: React.FC<HomeDiscoveryHelpCardProps> = ({
   const navigate = useNavigate();
   const { openTutorial } = useTutorial();
   const { firebaseUser } = useAuth();
-  const joinSupportGroupMutation = useJoinOfficialSupportGroup();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleOpenTutorial = () => {
     openTutorial();
   };
 
-  const handleEnterCommunity = async () => {
-    setErrorMessage(null);
-
+  const handleEnterCommunity = () => {
     if (!firebaseUser) {
-      navigate('/login', { state: { returnTo: '/messages' } });
+      navigate('/login', { state: { returnTo: '/messages?tab=groups' } });
       return;
     }
 
-    try {
-      const res = await joinSupportGroupMutation.mutateAsync();
-      navigate(`/messages?c=${res.conversation_id}`);
-    } catch {
-      setErrorMessage('Hiện chưa thể mở Cộng đồng Chợ PTITers. Vui lòng thử lại sau.');
-    }
+    navigate('/messages?tab=groups');
   };
 
   return (
@@ -73,28 +63,13 @@ export const HomeDiscoveryHelpCard: React.FC<HomeDiscoveryHelpCardProps> = ({
             type="button"
             data-testid="community-cta"
             onClick={handleEnterCommunity}
-            disabled={joinSupportGroupMutation.isPending}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-burgundy text-white hover:bg-rose-900 text-xs font-semibold shadow-2xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-burgundy text-white hover:bg-rose-900 text-xs font-semibold shadow-2xs transition-all active:scale-95 cursor-pointer"
           >
-            {joinSupportGroupMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Users className="w-3.5 h-3.5 text-rose-200" />
-            )}
+            <Users className="w-3.5 h-3.5 text-rose-200" />
             <span>Cộng đồng</span>
           </button>
         </div>
       </div>
-
-      {errorMessage && (
-        <div
-          role="alert"
-          className="mt-2.5 flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs"
-        >
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
     </section>
   );
 };
