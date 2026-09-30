@@ -267,28 +267,24 @@ console.log('✓ PASS: Home CTA works deterministically with zero latency and ze
 // 3. Public Profile Layout Polish Tests
 // =========================================================================
 
-// Test 3.1: Profile Header separates Role and Joined Date into distinct rows
-function renderProfileHeaderLayout({ role, createdAtFormatted }) {
+// Test 3.1: Profile Header separates Community Badge and Joined Date into distinct rows
+function renderProfileHeaderLayout({ createdAtFormatted }) {
   // Simulates PublicProfilePage layout structure
   return {
     nameRow: 'Nguyễn Văn A',
     metadataContainerClass: 'flex flex-col items-center gap-1.5',
-    roleRow: role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên PTIT',
+    badgeRow: 'Thành viên Chợ PTITers',
     joinedRow: `Tham gia từ ${createdAtFormatted}`,
     isSeparatedRows: true,
   };
 }
 
-const studentHeader = renderProfileHeaderLayout({ role: 'STUDENT', createdAtFormatted: '09/2026' });
-assert.equal(studentHeader.isSeparatedRows, true);
-assert.equal(studentHeader.roleRow, 'Sinh viên PTIT');
-assert.equal(studentHeader.joinedRow, 'Tham gia từ 09/2026');
-assert.ok(studentHeader.metadataContainerClass.includes('flex-col'), 'Metadata container must use flex-col for separate rows');
-
-const adminHeader = renderProfileHeaderLayout({ role: 'ADMIN', createdAtFormatted: '01/2026' });
-assert.equal(adminHeader.roleRow, 'Quản trị viên');
-assert.equal(adminHeader.joinedRow, 'Tham gia từ 01/2026');
-console.log('✓ PASS: Public profile metadata displays role and joined date on separate visual rows');
+const profileHeader = renderProfileHeaderLayout({ createdAtFormatted: '09/2026' });
+assert.equal(profileHeader.isSeparatedRows, true);
+assert.equal(profileHeader.badgeRow, 'Thành viên Chợ PTITers');
+assert.equal(profileHeader.joinedRow, 'Tham gia từ 09/2026');
+assert.ok(profileHeader.metadataContainerClass.includes('flex-col'), 'Metadata container must use flex-col for separate rows');
+console.log('✓ PASS: Public profile metadata displays neutral community badge and joined date on separate visual rows');
 
 
 // =========================================================================

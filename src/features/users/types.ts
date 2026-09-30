@@ -31,7 +31,6 @@ export interface PublicUserProfileResponse {
   delivery_area: string | null;
   phone: string | null;
   social_links: SocialLinkItem[] | null;
-  role: string;
   created_at: string;
   active_listing_count: number;
   completed_sold_count: number;
