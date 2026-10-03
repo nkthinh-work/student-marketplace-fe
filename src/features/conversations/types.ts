@@ -251,7 +251,8 @@ export interface CreateConversationPayload {
 }
 
 export interface CreateDirectConversationPayload {
-  recipient_user_id: number;
+  recipient_user_id?: number;
+  recipient_public_id?: string;
 }
 
 export interface CreateConversationFromOrderPayload {

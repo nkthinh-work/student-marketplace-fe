@@ -483,7 +483,11 @@ export const OrderDetailPage: React.FC = () => {
             {isBuyer ? "Thông tin người bán" : "Thông tin người mua"}
           </h4>
           <Link
-            to={`/users/${isBuyer ? order.seller_id : order.buyer_id}`}
+            to={
+              isBuyer
+                ? `/profile/${order.seller_public_id || order.seller_id}`
+                : `/profile/${order.buyer_public_id || order.buyer_id}`
+            }
             state={{
               fromApp: true,
               returnTo: location.pathname + location.search + location.hash,

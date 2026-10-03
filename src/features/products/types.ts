@@ -6,7 +6,7 @@ export type SellerUpdatableStatus = 'AVAILABLE' | 'HIDDEN';
 export type ProductApprovalStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface SellerSummary {
-  user_id: number;
+  public_id: string;
   full_name: string;
   avatar_url?: string | null;
 }
@@ -120,6 +120,7 @@ export interface SellerProductListResponse {
 export interface ProductFilterParams {
   category_id?: number;
   seller_id?: number;
+  seller_public_id?: string;
   listing_type?: ListingType;
   min_price?: number;
   max_price?: number;

@@ -20,8 +20,9 @@ export const userAccessStatusQueryKey = (uid?: string | null) => ['userAccessSta
 export const MY_BANK_ACCOUNT_KEY = ['myBankAccount'] as const;
 export const myBankAccountQueryKey = (uid?: string | null) => ['myBankAccount', uid ?? null] as const;
 export const SUPPORTED_BANKS_KEY = ['supportedBanks'] as const;
-export const publicUserProfileQueryKey = (userId: number) => ['publicUser', userId] as const;
-export const userSoldProductsQueryKey = (userId: number) => ['userSoldProducts', userId] as const;
+export const publicUserProfileQueryKey = (publicId: string | number) => ['publicUser', String(publicId)] as const;
+export const userSoldProductsQueryKey = (publicId: string | number) => ['userSoldProducts', String(publicId)] as const;
+
 
 // Hook lấy thông tin user hiện tại từ backend (chỉ fetch khi đã auth qua Firebase)
 export function useCurrentUser() {
@@ -59,21 +60,21 @@ export function useUserAccessStatus() {
 }
 
 // Hook lấy thông tin hồ sơ công khai của một người dùng
-export function usePublicUserProfile(userId: number) {
+export function usePublicUserProfile(publicId: string) {
   return useQuery({
-    queryKey: publicUserProfileQueryKey(userId),
-    queryFn: () => fetchPublicUserProfile(userId),
-    enabled: !isNaN(userId) && userId > 0,
+    queryKey: publicUserProfileQueryKey(publicId),
+    queryFn: () => fetchPublicUserProfile(publicId),
+    enabled: Boolean(publicId && publicId.trim()),
     staleTime: 60 * 1000,
   });
 }
 
 // Hook lấy lịch sử sản phẩm đã bán của một người dùng (COMPLETED sales)
-export function useUserSoldProducts(userId: number, enabled: boolean = true) {
+export function useUserSoldProducts(publicId: string, enabled: boolean = true) {
   return useQuery({
-    queryKey: userSoldProductsQueryKey(userId),
-    queryFn: () => fetchUserSoldProducts(userId),
-    enabled: !isNaN(userId) && userId > 0 && enabled,
+    queryKey: userSoldProductsQueryKey(publicId),
+    queryFn: () => fetchUserSoldProducts(publicId),
+    enabled: Boolean(publicId && publicId.trim()) && enabled,
     staleTime: 60 * 1000,
   });
 }
@@ -88,12 +89,13 @@ export function useUpdateProfile() {
     onSuccess: (updatedUser) => {
       queryClient.setQueryData(currentUserQueryKey(firebaseUser?.uid), updatedUser);
       queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
-      if (updatedUser?.user_id) {
-        queryClient.invalidateQueries({ queryKey: publicUserProfileQueryKey(updatedUser.user_id) });
+      if (updatedUser?.public_id) {
+        queryClient.invalidateQueries({ queryKey: publicUserProfileQueryKey(updatedUser.public_id) });
       }
     },
   });
 }
+
 
 // Hook lấy danh sách ngân hàng Việt Nam hỗ trợ
 export function useSupportedBanks() {

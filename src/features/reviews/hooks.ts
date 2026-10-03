@@ -16,8 +16,8 @@ export const reviewKeys = {
   all: ["reviews"] as const,
   orderReview: (orderId: number) =>
     [...reviewKeys.all, "order", orderId] as const,
-  userReviews: (userId: number) =>
-    [...reviewKeys.all, "user", userId] as const,
+  userReviews: (sellerId: string) =>
+    [...reviewKeys.all, "user", sellerId] as const,
 };
 
 export function useOrderReview(orderId: number, enabled: boolean = true) {
@@ -63,24 +63,24 @@ export function useUpdateOrderReview(orderId: number) {
   });
 }
 
-export function useSellerReviewsInfinite(userId: number) {
+export function useSellerReviewsInfinite(sellerId: string) {
   return useInfiniteQuery({
-    queryKey: reviewKeys.userReviews(userId),
+    queryKey: reviewKeys.userReviews(sellerId),
     queryFn: ({ pageParam }) =>
-      getPublicSellerReviews(userId, pageParam as string | null),
+      getPublicSellerReviews(sellerId, pageParam as string | null),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) =>
       lastPage.has_more && lastPage.next_cursor ? lastPage.next_cursor : undefined,
-    enabled: Boolean(userId),
+    enabled: Boolean(sellerId && sellerId.trim()),
     staleTime: 60 * 1000,
   });
 }
 
-export function useSellerRecentReviews(userId: number, limit: number = 5) {
+export function useSellerRecentReviews(sellerId: string, limit: number = 5) {
   return useQuery({
-    queryKey: [...reviewKeys.userReviews(userId), "recent", limit],
-    queryFn: () => getPublicSellerReviews(userId, null, limit),
-    enabled: Boolean(userId),
+    queryKey: [...reviewKeys.userReviews(sellerId), "recent", limit],
+    queryFn: () => getPublicSellerReviews(sellerId, null, limit),
+    enabled: Boolean(sellerId && sellerId.trim()),
     staleTime: 60 * 1000,
   });
 }

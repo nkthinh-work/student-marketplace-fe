@@ -1,8 +1,9 @@
 export interface DailyNeedAuthor {
-  user_id: number;
+  public_id: string;
   full_name: string;
   avatar_url?: string | null;
 }
+
 
 export interface DailyNeed {
   daily_need_id: number;

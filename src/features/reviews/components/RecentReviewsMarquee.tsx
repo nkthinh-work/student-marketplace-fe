@@ -5,7 +5,8 @@ import { useSellerRecentReviews } from "../hooks";
 import type { PublicSellerReviewItem } from "../types";
 
 interface RecentReviewsMarqueeProps {
-  userId: number;
+  userId?: number | string;
+  publicId?: string;
   reviewCount?: number;
 }
 
@@ -57,9 +58,11 @@ const ConveyorCard: React.FC<ConveyorCardProps> = ({ review, isStatic = false })
 
 export const RecentReviewsMarquee: React.FC<RecentReviewsMarqueeProps> = ({
   userId,
+  publicId,
   reviewCount,
 }) => {
-  const { data, isLoading, isError } = useSellerRecentReviews(userId, 5);
+  const sellerId = publicId || (userId !== undefined ? String(userId) : '');
+  const { data, isLoading, isError } = useSellerRecentReviews(sellerId, 5);
   const items = useMemo(() => data?.items || [], [data?.items]);
 
   const trackRef = useRef<HTMLDivElement>(null);

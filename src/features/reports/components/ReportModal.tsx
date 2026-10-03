@@ -14,7 +14,7 @@ import {
   REPORT_TARGET_LABELS,
 } from '../constants';
 import { useCreateReport, useUploadReportEvidence } from '../hooks';
-import type { ReportReason, ReportTargetType } from '../types';
+import type { CreateReportRequest, ReportReason, ReportTargetType } from '../types';
 
 const MAX_IMAGE_COUNT = 5;
 const MAX_IMAGE_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
@@ -42,7 +42,8 @@ interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetType: ReportTargetType;
-  targetId: number;
+  targetId?: number;
+  targetPublicId?: string;
   targetTitle?: string;
   onSuccess?: () => void;
 }
@@ -52,6 +53,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   onClose,
   targetType,
   targetId,
+  targetPublicId,
   targetTitle,
   onSuccess,
 }) => {
@@ -115,7 +117,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     return () => {
       cleanupObjectUrls();
     };
-  }, [isOpen, targetId, targetType]);
+  }, [isOpen, targetId, targetPublicId, targetType]);
 
   // If targetType changes while open, validate and clear any reason not allowed
   useEffect(() => {
@@ -360,12 +362,17 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
     let reportId: number;
     try {
-      const newReport = await createReportMutation.mutateAsync({
+      const payload: CreateReportRequest = {
         target_type: targetType,
-        target_id: targetId,
         reason: reason as ReportReason,
         description: trimmedDesc || null,
-      });
+      };
+      if (targetType === 'USER') {
+        payload.target_public_id = targetPublicId;
+      } else {
+        payload.target_id = targetId;
+      }
+      const newReport = await createReportMutation.mutateAsync(payload);
       reportId = newReport.report_id;
       setCreatedReportId(reportId);
     } catch (err: any) {

@@ -26,6 +26,10 @@ export async function getProducts(params?: ProductFilterParams): Promise<Product
   if (params?.seller_id !== undefined && params.seller_id !== null) {
     queryParams.seller_id = params.seller_id;
   }
+  if (params?.seller_public_id !== undefined && params.seller_public_id !== null && params.seller_public_id !== '') {
+    queryParams.seller_public_id = params.seller_public_id;
+  }
+
   if (params?.listing_type) {
     queryParams.listing_type = params.listing_type;
   }

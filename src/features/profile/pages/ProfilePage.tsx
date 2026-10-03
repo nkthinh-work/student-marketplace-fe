@@ -97,7 +97,7 @@ function formatMemberSince(isoString?: string | null): string {
 export function ProfilePage() {
   const { signOut } = useAuth();
   const { data: user, isLoading, isError } = useCurrentUser();
-  const { data: publicProfile, isLoading: isPublicProfileLoading } = usePublicUserProfile(user?.user_id || 0);
+  const { data: publicProfile, isLoading: isPublicProfileLoading } = usePublicUserProfile(user?.public_id || '');
   const updateProfileMutation = useUpdateProfile();
   const navigate = useNavigate();
 
@@ -431,7 +431,7 @@ export function ProfilePage() {
         {/* Action: Single prominent "Xem hồ sơ công khai" CTA */}
         <div className="mt-5">
           <Link
-            to={`/users/${user.user_id}`}
+            to={`/profile/${user.public_id}`}
             state={{
               fromApp: true,
               returnTo: '/profile',

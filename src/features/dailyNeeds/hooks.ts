@@ -16,9 +16,10 @@ export const dailyNeedKeys = {
   today: () => [...dailyNeedKeys.all, 'today'] as const,
   myToday: () => [...dailyNeedKeys.all, 'my-today'] as const,
   mySummary: () => [...dailyNeedKeys.all, 'my-summary'] as const,
-  userToday: (userId?: number | null) =>
-    [...dailyNeedKeys.all, 'users', userId, 'today'] as const,
+  userToday: (publicId?: string | number | null) =>
+    [...dailyNeedKeys.all, 'users', publicId, 'today'] as const,
 };
+
 
 export const useRecentDailyNeeds = (limit = 10) => {
   return useQuery({
@@ -56,16 +57,16 @@ export const useMyDailyNeedSummary = (enabled = true) => {
 };
 
 export const useUserTodayDailyNeed = (
-  userId?: number | null,
+  publicId?: string | null,
   enabled = true
 ) => {
   return useQuery({
-    queryKey: dailyNeedKeys.userToday(userId),
+    queryKey: dailyNeedKeys.userToday(publicId),
     queryFn: () => {
-      if (!userId) return null;
-      return getUserTodayDailyNeed(userId);
+      if (!publicId) return null;
+      return getUserTodayDailyNeed(publicId);
     },
-    enabled: enabled && Boolean(userId),
+    enabled: enabled && Boolean(publicId),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
   });

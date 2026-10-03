@@ -60,9 +60,11 @@ export interface OrderDetailResponse {
   order_id: number;
   order_code: string;
   buyer_id: number;
+  buyer_public_id?: string | null;
   buyer_name: string;
   buyer_avatar_url: string | null;
   seller_id: number;
+  seller_public_id?: string | null;
   seller_name: string;
   seller_avatar_url: string | null;
   status: OrderStatus;

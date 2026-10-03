@@ -23,22 +23,23 @@ export async function fetchUserAccessStatus(): Promise<UserAccessStatusResponse>
 }
 
 export async function fetchPublicUserProfile(
-  userId: number,
+  publicId: string,
 ): Promise<PublicUserProfileResponse> {
   const { data } = await apiClient.get<PublicUserProfileResponse>(
-    `/api/v1/users/${userId}`,
+    `/api/v1/users/${publicId}`,
   );
   return data;
 }
 
 export async function fetchUserSoldProducts(
-  userId: number,
+  publicId: string,
 ): Promise<SoldProductListResponse> {
   const { data } = await apiClient.get<SoldProductListResponse>(
-    `/api/v1/users/${userId}/sold-products`,
+    `/api/v1/users/${publicId}/sold-products`,
   );
   return data;
 }
+
 
 export async function updateCurrentUser(
   payload: UserUpdate,

@@ -64,9 +64,9 @@ export function App() {
                       }
                     />
 
-                    {/* Public User Profile (Public, both /users/:id and /profile/:id supported) */}
-                    <Route path="/users/:userId" element={<PublicProfilePage />} />
-                    <Route path="/profile/:userId" element={<PublicProfilePage />} />
+                    {/* Public User Profile (Public, both /profile/:publicId and /users/:publicId supported) */}
+                    <Route path="/profile/:publicId" element={<PublicProfilePage />} />
+                    <Route path="/users/:publicId" element={<PublicProfilePage />} />
 
                     {/* Account Restricted Page (Public / Authenticated with restricted status) */}
                     <Route path="/account-restricted" element={<AccountRestrictedPage />} />

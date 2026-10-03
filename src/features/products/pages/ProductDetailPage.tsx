@@ -168,7 +168,7 @@ export function ProductDetailPage() {
     );
   }
 
-  const isOwner = currentUser?.user_id === product.seller.user_id;
+  const isOwner = Boolean(currentUser?.public_id && currentUser.public_id === product.seller.public_id);
   const listingMeta = getListingTypeMeta(product.listing_type);
 
   const { label: backLabel, handleBack } = getSafeBackAction(location.state, '/');
@@ -239,7 +239,7 @@ export function ProductDetailPage() {
             </h3>
 
             <Link
-              to={`/users/${product.seller.user_id}?tab=sold`}
+              to={`/profile/${product.seller.public_id}?tab=sold`}
               state={{
                 fromApp: true,
                 returnTo: location.pathname + location.search + location.hash,

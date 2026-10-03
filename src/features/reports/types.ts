@@ -12,7 +12,8 @@ export type ReportStatus = 'OPEN' | 'REVIEWING' | 'RESOLVED' | 'REJECTED';
 
 export interface CreateReportRequest {
   target_type: ReportTargetType;
-  target_id: number;
+  target_id?: number;
+  target_public_id?: string;
   reason: ReportReason;
   description?: string | null;
 }

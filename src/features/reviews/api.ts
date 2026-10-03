@@ -38,7 +38,7 @@ export async function updateOrderReview(
 }
 
 export async function getPublicSellerReviews(
-  userId: number,
+  publicId: string,
   cursor?: string | null,
   limit: number = 10
 ): Promise<PublicSellerReviewsCursorPage> {
@@ -47,7 +47,7 @@ export async function getPublicSellerReviews(
     params.cursor = cursor;
   }
   const response = await apiClient.get<PublicSellerReviewsCursorPage>(
-    `/api/v1/users/${userId}/reviews`,
+    `/api/v1/users/${publicId}/reviews`,
     { params }
   );
   return response.data;

@@ -11,7 +11,8 @@ interface DailyNoteChipProps {
 }
 
 const DailyNoteChip: React.FC<DailyNoteChipProps> = ({ note }) => {
-  const isClickable = Boolean(note.author.user_id && note.author.user_id > 0);
+  const isClickable = Boolean(note.author.public_id && note.author.public_id.trim().length > 0);
+
 
   const authorBadge = (
     <div className="inline-flex items-center gap-1.5 group/author shrink-0">
@@ -37,8 +38,9 @@ const DailyNoteChip: React.FC<DailyNoteChipProps> = ({ note }) => {
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-stone-50 hover:bg-stone-100/90 border border-stone-200 text-xs shrink-0 whitespace-nowrap h-[28px] sm:h-[30px] transition-colors shadow-2xs">
       {isClickable ? (
         <Link
-          to={`/users/${note.author.user_id}`}
+          to={`/profile/${note.author.public_id}`}
           state={{
+
             fromApp: true,
             returnTo: '/',
             returnLabel: 'Về trang chủ',

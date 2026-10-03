@@ -33,13 +33,14 @@ export const getMyDailyNeedSummary = async (): Promise<DailyNeedSummary> => {
 };
 
 export const getUserTodayDailyNeed = async (
-  userId: number
+  publicId: string
 ): Promise<DailyNeedPublic | null> => {
   const response = await apiClient.get<DailyNeedPublic | null>(
-    `/api/v1/daily-needs/users/${userId}/today`
+    `/api/v1/daily-needs/users/${publicId}/today`
   );
   return response.data;
 };
+
 
 export const upsertMyTodayDailyNeed = async (
   payload: DailyNeedCreateOrUpdatePayload

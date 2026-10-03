@@ -113,12 +113,12 @@ function SoldReviewComment({ comment }: { comment: string }) {
 }
 
 export const PublicProfilePage: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { userId, publicId } = useParams<{ userId?: string; publicId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const idNum = Number(userId);
+  const targetPublicId = publicId || userId || '';
 
-  const { data: user, isLoading, isError } = usePublicUserProfile(idNum);
+  const { data: user, isLoading, isError } = usePublicUserProfile(targetPublicId);
   const { data: currentUser } = useCurrentUser();
 
   const { label: backLabel, handleBack } = getSafeBackAction(location.state);
@@ -167,16 +167,18 @@ export const PublicProfilePage: React.FC = () => {
 
   // Active products query
   const { data: productsData, isLoading: isProductsLoading } = useProducts({
-    seller_id: idNum,
+    seller_public_id: targetPublicId,
   });
 
   // Sold products query (lazy loaded when sold tab active or user is loaded)
   const { data: soldData, isLoading: isSoldLoading } = useUserSoldProducts(
-    idNum,
+    targetPublicId,
     activeTab === 'sold',
   );
 
-  const isOwnProfile = currentUser?.user_id === idNum;
+  const isOwnProfile =
+    Boolean(currentUser?.public_id && currentUser.public_id === targetPublicId) ||
+    Boolean(currentUser?.public_id && user?.public_id && currentUser.public_id === user.public_id);
 
   const createDirectConversation = useCreateDirectConversation();
   const [isStartingChat, setIsStartingChat] = useState(false);
@@ -193,7 +195,7 @@ export const PublicProfilePage: React.FC = () => {
       setIsStartingChat(true);
       setChatError(null);
       const conv = await createDirectConversation.mutateAsync({
-        recipient_user_id: idNum,
+        recipient_public_id: user?.public_id || targetPublicId,
       });
       navigate(`/messages/${conv.conversation_id}`, {
         state: {
@@ -392,7 +394,7 @@ export const PublicProfilePage: React.FC = () => {
       </section>
 
       {/* 2. Recent Public Reviews Conveyor (Quick Reputation Preview) */}
-      <RecentReviewsMarquee userId={idNum} reviewCount={user.review_count} />
+      <RecentReviewsMarquee publicId={user?.public_id || targetPublicId} reviewCount={user.review_count} />
 
       {/* 3. Public Marketplace Information */}
       <div className="grid grid-cols-1 gap-4">
@@ -662,7 +664,7 @@ export const PublicProfilePage: React.FC = () => {
           isOpen={isReportModalOpen}
           onClose={() => setIsReportModalOpen(false)}
           targetType="USER"
-          targetId={user.user_id}
+          targetPublicId={user.public_id}
           targetTitle={`Người dùng: ${user.full_name}`}
           onSuccess={() => {
             setSuccessToast('Đã gửi báo cáo. Ban quản trị sẽ xem xét.');

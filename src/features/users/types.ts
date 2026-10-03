@@ -7,6 +7,7 @@ export interface SocialLinkItem {
 
 export interface UserResponse {
   user_id: number;
+  public_id: string;
   email: string;
   full_name: string;
   phone: string | null;
@@ -24,8 +25,9 @@ export interface UserResponse {
 }
 
 export interface PublicUserProfileResponse {
-  user_id: number;
+  public_id: string;
   full_name: string;
+
   avatar_url: string | null;
   bio: string | null;
   delivery_area: string | null;
