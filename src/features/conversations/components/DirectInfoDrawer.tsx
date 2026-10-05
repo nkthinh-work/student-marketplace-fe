@@ -78,10 +78,10 @@ export const DirectInfoDrawer: React.FC<DirectInfoDrawerProps> = ({
   if (!isOpen) return null;
 
   const navigateToProfile = () => {
-    if (!otherUser) return;
+    if (!otherUser?.public_id) return;
     onBeforeNavigateAway?.();
     onClose();
-    navigate(`/users/${otherUser.user_id}`, {
+    navigate(`/users/${otherUser.public_id}`, {
       state: {
         fromApp: true,
         returnTo: `/messages/${convId}`,

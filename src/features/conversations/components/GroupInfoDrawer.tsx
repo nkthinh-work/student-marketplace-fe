@@ -183,10 +183,11 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
     }
   };
 
-  const navigateToProfile = (targetUserId: number) => {
+  const navigateToProfile = (targetPublicId?: string | null) => {
+    if (!targetPublicId) return;
     onBeforeNavigateAway?.();
     onClose();
-    navigate(`/users/${targetUserId}`, {
+    navigate(`/users/${targetPublicId}`, {
       state: {
         fromApp: true,
         returnTo: `/messages/${convId}`,
@@ -556,7 +557,7 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
                           {/* Member Identity: Avatar + Name -> Navigate to Profile */}
                           <div
                             className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group"
-                            onClick={() => navigateToProfile(member.user_id)}
+                            onClick={() => navigateToProfile(member.public_id)}
                             title={`Xem trang cá nhân của ${member.full_name}`}
                           >
                             <div className="relative shrink-0">
@@ -672,7 +673,7 @@ export const GroupInfoDrawer: React.FC<GroupInfoDrawerProps> = ({
                                   <div className="py-0.5">
                                     <button
                                       type="button"
-                                      onClick={() => navigateToProfile(member.user_id)}
+                                      onClick={() => navigateToProfile(member.public_id)}
                                       className="w-full px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50 flex items-center gap-2 text-left"
                                     >
                                       <UserIcon className="w-3.5 h-3.5 text-stone-400" />

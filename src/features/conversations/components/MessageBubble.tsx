@@ -262,8 +262,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {!isMine && showSenderInfo && (
           <div
             onClick={() => {
+              if (!message.sender_public_id) return;
               onBeforeNavigateAway?.();
-              navigate(`/users/${message.sender_id}`, {
+              navigate(`/users/${message.sender_public_id}`, {
                 state: {
                   fromApp: true,
                   returnTo: `/messages/${message.conversation_id}`,
@@ -294,8 +295,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {!isMine && showSenderInfo && (senderNickname || message.sender_name) && (
             <span
               onClick={() => {
+                if (!message.sender_public_id) return;
                 onBeforeNavigateAway?.();
-                navigate(`/users/${message.sender_id}`, {
+                navigate(`/users/${message.sender_public_id}`, {
                   state: {
                     fromApp: true,
                     returnTo: `/messages/${message.conversation_id}`,

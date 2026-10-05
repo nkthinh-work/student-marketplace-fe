@@ -5,12 +5,14 @@ export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'PRODUCT_CARD' | 'ORDER_CA
 
 export interface ParticipantSummary {
   user_id: number;
+  public_id: string;
   full_name: string;
   avatar_url: string | null;
 }
 
 export interface UserSearchItem {
   user_id: number;
+  public_id: string;
   full_name: string;
   avatar_url: string | null;
 }
@@ -88,6 +90,7 @@ export interface MessageItem {
   message_id: number;
   conversation_id: number;
   sender_id: number;
+  sender_public_id?: string | null;
   sender_name?: string | null;
   sender_avatar?: string | null;
   type?: MessageType;
@@ -106,6 +109,7 @@ export interface MessageItem {
 
 export interface ConversationMemberItem {
   user_id: number;
+  public_id: string;
   full_name: string;
   avatar_url: string | null;
   role: MemberRole;
