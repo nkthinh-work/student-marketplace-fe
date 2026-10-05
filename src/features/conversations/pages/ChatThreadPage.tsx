@@ -29,12 +29,13 @@ import { isAccessRevokedError } from '@/lib/apiErrors';
 import { Avatar } from '@/components/common/Avatar';
 import { handleConversationAccessRevoked } from '../accessRevocation';
 import { MessageBubble } from '../components/MessageBubble';
+import { SwipeToReply } from '../components/SwipeToReply';
 import { GroupSystemMessage } from '../components/GroupSystemMessage';
 import { MessageComposer } from '../components/MessageComposer';
 import { GroupInfoDrawer } from '../components/GroupInfoDrawer';
 import { DirectInfoDrawer } from '../components/DirectInfoDrawer';
 import { ChatProductContextCard } from '../components/ChatProductContextCard';
-import { MessageMentionInput, ReplyMessageSummary } from '../types';
+import { MessageItem, MessageMentionInput, ReplyMessageSummary } from '../types';
 import { useCurrentUser } from '@/features/users/hooks';
 import { getSafeBackAction } from '@/lib/navigation';
 
@@ -120,6 +121,40 @@ export const ChatThreadPage: React.FC = () => {
     const flattened = messagesData.pages.flatMap((page) => page.items);
     return [...flattened].reverse();
   }, [messagesData]);
+
+  const handleReplyToMessage = useCallback(
+    (m: MessageItem) => {
+      const sName =
+        (isGroup && memberNicknameMap.get(m.sender_id)) ||
+        m.sender_name ||
+        'Người dùng';
+      let preview = m.content ? m.content.trim() : '';
+      if (!preview) {
+        const firstAtt = m.attachments?.[0];
+        if (firstAtt) {
+          const k = firstAtt.kind;
+          if (k === 'IMAGE') preview = 'Hình ảnh';
+          else if (k === 'VIDEO') preview = 'Video';
+          else if (k === 'AUDIO') preview = 'Tin nhắn thoại';
+          else preview = 'Tệp đính kèm';
+        } else if (m.product) {
+          preview = 'Sản phẩm';
+        } else {
+          preview = 'Tin nhắn';
+        }
+      } else if (preview.length > 120) {
+        preview = preview.slice(0, 120).trimEnd() + '...';
+      }
+      setReplyingTo({
+        message_id: m.message_id,
+        sender_id: m.sender_id,
+        sender_name: sName,
+        type: m.type,
+        preview,
+      });
+    },
+    [isGroup, memberNicknameMap]
+  );
 
   // Explicitly persist view state BEFORE internal sub-navigation
   const saveConversationViewState = useCallback(() => {
@@ -719,42 +754,21 @@ export const ChatThreadPage: React.FC = () => {
             isGroup && msg.type === 'SYSTEM' ? (
               <GroupSystemMessage key={msg.message_id} message={msg} />
             ) : (
-              <MessageBubble
+              <SwipeToReply
                 key={msg.message_id}
                 message={msg}
-                conversationId={conversationId || msg.conversation_id}
-                showSenderInfo={!isDirect}
-                senderNickname={isGroup ? memberNicknameMap.get(msg.sender_id) : undefined}
-                memberNicknameMap={isGroup ? Object.fromEntries(memberNicknameMap) : undefined}
-                onReply={(m) => {
-                  const sName = (isGroup && memberNicknameMap.get(m.sender_id)) || m.sender_name || 'Người dùng';
-                  let preview = m.content ? m.content.trim() : '';
-                  if (!preview) {
-                    const firstAtt = m.attachments?.[0];
-                    if (firstAtt) {
-                      const k = firstAtt.kind;
-                      if (k === 'IMAGE') preview = 'Hình ảnh';
-                      else if (k === 'VIDEO') preview = 'Video';
-                      else if (k === 'AUDIO') preview = 'Tin nhắn thoại';
-                      else preview = 'Tệp đính kèm';
-                    } else if (m.product) {
-                      preview = 'Sản phẩm';
-                    } else {
-                      preview = 'Tin nhắn';
-                    }
-                  } else if (preview.length > 120) {
-                    preview = preview.slice(0, 120).trimEnd() + '...';
-                  }
-                  setReplyingTo({
-                    message_id: m.message_id,
-                    sender_id: m.sender_id,
-                    sender_name: sName,
-                    type: m.type,
-                    preview,
-                  });
-                }}
-                onBeforeNavigateAway={saveConversationViewState}
-              />
+                onReply={handleReplyToMessage}
+              >
+                <MessageBubble
+                  message={msg}
+                  conversationId={conversationId || msg.conversation_id}
+                  showSenderInfo={!isDirect}
+                  senderNickname={isGroup ? memberNicknameMap.get(msg.sender_id) : undefined}
+                  memberNicknameMap={isGroup ? Object.fromEntries(memberNicknameMap) : undefined}
+                  onReply={handleReplyToMessage}
+                  onBeforeNavigateAway={saveConversationViewState}
+                />
+              </SwipeToReply>
             )
           )}
 

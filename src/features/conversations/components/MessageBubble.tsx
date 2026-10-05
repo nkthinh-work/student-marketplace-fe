@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, X, Download, Loader2, Reply, ImageOff } from 'lucide-react';
+import { Eye, X, Download, Loader2, Reply, ImageOff, Trash2, CircleSlash, Smile } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { MessageItem, MessageAttachment, ReactionKey } from '../types';
 import { ProductCardBubble } from './ProductCardBubble';
 import { AudioBubble } from './AudioBubble';
 import { DocumentBubble } from './DocumentBubble';
+import { RecallMessageModal } from './RecallMessageModal';
 import { requestAttachmentDownload } from '../download';
-import { useSetMessageReaction, useRemoveMessageReaction } from '../hooks';
+import { useSetMessageReaction, useRemoveMessageReaction, useRecallMessage } from '../hooks';
 import { MessageReactionPicker, MessageReactionBar } from './reactions';
 import { formatMessageTime } from '@/lib/formatters';
 
@@ -42,18 +43,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [downloadingVideoId, setDownloadingVideoId] = useState<number | null>(null);
   const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null);
 
-  // Gesture state & refs for swipe-to-reply and long-press reaction
+  // State & refs for reaction picker and recall
   const bubbleRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
   const startCoordRef = useRef<{ x: number; y: number } | null>(null);
-  const gestureStateRef = useRef<
-    'IDLE' | 'POSSIBLE_PRESS' | 'SWIPE_REPLY' | 'VERTICAL_SCROLL' | 'LONG_PRESS_REACTION'
-  >('IDLE');
+  const gestureStateRef = useRef<'IDLE' | 'POSSIBLE_PRESS' | 'LONG_PRESS_REACTION'>('IDLE');
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const dragXRef = useRef<number>(0);
-  const isThresholdReachedRef = useRef<boolean>(false);
-  const [isThresholdActive, setIsThresholdActive] = useState<boolean>(false);
-  const [isSwiping, setIsSwiping] = useState<boolean>(false);
+  const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
 
   // Clean up long press timer on unmount
   useEffect(() => {
@@ -71,10 +67,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       ? rawConvId
       : 0;
   const hasActiveReactions = (message.reactions || []).some((r) => r.count > 0);
-  const isEligible = message.type !== 'SYSTEM' && targetConvId > 0;
+  const isEligible = message.type !== 'SYSTEM' && !message.is_deleted && targetConvId > 0;
 
   const setReactionMutation = useSetMessageReaction(targetConvId);
   const removeReactionMutation = useRemoveMessageReaction(targetConvId);
+  const recallMutation = useRecallMessage(targetConvId);
+
+  const handleConfirmRecall = async () => {
+    try {
+      await recallMutation.mutateAsync(message.message_id);
+      setIsRecallModalOpen(false);
+    } catch {
+      // Handled in mutation / UI
+    }
+  };
 
   const handleSelectReaction = (key: ReactionKey) => {
     if (message.my_reaction === key) {
@@ -85,12 +91,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!e.isPrimary || e.button !== 0) return;
+    if (!e.isPrimary || e.button !== 0 || !isEligible) return;
 
-    // Eligibility check: SYSTEM and deleted messages cannot reply/react
-    if (!isEligible) return;
-
-    // Interactive child check: don't intercept clicks on links, buttons, media controls
     const target = e.target as HTMLElement | null;
     if (target?.closest('button, a, input, textarea, video, audio, [data-no-message-gesture]')) {
       return;
@@ -99,10 +101,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     pointerIdRef.current = e.pointerId;
     startCoordRef.current = { x: e.clientX, y: e.clientY };
     gestureStateRef.current = 'POSSIBLE_PRESS';
-    dragXRef.current = 0;
-    isThresholdReachedRef.current = false;
 
-    // 450ms long-press timer for reaction picker
+    // 450ms long-press timer for reaction/action picker
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = setTimeout(() => {
       if (gestureStateRef.current === 'POSSIBLE_PRESS') {
@@ -127,56 +127,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
-    if (gestureStateRef.current === 'LONG_PRESS_REACTION') return;
-
-    if (gestureStateRef.current === 'POSSIBLE_PRESS') {
-      // If moving vertically beyond tolerance, transition to native vertical scroll and cancel long press
-      if (absDy > 16 && absDy >= absDx) {
-        gestureStateRef.current = 'VERTICAL_SCROLL';
-        if (longPressTimerRef.current) {
-          clearTimeout(longPressTimerRef.current);
-          longPressTimerRef.current = null;
-        }
-        return;
+    if (absDx > 10 || absDy > 10) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
       }
-
-      // If moving rightwards clearly dominating dy: establish SWIPE_REPLY intent
-      if (onReply && dx > 24 && dx > absDy * 1.5) {
-        gestureStateRef.current = 'SWIPE_REPLY';
-        if (longPressTimerRef.current) {
-          clearTimeout(longPressTimerRef.current);
-          longPressTimerRef.current = null;
-        }
-        // Capture pointer only after horizontal intent is established
-        try {
-          e.currentTarget.setPointerCapture(e.pointerId);
-        } catch {
-          // ignore
-        }
-        setIsSwiping(true);
-      } else if (absDx > 24 || absDy > 24) {
-        if (longPressTimerRef.current) {
-          clearTimeout(longPressTimerRef.current);
-          longPressTimerRef.current = null;
-        }
-      }
-    }
-
-    if (gestureStateRef.current === 'SWIPE_REPLY') {
-      const rawDx = Math.max(0, dx);
-      // Resistance curve: 0 -> max 60px visual translation
-      const tx = Math.min(60, Math.floor(rawDx * 0.45));
-      dragXRef.current = tx;
-
-      if (bubbleRef.current) {
-        bubbleRef.current.style.transform = `translate3d(${tx}px, 0, 0)`;
-        bubbleRef.current.style.transition = 'none';
-      }
-
-      const reached = tx >= 44;
-      if (reached !== isThresholdReachedRef.current) {
-        isThresholdReachedRef.current = reached;
-        setIsThresholdActive(reached);
+      if (gestureStateRef.current === 'POSSIBLE_PRESS') {
+        gestureStateRef.current = 'IDLE';
       }
     }
   };
@@ -189,39 +146,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       longPressTimerRef.current = null;
     }
 
-    try {
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      }
-    } catch {
-      // ignore
-    }
-
-    const wasLongPress = gestureStateRef.current === 'LONG_PRESS_REACTION';
-
-    // If threshold reached and not a consumed long press, trigger Reply
-    if (!wasLongPress && isThresholdReachedRef.current && onReply) {
-      try {
-        navigator.vibrate?.(25);
-      } catch {
-        // ignore
-      }
-      onReply(message);
-    }
-
-    // Reset translation with smooth spring snap-back
-    if (bubbleRef.current) {
-      bubbleRef.current.style.transform = 'translate3d(0, 0, 0)';
-      bubbleRef.current.style.transition = 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)';
-    }
-
     pointerIdRef.current = null;
     startCoordRef.current = null;
     gestureStateRef.current = 'IDLE';
-    dragXRef.current = 0;
-    isThresholdReachedRef.current = false;
-    setIsThresholdActive(false);
-    setIsSwiping(false);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -388,36 +315,83 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div className="relative group/msg max-w-full">
             {/* Bubble wrapper: flexible container with natural content sizing */}
             <div className="relative min-w-0 max-w-full shrink flex-initial">
-              {/* Swipe Reply indicator revealed behind/left of bubble */}
-              {onReply && (
+              {message.is_deleted ? (
+                /* Recalled Message Tombstone */
                 <div
-                  className={`pointer-events-none absolute -left-8 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 rounded-full transition-all duration-150 z-0 ${isSwiping ? 'opacity-100' : 'opacity-0'
-                    } ${isThresholdActive
-                      ? 'bg-brand-burgundy text-white scale-110 shadow-xs'
-                      : 'bg-stone-200 text-stone-500 scale-90'
-                    }`}
-                  aria-hidden="true"
-                >
-                  <Reply className="w-3.5 h-3.5" />
-                </div>
-              )}
-
-              <div
-                ref={bubbleRef}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUpOrCancel}
-                onPointerCancel={handlePointerUpOrCancel}
-                onContextMenu={handleContextMenu}
-                style={{
-                  touchAction: 'pan-y',
-                  WebkitTouchCallout: 'none',
-                }}
-                className={`relative z-1 rounded-2xl p-3 sm:p-3.5 shadow-xs text-sm break-words [overflow-wrap:break-word] min-w-0 w-fit max-w-full select-none sm:select-text ${isMine
-                    ? 'bg-brand-burgundy text-white rounded-br-xs'
-                    : 'bg-white text-stone-900 border border-stone-200 rounded-bl-xs'
+                  ref={bubbleRef}
+                  data-testid="message-tombstone"
+                  className={`relative z-1 rounded-2xl px-3.5 py-2 shadow-2xs text-xs break-words min-w-0 w-fit max-w-full select-none border border-stone-200 bg-stone-100 text-stone-600 ${
+                    isMine ? 'rounded-br-xs' : 'rounded-bl-xs'
                   }`}
-              >
+                >
+                  <div className="flex items-center gap-1.5 py-0.5 select-none font-medium text-stone-700">
+                    <CircleSlash className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                    <span>Tin nhắn đã được thu hồi</span>
+                  </div>
+                  <div className="flex items-center justify-end mt-0.5 text-[10px] text-stone-400 select-none">
+                    <span>{formattedTime}</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop hover action strip */}
+                  {isEligible && (
+                    <div
+                      className={`absolute top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 z-10 ${
+                        isMine ? '-left-20' : '-right-20'
+                      }`}
+                    >
+                      {onReply && (
+                        <button
+                          type="button"
+                          onClick={() => onReply(message)}
+                          className="p-1.5 rounded-full bg-white text-stone-500 hover:text-brand-burgundy hover:bg-stone-100 shadow-xs border border-stone-200 transition-colors cursor-pointer"
+                          title="Trả lời"
+                          aria-label="Trả lời tin nhắn"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => bubbleRef.current && setPickerAnchor(bubbleRef.current)}
+                        className="p-1.5 rounded-full bg-white text-stone-500 hover:text-amber-600 hover:bg-stone-100 shadow-xs border border-stone-200 transition-colors cursor-pointer"
+                        title="Bày tỏ cảm xúc"
+                        aria-label="Bày tỏ cảm xúc"
+                      >
+                        <Smile className="w-3.5 h-3.5" />
+                      </button>
+                      {isMine && (
+                        <button
+                          type="button"
+                          onClick={() => setIsRecallModalOpen(true)}
+                          className="p-1.5 rounded-full bg-white text-stone-500 hover:text-rose-600 hover:bg-rose-50 shadow-xs border border-stone-200 transition-colors cursor-pointer"
+                          title="Thu hồi"
+                          aria-label="Thu hồi tin nhắn"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div
+                    ref={bubbleRef}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUpOrCancel}
+                    onPointerCancel={handlePointerUpOrCancel}
+                    onContextMenu={handleContextMenu}
+                    style={{
+                      touchAction: 'pan-y',
+                      WebkitTouchCallout: 'none',
+                    }}
+                    className={`relative z-1 rounded-2xl p-3 sm:p-3.5 shadow-xs text-sm break-words [overflow-wrap:break-word] min-w-0 w-fit max-w-full select-none sm:select-text ${
+                      isMine
+                        ? 'bg-brand-burgundy text-white rounded-br-xs'
+                        : 'bg-white text-stone-900 border border-stone-200 rounded-bl-xs'
+                    }`}
+                  >
                 {/* Quoted Reply Banner */}
                 {message.reply_to && (
                   <div
@@ -655,33 +629,37 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   <span>{formattedTime}</span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Reaction Bar (Pills) underneath bubble, width independent */}
-          {isEligible && hasActiveReactions && (
-            <MessageReactionBar
-              reactions={message.reactions || []}
-              myReaction={message.my_reaction}
-              onSelect={handleSelectReaction}
-              onOpenPicker={(btnEl) => setPickerAnchor(btnEl)}
-              isMine={isMine}
-            />
+            </>
           )}
+        </div>
+      </div>
 
-          {/* Popover Reaction Picker (Portaled to document.body, clamped to viewport) */}
-          {pickerAnchor && (
-            <MessageReactionPicker
-              anchorElement={pickerAnchor}
-              currentReaction={message.my_reaction}
-              onSelect={(key) => {
-                handleSelectReaction(key);
-                setPickerAnchor(null);
-              }}
-              onClose={() => setPickerAnchor(null)}
-              isMine={isMine}
-            />
-          )}
+      {/* Reaction Bar (Pills) underneath bubble, width independent */}
+      {isEligible && hasActiveReactions && (
+        <MessageReactionBar
+          reactions={message.reactions || []}
+          myReaction={message.my_reaction}
+          onSelect={handleSelectReaction}
+          onOpenPicker={(btnEl) => setPickerAnchor(btnEl)}
+          isMine={isMine}
+        />
+      )}
+
+      {/* Popover Reaction Picker (Portaled to document.body, clamped to viewport) */}
+      {pickerAnchor && (
+        <MessageReactionPicker
+          anchorElement={pickerAnchor}
+          currentReaction={message.my_reaction}
+          onSelect={(key) => {
+            handleSelectReaction(key);
+            setPickerAnchor(null);
+          }}
+          onClose={() => setPickerAnchor(null)}
+          isMine={isMine}
+          onReply={onReply ? () => onReply(message) : undefined}
+          onRecall={isMine && !message.is_deleted ? () => setIsRecallModalOpen(true) : undefined}
+        />
+      )}
         </div>
       </div>
 
@@ -732,6 +710,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           />
         </div>
       )}
+
+      {/* Sender Recall Confirmation Modal */}
+      <RecallMessageModal
+        isOpen={isRecallModalOpen}
+        onClose={() => setIsRecallModalOpen(false)}
+        onConfirm={handleConfirmRecall}
+        isLoading={recallMutation.isPending}
+      />
     </>
   );
 };

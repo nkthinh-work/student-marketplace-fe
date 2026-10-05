@@ -380,3 +380,13 @@ export async function removeMessageReaction(
   return data;
 }
 
+export async function recallMessage(
+  conversationId: number,
+  messageId: number
+): Promise<MessageItem> {
+  const { data } = await apiClient.delete<MessageItem>(
+    `/api/v1/conversations/${conversationId}/messages/${messageId}`
+  );
+  return data;
+}
+

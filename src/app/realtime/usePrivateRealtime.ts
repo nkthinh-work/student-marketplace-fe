@@ -197,6 +197,22 @@ export function usePrivateRealtime() {
                 queryKey: conversationKeys.lists(),
                 refetchType: 'active',
               });
+            } else if (data.type === 'MESSAGE_DELETED') {
+              if (data.conversation_id) {
+                queryClient.invalidateQueries({
+                  queryKey: conversationKeys.messageLists(data.conversation_id),
+                  refetchType: 'active',
+                });
+                queryClient.invalidateQueries({
+                  queryKey: conversationKeys.detail(data.conversation_id),
+                  refetchType: 'active',
+                });
+                invalidateAttachmentCaches(queryClient, data.conversation_id);
+              }
+              queryClient.invalidateQueries({
+                queryKey: conversationKeys.lists(),
+                refetchType: 'active',
+              });
             } else if (data.type === 'GROUP_MEMBERSHIP_CHANGED') {
               const convId = data.conversation_id;
               const action = data.action;

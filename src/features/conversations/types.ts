@@ -96,6 +96,7 @@ export interface MessageItem {
   product?: ProductContextSummary | null;
   sent_at: string;
   is_mine?: boolean;
+  is_deleted: boolean;
   attachments?: MessageAttachment[];
   mentions?: MessageMentionItem[];
   reactions?: ReactionAggregateItem[];

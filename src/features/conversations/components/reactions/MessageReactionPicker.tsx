@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Reply, Trash2 } from 'lucide-react';
 import { ReactionKey } from '../../types';
 import { SIGNATURE_REACTIONS } from './reactionCatalog';
 
@@ -9,6 +10,8 @@ interface MessageReactionPickerProps {
   onClose: () => void;
   isMine?: boolean;
   anchorElement?: HTMLElement | null;
+  onReply?: () => void;
+  onRecall?: () => void;
 }
 
 export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
@@ -17,19 +20,24 @@ export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
   onClose,
   isMine = false,
   anchorElement,
+  onReply,
+  onRecall,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useLayoutEffect(() => {
     const calculatePosition = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isMobile = vw < 640;
+      const width = isMobile ? Math.min(340, vw - 24) : 380;
+      const measuredHeight = panelRef.current?.offsetHeight;
+      const defaultHeight = isMobile ? (onRecall ? 320 : 270) : (onRecall ? 240 : 190);
+      const height = measuredHeight && measuredHeight > 50 ? measuredHeight : defaultHeight;
+
       if (!anchorElement) {
         // Fallback center of screen
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const isMobile = vw < 640;
-        const width = isMobile ? Math.min(340, vw - 24) : 380;
-        const height = isMobile ? 248 : 176;
         setCoords({
           top: Math.max(12, (vh - height) / 2),
           left: Math.max(12, (vw - width) / 2),
@@ -39,11 +47,6 @@ export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
       }
 
       const rect = anchorElement.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const isMobile = vw < 640;
-      const width = isMobile ? Math.min(340, vw - 24) : 380;
-      const height = isMobile ? 248 : 176;
 
       // 1. Horizontal positioning with strict viewport clamping [12px, vw - width - 12px]
       let left: number;
@@ -191,6 +194,40 @@ export const MessageReactionPicker: React.FC<MessageReactionPickerProps> = ({
           );
         })}
       </div>
+
+      {/* Fallback actions menu: Trả lời & Thu hồi (Stacked full-width rows) */}
+      {(onReply || onRecall) && (
+        <div className="mt-2.5 pt-2 border-t border-brand-border/70 flex flex-col gap-1 w-full">
+          {onReply && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onClose();
+                onReply();
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-medium text-stone-700 hover:text-brand-burgundy hover:bg-stone-100 active:bg-stone-200 transition-colors cursor-pointer select-none"
+            >
+              <Reply className="w-4 h-4 text-stone-500 shrink-0" />
+              <span className="font-semibold text-stone-800">Trả lời</span>
+            </button>
+          )}
+          {onRecall && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onClose();
+                onRecall();
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 active:bg-rose-100 transition-colors cursor-pointer select-none"
+            >
+              <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
+              <span className="font-semibold text-rose-600">Thu hồi</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 

@@ -28,6 +28,7 @@ import {
   listGroupMembers,
   markConversationRead,
   processGroupPendingApproval,
+  recallMessage,
   removeGroupMember,
   removeMessageReaction,
   respondToGroupInvite,
@@ -844,6 +845,30 @@ export function useRemoveMessageReaction(conversationId: number) {
       queryClient.invalidateQueries({
         queryKey: conversationKeys.messageLists(conversationId),
       });
+    },
+  });
+}
+
+export function useRecallMessage(conversationId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (messageId: number) => recallMessage(conversationId, messageId),
+    onSuccess: () => {
+      // Invalidate message lists so deleted message turns to tombstone
+      queryClient.invalidateQueries({
+        queryKey: conversationKeys.messageLists(conversationId),
+      });
+      // Invalidate conversation detail
+      queryClient.invalidateQueries({
+        queryKey: conversationKeys.detail(conversationId),
+      });
+      // Invalidate inbox list
+      queryClient.invalidateQueries({
+        queryKey: conversationKeys.lists(),
+      });
+      // Invalidate shared attachments and summary
+      invalidateAttachmentCaches(queryClient, conversationId);
     },
   });
 }
