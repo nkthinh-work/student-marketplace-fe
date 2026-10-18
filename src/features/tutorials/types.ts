@@ -43,3 +43,61 @@ export interface AdminTutorialReorderPayload {
 }
 
 export const MAX_TUTORIAL_VIDEO_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
+
+export interface TutorialUploadSignature {
+  cloud_name: string;
+  api_key: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  public_id: string;
+  overwrite?: string;
+  upload_session_id: string;
+}
+
+export interface CloudinaryDirectUploadResult {
+  public_id: string;
+  secure_url: string;
+  bytes: number;
+  duration?: number;
+  width?: number;
+  height?: number;
+  format?: string;
+  resource_type?: string;
+}
+
+export interface AdminTutorialConfirmDirectPayload {
+  public_id: string;
+  upload_session_id: string;
+  secure_url?: string;
+  video_size_bytes?: number;
+  duration_ms?: number;
+}
+
+export interface AdminTutorialCreateDirectPayload {
+  feature_key: string;
+  title: string;
+  description?: string | null;
+  action_key?: string | null;
+  is_published?: boolean;
+  public_id: string;
+  upload_session_id: string;
+  secure_url?: string;
+  video_size_bytes?: number;
+  duration_ms?: number;
+}
+
+export type DirectUploadProgressStage =
+  | 'REQUESTING_SIGNATURE'
+  | 'UPLOADING_CLOUDINARY'
+  | 'VERIFYING_BACKEND'
+  | 'COMPLETED';
+
+export interface DirectUploadProgressEvent {
+  stage: DirectUploadProgressStage;
+  percent: number;
+  currentChunk?: number;
+  totalChunks?: number;
+  loadedBytes?: number;
+  totalBytes?: number;
+}

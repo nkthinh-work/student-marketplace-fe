@@ -127,22 +127,27 @@ export async function requestPushPermissionAndSubscribe(): Promise<{
     }
 
     // 4. Register token with backend (authenticated with current user session)
-    await apiClient.post('/notifications/push/subscribe', {
+    const subscribeRes = await apiClient.post('/api/v1/notifications/push/subscribe', {
       fcm_token: token,
       device_info: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 250) : null,
     });
 
-    // 5. Persist token locally & notify listeners
+    if (subscribeRes.status !== 200 && subscribeRes.status !== 201) {
+      throw new Error(`Đăng ký thông báo thất bại (HTTP ${subscribeRes.status}).`);
+    }
+
+    // 5. Persist token locally & notify listeners ONLY after confirmed backend subscription
     localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
     window.dispatchEvent(new CustomEvent('ptit_push_status_changed', { detail: { token, subscribed: true } }));
 
     return { success: true, token };
   } catch (err: unknown) {
     console.error('Error subscribing to Web Push:', err);
-    const errorObj = err as { response?: { data?: { detail?: string } }; message?: string };
+    const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+    const detail = errorObj?.response?.data?.detail;
     return {
       success: false,
-      error: errorObj?.response?.data?.detail || errorObj?.message || 'Đăng ký thông báo thất bại.',
+      error: detail || errorObj?.message || 'Đăng ký thông báo thất bại.',
     };
   }
 }
@@ -154,22 +159,31 @@ export async function unsubscribePushNotification(): Promise<boolean> {
   const token = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
   try {
     if (token) {
-      // Unsubscribe on backend
-      await apiClient.post('/notifications/push/unsubscribe', { fcm_token: token }).catch(() => {});
+      // Unsubscribe on backend - must call authoritative /api/v1 endpoint
+      await apiClient.post('/api/v1/notifications/push/unsubscribe', { fcm_token: token });
     }
 
     const messaging = await getMessagingInstance();
     if (messaging) {
-      await deleteToken(messaging).catch(() => {});
+      await deleteToken(messaging).catch((err) => {
+        console.warn('Firebase deleteToken warning:', err);
+      });
     }
 
     localStorage.removeItem(FCM_TOKEN_STORAGE_KEY);
     window.dispatchEvent(new CustomEvent('ptit_push_status_changed', { detail: { subscribed: false } }));
     return true;
-  } catch (err) {
+  } catch (err: unknown) {
     console.warn('Error unsubscribing push notification:', err);
-    localStorage.removeItem(FCM_TOKEN_STORAGE_KEY);
-    window.dispatchEvent(new CustomEvent('ptit_push_status_changed', { detail: { subscribed: false } }));
+    const errorObj = err as { response?: { status?: number } };
+    const status = errorObj?.response?.status;
+    // Nếu token đã không còn trên backend (404) hoặc hết phiên (401), vẫn dọn sạch local state
+    if (status === 404 || status === 401) {
+      localStorage.removeItem(FCM_TOKEN_STORAGE_KEY);
+      window.dispatchEvent(new CustomEvent('ptit_push_status_changed', { detail: { subscribed: false } }));
+      return true;
+    }
+    // Đối với các lỗi mạng hoặc server 5xx khác, giữ lại token để người dùng có thể thử lại
     return false;
   }
 }

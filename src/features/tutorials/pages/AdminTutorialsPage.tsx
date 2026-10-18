@@ -573,6 +573,7 @@ function AddTutorialModal({
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
+  const [uploadStageText, setUploadStageText] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -640,10 +641,25 @@ function AddTutorialModal({
 
     try {
       setUploadPercent(0);
+      setUploadStageText('Đang khởi tạo phiên tải lên...');
       await createMutation.mutateAsync({
         formData,
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
+        onUploadProgress: (progressEvent: any) => {
+          if (progressEvent && typeof progressEvent.stage === 'string') {
+            if (progressEvent.stage === 'REQUESTING_SIGNATURE') {
+              setUploadStageText('Đang xin chữ ký tải lên Cloudinary...');
+            } else if (progressEvent.stage === 'UPLOADING_CLOUDINARY') {
+              const chunkInfo =
+                progressEvent.totalChunks && progressEvent.totalChunks > 1
+                  ? ` (Đoạn ${progressEvent.currentChunk}/${progressEvent.totalChunks})`
+                  : '';
+              setUploadStageText(`Đang tải lên Cloudinary${chunkInfo}...`);
+              setUploadPercent(progressEvent.percent);
+            } else if (progressEvent.stage === 'VERIFYING_BACKEND') {
+              setUploadStageText('Đang xác thực và lưu tutorial...');
+              setUploadPercent(100);
+            }
+          } else if (progressEvent?.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadPercent(percent);
           }
@@ -655,6 +671,7 @@ function AddTutorialModal({
       setErrorMsg(extractErrorMessage(err, 'Tạo tutorial thất bại. Vui lòng kiểm tra lại.'));
     } finally {
       setUploadPercent(null);
+      setUploadStageText(null);
     }
   };
 
@@ -807,7 +824,7 @@ function AddTutorialModal({
           {uploadPercent !== null && (
             <div className="space-y-1">
               <div className="flex justify-between text-[11px] text-brand-text-secondary">
-                <span>{uploadPercent < 100 ? 'Đang tải tệp lên máy chủ...' : 'Đang xử lý và đồng bộ video...'}</span>
+                <span>{uploadStageText || (uploadPercent < 100 ? 'Đang tải tệp lên Cloudinary...' : 'Đang xử lý và đồng bộ video...')}</span>
                 <span>{uploadPercent}%</span>
               </div>
               <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
@@ -837,7 +854,9 @@ function AddTutorialModal({
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   <span>
-                    {uploadPercent !== null && uploadPercent < 100
+                    {uploadStageText
+                      ? `${uploadStageText} ${uploadPercent ?? 0}%`
+                      : uploadPercent !== null && uploadPercent < 100
                       ? `Đang tải lên... ${uploadPercent}%`
                       : 'Đang xử lý video...'}
                   </span>
@@ -1057,6 +1076,7 @@ function ReplaceVideoModal({
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
+  const [uploadStageText, setUploadStageText] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1080,11 +1100,26 @@ function ReplaceVideoModal({
 
     try {
       setUploadPercent(0);
+      setUploadStageText('Đang khởi tạo phiên tải lên...');
       await replaceMutation.mutateAsync({
         tutorialId: tutorial.tutorial_id,
         videoFile,
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
+        onUploadProgress: (progressEvent: any) => {
+          if (progressEvent && typeof progressEvent.stage === 'string') {
+            if (progressEvent.stage === 'REQUESTING_SIGNATURE') {
+              setUploadStageText('Đang xin chữ ký tải lên Cloudinary...');
+            } else if (progressEvent.stage === 'UPLOADING_CLOUDINARY') {
+              const chunkInfo =
+                progressEvent.totalChunks && progressEvent.totalChunks > 1
+                  ? ` (Đoạn ${progressEvent.currentChunk}/${progressEvent.totalChunks})`
+                  : '';
+              setUploadStageText(`Đang tải lên Cloudinary${chunkInfo}...`);
+              setUploadPercent(progressEvent.percent);
+            } else if (progressEvent.stage === 'VERIFYING_BACKEND') {
+              setUploadStageText('Đang xác thực và đồng bộ video...');
+              setUploadPercent(100);
+            }
+          } else if (progressEvent?.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadPercent(percent);
           }
@@ -1096,6 +1131,7 @@ function ReplaceVideoModal({
       setErrorMsg(extractErrorMessage(err, 'Thay thế video thất bại'));
     } finally {
       setUploadPercent(null);
+      setUploadStageText(null);
     }
   };
 
@@ -1186,7 +1222,7 @@ function ReplaceVideoModal({
           {uploadPercent !== null && (
             <div className="space-y-1">
               <div className="flex justify-between text-[11px] text-brand-text-secondary">
-                <span>{uploadPercent < 100 ? 'Đang tải tệp lên máy chủ...' : 'Đang xử lý và đồng bộ video...'}</span>
+                <span>{uploadStageText || (uploadPercent < 100 ? 'Đang tải tệp lên Cloudinary...' : 'Đang xử lý và đồng bộ video...')}</span>
                 <span>{uploadPercent}%</span>
               </div>
               <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
@@ -1216,7 +1252,9 @@ function ReplaceVideoModal({
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   <span>
-                    {uploadPercent !== null && uploadPercent < 100
+                    {uploadStageText
+                      ? `${uploadStageText} ${uploadPercent ?? 0}%`
+                      : uploadPercent !== null && uploadPercent < 100
                       ? `Đang tải lên... ${uploadPercent}%`
                       : 'Đang xử lý video...'}
                   </span>

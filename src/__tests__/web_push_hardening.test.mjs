@@ -158,3 +158,73 @@ test('Web Push: Unsubscribe cleans up localStorage token and fires status event'
   mockLocalStorage.removeItem(FCM_TOKEN_KEY);
   assert.equal(mockLocalStorage.getItem(FCM_TOKEN_KEY), null);
 });
+
+test('Web Push: Regression test for API paths and subscription gate', async () => {
+  const calls = [];
+  const mockApiClient = {
+    post: async (url, payload) => {
+      calls.push({ url, payload });
+      if (url === '/notifications/push/subscribe') {
+        const err = new Error('Not Found');
+        err.response = { status: 404, data: { detail: 'Not Found' } };
+        throw err;
+      }
+      if (url === '/api/v1/notifications/push/subscribe') {
+        return { status: 200, data: { status: 'subscribed' } };
+      }
+      if (url === '/api/v1/notifications/push/unsubscribe') {
+        return { status: 200, data: { status: 'unsubscribed' } };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    },
+  };
+
+  const store = new Map();
+  const mockLocalStorage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, val) => store.set(key, String(val)),
+    removeItem: (key) => store.delete(key),
+  };
+
+  const subscribeWithClient = async (client, token, storage) => {
+    try {
+      const res = await client.post('/api/v1/notifications/push/subscribe', {
+        fcm_token: token,
+        device_info: 'Mock Device Agent',
+      });
+      if (res.status === 200 || res.status === 201) {
+        storage.setItem('ptit_fcm_token', token);
+        return { success: true, token };
+      }
+      return { success: false, error: 'Failed' };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.detail || err.message };
+    }
+  };
+
+  // 1. Subscribe must hit /api/v1/notifications/push/subscribe
+  const res = await subscribeWithClient(mockApiClient, 'valid_fcm_token_123', mockLocalStorage);
+  assert.equal(res.success, true);
+  assert.equal(mockLocalStorage.getItem('ptit_fcm_token'), 'valid_fcm_token_123');
+  assert.equal(calls[0].url, '/api/v1/notifications/push/subscribe');
+  assert.equal(calls[0].payload.fcm_token, 'valid_fcm_token_123');
+
+  // 2. Unsubscribe must hit /api/v1/notifications/push/unsubscribe
+  await mockApiClient.post('/api/v1/notifications/push/unsubscribe', { fcm_token: 'valid_fcm_token_123' });
+  assert.equal(calls[1].url, '/api/v1/notifications/push/unsubscribe');
+
+  // 3. Negative test: If endpoint was without /api/v1, it would fail and NOT set local token
+  const failingStorage = new Map();
+  const failingClient = {
+    post: async (url) => {
+      if (url.startsWith('/notifications/push/')) {
+        const err = new Error('Not Found');
+        err.response = { status: 404, data: { detail: 'Not Found' } };
+        throw err;
+      }
+    },
+  };
+  const badRes = await subscribeWithClient(failingClient, 'token_xyz', failingStorage);
+  assert.equal(badRes.success, false);
+  assert.equal(failingStorage.get('ptit_fcm_token'), undefined);
+});

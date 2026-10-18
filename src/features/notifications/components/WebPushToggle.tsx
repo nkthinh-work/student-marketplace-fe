@@ -50,8 +50,11 @@ export const WebPushToggle: React.FC<WebPushToggleProps> = ({
 
     if (subscribed) {
       setLoading(true);
-      await unsubscribePushNotification();
+      const ok = await unsubscribePushNotification();
       setLoading(false);
+      if (!ok) {
+        alert('Hủy đăng ký thông báo thất bại. Vui lòng kiểm tra kết nối mạng và thử lại.');
+      }
       syncState();
     } else {
       if (isDenied) {

@@ -34,11 +34,19 @@ export function useAdminTutorials(featureKey?: string) {
 }
 
 import type { AxiosProgressEvent } from 'axios';
+import type { DirectUploadProgressEvent } from './types';
 
 export function useCreateTutorial() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: FormData | { formData: FormData; onUploadProgress?: (progressEvent: AxiosProgressEvent) => void }) => {
+    mutationFn: (
+      params:
+        | FormData
+        | {
+            formData: FormData;
+            onUploadProgress?: (progressEvent: AxiosProgressEvent | DirectUploadProgressEvent) => void;
+          }
+    ) => {
       if (params instanceof FormData) {
         return createTutorial(params);
       }
@@ -76,7 +84,7 @@ export function useReplaceTutorialVideo() {
     }: {
       tutorialId: number;
       videoFile: File;
-      onUploadProgress?: (progressEvent: AxiosProgressEvent) => void;
+      onUploadProgress?: (progressEvent: AxiosProgressEvent | DirectUploadProgressEvent) => void;
     }) => replaceTutorialVideo(tutorialId, videoFile, onUploadProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tutorials'] });
