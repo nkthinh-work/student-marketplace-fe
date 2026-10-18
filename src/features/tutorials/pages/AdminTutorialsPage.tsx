@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   ArrowUp,
@@ -34,31 +35,58 @@ import {
 } from '../types';
 
 export function extractErrorMessage(err: any, fallback: string): string {
+  const isDevTunnel =
+    typeof window !== 'undefined' &&
+    window.location.hostname.includes('devtunnels.ms');
+
+  const requestId =
+    err?.response?.headers?.['x-railway-request-id'] ||
+    err?.response?.headers?.['x-request-id'] ||
+    null;
+  const reqIdSuffix = requestId ? ` [Mã yêu cầu: ${requestId}]` : '';
+
   if (err?.response?.status === 413) {
-    return 'Dung lượng tệp vượt quá giới hạn mạng cho phép (tối đa 16 MB khi dùng Dev Tunnel hoặc 100 MB trực tiếp).';
+    if (isDevTunnel) {
+      return `Dung lượng tệp vượt quá giới hạn 16 MB của Dev Tunnel. Vui lòng nén video hoặc truy cập localhost:3000.${reqIdSuffix}`;
+    }
+    return `Dung lượng tệp vượt quá giới hạn tải lên cho phép (HTTP 413 Payload Too Large).${reqIdSuffix}`;
   }
+
   const detail = err?.response?.data?.detail;
   if (typeof detail === 'string' && detail.trim()) {
-    return detail;
+    return `${detail.trim()}${reqIdSuffix}`;
   }
   if (Array.isArray(detail) && detail.length > 0) {
-    return (
-      detail
-        .map((item: any) => item?.msg || (typeof item === 'string' ? item : ''))
-        .filter(Boolean)
-        .join(', ') || fallback
-    );
+    const joined = detail
+      .map((item: any) => item?.msg || (typeof item === 'string' ? item : ''))
+      .filter(Boolean)
+      .join(', ');
+    if (joined) {
+      return `${joined}${reqIdSuffix}`;
+    }
   }
-  if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
-    return 'Lỗi kết nối mạng hoặc đường truyền tải lên bị ngắt quãng (nếu dùng Dev Tunnel, vui lòng đảm bảo tệp không vượt quá giới hạn 16 MB). Vui lòng thử lại.';
+
+  const status = err?.response?.status;
+  if (status === 502 || status === 503 || status === 504) {
+    return `Máy chủ lưu trữ video hoặc cổng kết nối tạm thời không phản hồi (HTTP ${status}). Vui lòng kiểm tra lại danh sách tutorial trước khi thử lại.${reqIdSuffix}`;
   }
+
+  if (status === 500) {
+    return `Máy chủ gặp sự cố nội bộ khi xử lý video (HTTP 500). Vui lòng thử lại sau.${reqIdSuffix}`;
+  }
+
   if (err?.code === 'ECONNABORTED' || err?.message?.includes('timeout')) {
-    return 'Quá thời gian tải lên (timeout). Vui lòng thử lại với đường truyền ổn định hơn.';
+    return 'Quá thời gian tải lên (timeout). Máy chủ có thể vẫn đang xử lý trong nền, vui lòng kiểm tra lại danh sách tutorial trước khi tải lại.';
   }
-  if (err?.response?.status === 500) {
-    return 'Máy chủ gặp sự cố tạm thời khi tải lên. Vui lòng thử lại sau.';
+
+  if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
+    if (isDevTunnel) {
+      return 'Lỗi kết nối mạng hoặc đường truyền tải lên bị ngắt quãng (nếu dùng Dev Tunnel, tệp không được vượt quá 16 MB). Vui lòng kiểm tra lại danh sách.';
+    }
+    return 'Không thể kết nối đến máy chủ hoặc đường truyền bị gián đoạn (Network Error). Máy chủ có thể đã lưu video, vui lòng làm mới danh sách tutorial để kiểm tra trước khi tải lại.';
   }
-  return fallback;
+
+  return `${fallback}${reqIdSuffix}`;
 }
 
 function formatDuration(ms?: number | null): string {
@@ -533,6 +561,7 @@ function AddTutorialModal({
   onSuccess: () => void;
   createMutation: ReturnType<typeof useCreateTutorial>;
 }) {
+  const queryClient = useQueryClient();
   const initialFeature = TUTORIAL_FEATURES[0]?.key || 'HOME';
   const initialDefaultAction = TUTORIAL_FEATURES[0]?.defaultActionKey || 'HOME';
 
@@ -543,6 +572,7 @@ function AddTutorialModal({
   const [isPublished, setIsPublished] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -609,10 +639,22 @@ function AddTutorialModal({
     formData.append('is_published', String(isPublished));
 
     try {
-      await createMutation.mutateAsync(formData);
+      setUploadPercent(0);
+      await createMutation.mutateAsync({
+        formData,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadPercent(percent);
+          }
+        },
+      });
       onSuccess();
     } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ['tutorials'] });
       setErrorMsg(extractErrorMessage(err, 'Tạo tutorial thất bại. Vui lòng kiểm tra lại.'));
+    } finally {
+      setUploadPercent(null);
     }
   };
 
@@ -626,7 +668,8 @@ function AddTutorialModal({
           <button
             type="button"
             onClick={onClose}
-            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-stone-100 transition-colors cursor-pointer"
+            disabled={createMutation.isPending}
+            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-stone-100 transition-colors cursor-pointer disabled:opacity-50"
           >
             <X className="h-4 w-4" />
           </button>
@@ -761,12 +804,27 @@ function AddTutorialModal({
             </label>
           </div>
 
+          {uploadPercent !== null && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-[11px] text-brand-text-secondary">
+                <span>{uploadPercent < 100 ? 'Đang tải tệp lên máy chủ...' : 'Đang xử lý và đồng bộ video...'}</span>
+                <span>{uploadPercent}%</span>
+              </div>
+              <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-brand-burgundy h-full transition-all duration-200 rounded-full"
+                  style={{ width: `${uploadPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-brand-border/40">
             <button
               type="button"
               onClick={onClose}
               disabled={createMutation.isPending}
-              className="px-4 py-2 rounded-xl text-xs font-semibold border border-brand-border hover:bg-stone-50 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-semibold border border-brand-border hover:bg-stone-50 transition-colors cursor-pointer disabled:opacity-50"
             >
               Hủy
             </button>
@@ -778,7 +836,11 @@ function AddTutorialModal({
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Đang tải lên...</span>
+                  <span>
+                    {uploadPercent !== null && uploadPercent < 100
+                      ? `Đang tải lên... ${uploadPercent}%`
+                      : 'Đang xử lý video...'}
+                  </span>
                 </>
               ) : (
                 <span>Lưu Tutorial</span>
@@ -991,8 +1053,10 @@ function ReplaceVideoModal({
   onSuccess: () => void;
   replaceMutation: ReturnType<typeof useReplaceTutorialVideo>;
 }) {
+  const queryClient = useQueryClient();
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1015,13 +1079,23 @@ function ReplaceVideoModal({
     }
 
     try {
+      setUploadPercent(0);
       await replaceMutation.mutateAsync({
         tutorialId: tutorial.tutorial_id,
         videoFile,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadPercent(percent);
+          }
+        },
       });
       onSuccess();
     } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ['tutorials'] });
       setErrorMsg(extractErrorMessage(err, 'Thay thế video thất bại'));
+    } finally {
+      setUploadPercent(null);
     }
   };
 
@@ -1040,7 +1114,8 @@ function ReplaceVideoModal({
           <button
             type="button"
             onClick={onClose}
-            className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center hover:bg-stone-100 transition-colors cursor-pointer"
+            disabled={replaceMutation.isPending}
+            className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center hover:bg-stone-100 transition-colors cursor-pointer disabled:opacity-50"
           >
             <X className="h-4 w-4" />
           </button>
@@ -1108,12 +1183,27 @@ function ReplaceVideoModal({
             )}
           </div>
 
+          {uploadPercent !== null && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-[11px] text-brand-text-secondary">
+                <span>{uploadPercent < 100 ? 'Đang tải tệp lên máy chủ...' : 'Đang xử lý và đồng bộ video...'}</span>
+                <span>{uploadPercent}%</span>
+              </div>
+              <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-brand-burgundy h-full transition-all duration-200 rounded-full"
+                  style={{ width: `${uploadPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-brand-border/40">
             <button
               type="button"
               onClick={onClose}
               disabled={replaceMutation.isPending}
-              className="px-4 py-2 rounded-xl text-xs font-semibold border border-brand-border hover:bg-stone-50 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-semibold border border-brand-border hover:bg-stone-50 transition-colors cursor-pointer disabled:opacity-50"
             >
               Hủy
             </button>
@@ -1125,7 +1215,11 @@ function ReplaceVideoModal({
               {replaceMutation.isPending ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Đang tải lên...</span>
+                  <span>
+                    {uploadPercent !== null && uploadPercent < 100
+                      ? `Đang tải lên... ${uploadPercent}%`
+                      : 'Đang xử lý video...'}
+                  </span>
                 </>
               ) : (
                 <span>Cập nhật Video</span>

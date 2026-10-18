@@ -178,9 +178,13 @@ function playChimeInternal(): void {
   }
 }
 
+const MULTI_TAB_COOLDOWN_MS = 600;
+const LAST_SOUND_STORAGE_KEY = 'ptit_last_sound_timestamp';
+
 /**
  * Public notification sound player with policy checks:
  * - Preference enabled
+ * - Multi-tab echo suppression
  * - Active conversation suppression
  * - Burst cooldown per conversation (3.5s) and general (1s)
  */
@@ -194,6 +198,20 @@ export function playNotificationSound(options?: {
     }
 
     const now = Date.now();
+
+    // Multi-tab sound echo suppression: prevent simultaneous chimes across multiple open tabs
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const lastGlobalPlay = Number(localStorage.getItem(LAST_SOUND_STORAGE_KEY) || 0);
+        if (now - lastGlobalPlay < MULTI_TAB_COOLDOWN_MS) {
+          return false;
+        }
+        localStorage.setItem(LAST_SOUND_STORAGE_KEY, String(now));
+      } catch {
+        // ignore localStorage access limitations
+      }
+    }
+
     const convId = options?.conversationId;
     const isChat = options?.isChatMessage ?? Boolean(convId);
 

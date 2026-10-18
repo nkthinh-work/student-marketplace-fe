@@ -5,14 +5,20 @@ const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 
 const apiClient = axios.create({
   baseURL: configuredBaseUrl || undefined,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Gắn Firebase ID token vào Bearer Authorization header
+// Gắn Firebase ID token vào Bearer Authorization header & dọn dẹp Content-Type cho FormData
 apiClient.interceptors.request.use(
   async (config) => {
+    // Để Axios và trình duyệt tự động sinh multipart boundary cho FormData
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
+
     const user = auth.currentUser;
     if (user) {
       try {
@@ -27,8 +33,32 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Tự động refresh token và retry 1 lần khi gặp 401
-let isRefreshing = false;
+// Single-flight shared Promise cho các request 401 đồng thời
+let refreshPromise: Promise<string | null> | null = null;
+
+async function getRefreshedToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    const userAtStart = auth.currentUser;
+    if (!userAtStart) return null;
+    const uidAtStart = userAtStart.uid;
+
+    refreshPromise = (async () => {
+      try {
+        const token = await userAtStart.getIdToken(true);
+        // Kiểm tra người dùng không logout hoặc đổi tài khoản trong lúc chờ token
+        if (auth.currentUser?.uid !== uidAtStart) {
+          return null;
+        }
+        return token;
+      } catch {
+        return null;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+  return refreshPromise;
+}
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -37,24 +67,22 @@ apiClient.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
       auth.currentUser
     ) {
-      if (isRefreshing) {
-        return Promise.reject(error);
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        const token = await auth.currentUser.getIdToken(true);
+        const token = await getRefreshedToken();
+        if (!token) {
+          return Promise.reject(error);
+        }
+        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return apiClient(originalRequest);
       } catch {
         return Promise.reject(error);
-      } finally {
-        isRefreshing = false;
       }
     }
 

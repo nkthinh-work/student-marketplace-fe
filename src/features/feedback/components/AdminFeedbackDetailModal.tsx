@@ -13,7 +13,6 @@ import {
   Video as VideoIcon,
   X,
 } from 'lucide-react';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { getAdminFeedbackEvidenceBlob } from '../api';
 import { useAdminFeedbackDetail, useDeleteAdminFeedback } from '../hooks';
 import type { AdminFeedbackListItem, FeedbackAttachment } from '../types';
@@ -150,11 +149,13 @@ function ImageLightbox({ feedbackId, attachment, onClose }: ImageLightboxProps) 
     setLoading(true);
     setError(false);
 
+    let createdUrl: string | null = null;
+
     getAdminFeedbackEvidenceBlob(feedbackId, attachment.attachment_id, controller.signal)
       .then((blob) => {
         if (!active) return;
-        const url = URL.createObjectURL(blob);
-        setBlobUrl(url);
+        createdUrl = URL.createObjectURL(blob);
+        setBlobUrl(createdUrl);
         setLoading(false);
       })
       .catch((err) => {
@@ -166,8 +167,8 @@ function ImageLightbox({ feedbackId, attachment, onClose }: ImageLightboxProps) 
     return () => {
       active = false;
       controller.abort();
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl);
       }
     };
   }, [feedbackId, attachment.attachment_id]);
@@ -229,13 +230,86 @@ function ImageLightbox({ feedbackId, attachment, onClose }: ImageLightboxProps) 
   );
 }
 
+interface EvidenceVideoProps {
+  feedbackId: number;
+  attachment: FeedbackAttachment;
+}
+
+function FeedbackEvidenceVideo({ feedbackId, attachment }: EvidenceVideoProps) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    setLoading(true);
+    setError(false);
+
+    getAdminFeedbackEvidenceBlob(feedbackId, attachment.attachment_id, controller.signal)
+      .then((blob) => {
+        if (!active) return;
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!active || err?.name === 'CanceledError' || err?.name === 'AbortError') return;
+        setError(true);
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [feedbackId, attachment.attachment_id]);
+
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-brand-border bg-stone-50 flex items-center justify-center p-6 text-brand-text-muted">
+        <Loader2 className="h-5 w-5 animate-spin text-brand-burgundy mr-2" />
+        <span className="text-xs">Đang tải video minh chứng...</span>
+      </div>
+    );
+  }
+
+  if (error || !blobUrl) {
+    return (
+      <div className="rounded-xl border border-brand-border bg-stone-50 flex flex-col items-center justify-center p-4 text-center text-brand-text-muted">
+        <VideoIcon className="h-5 w-5 text-gray-400 mb-1" />
+        <span className="text-xs text-gray-500">Không tải được video minh chứng</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-brand-border overflow-hidden bg-black">
+      <video
+        src={blobUrl}
+        controls
+        playsInline
+        preload="metadata"
+        className="w-full max-h-64 object-contain"
+      />
+    </div>
+  );
+}
+
 export const AdminFeedbackDetailModal: React.FC<AdminFeedbackDetailModalProps> = ({
   feedback,
   isOpen,
   onClose,
   onActionComplete,
 }) => {
-  const { firebaseUser } = useAuth();
   const { data: detailData, isLoading } = useAdminFeedbackDetail(
     feedback?.feedback_id || 0,
     isOpen && Boolean(feedback)
@@ -246,7 +320,6 @@ export const AdminFeedbackDetailModal: React.FC<AdminFeedbackDetailModalProps> =
   const [isConfirmDelete, setIsConfirmDelete] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedLightboxImage, setSelectedLightboxImage] = useState<FeedbackAttachment | null>(null);
-  const [videoToken, setVideoToken] = useState<string | null>(null);
 
   // Clear states on open/close
   useEffect(() => {
@@ -254,12 +327,6 @@ export const AdminFeedbackDetailModal: React.FC<AdminFeedbackDetailModalProps> =
     setErrorMessage(null);
     setSelectedLightboxImage(null);
   }, [feedback?.feedback_id, isOpen]);
-
-  // Retrieve Firebase ID token for video streaming Range auth
-  useEffect(() => {
-    if (!isOpen || !firebaseUser) return;
-    firebaseUser.getIdToken().then(setVideoToken).catch(() => {});
-  }, [isOpen, firebaseUser]);
 
   // Scroll lock
   useEffect(() => {
@@ -449,25 +516,13 @@ export const AdminFeedbackDetailModal: React.FC<AdminFeedbackDetailModalProps> =
                       <span className="text-[11px] font-medium text-brand-text-muted flex items-center gap-1">
                         <VideoIcon className="h-3 w-3" /> Video minh chứng ({videos.length})
                       </span>
-                      {videos.map((vid) => {
-                        const videoSrc = videoToken
-                          ? `${vid.stream_url}?token=${encodeURIComponent(videoToken)}`
-                          : vid.stream_url;
-                        return (
-                          <div
-                            key={vid.attachment_id}
-                            className="rounded-xl border border-brand-border overflow-hidden bg-black"
-                          >
-                            <video
-                              src={videoSrc}
-                              controls
-                              playsInline
-                              preload="metadata"
-                              className="w-full max-h-64 object-contain"
-                            />
-                          </div>
-                        );
-                      })}
+                      {videos.map((vid) => (
+                        <FeedbackEvidenceVideo
+                          key={vid.attachment_id}
+                          feedbackId={feedback.feedback_id}
+                          attachment={vid}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

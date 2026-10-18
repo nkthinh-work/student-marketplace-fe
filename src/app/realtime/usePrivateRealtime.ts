@@ -110,7 +110,7 @@ export function usePrivateRealtime() {
         const token = await currentUser.getIdToken();
         if (!isMounted || currentUidRef.current !== uid) return;
 
-        const wsUrl = `${wsBaseUrl}/ws/me?token=${encodeURIComponent(token)}`;
+        const wsUrl = `${wsBaseUrl}/ws/me`;
         const ws = new WebSocket(wsUrl);
         socketRef.current = ws;
 
@@ -119,6 +119,8 @@ export function usePrivateRealtime() {
             ws.close();
             return;
           }
+          // Xác thực in-band qua thông điệp đầu tiên, không truyền token qua query string
+          ws.send(JSON.stringify({ type: 'AUTH', token }));
           attemptRef.current = 0; // Reset backoff
           pingIntervalRef.current = window.setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
@@ -191,6 +193,10 @@ export function usePrivateRealtime() {
                   if (data.has_attachments !== false) {
                     invalidateAttachmentCaches(queryClient, data.conversation_id);
                   }
+                  playNotificationSound({
+                    conversationId: data.conversation_id,
+                    isChatMessage: true,
+                  });
                 }
               }
               queryClient.invalidateQueries({

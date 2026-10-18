@@ -33,10 +33,17 @@ export function useAdminTutorials(featureKey?: string) {
   });
 }
 
+import type { AxiosProgressEvent } from 'axios';
+
 export function useCreateTutorial() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formData: FormData) => createTutorial(formData),
+    mutationFn: (params: FormData | { formData: FormData; onUploadProgress?: (progressEvent: AxiosProgressEvent) => void }) => {
+      if (params instanceof FormData) {
+        return createTutorial(params);
+      }
+      return createTutorial(params.formData, params.onUploadProgress);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tutorials'] });
     },
@@ -65,10 +72,12 @@ export function useReplaceTutorialVideo() {
     mutationFn: ({
       tutorialId,
       videoFile,
+      onUploadProgress,
     }: {
       tutorialId: number;
       videoFile: File;
-    }) => replaceTutorialVideo(tutorialId, videoFile),
+      onUploadProgress?: (progressEvent: AxiosProgressEvent) => void;
+    }) => replaceTutorialVideo(tutorialId, videoFile, onUploadProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tutorials'] });
     },

@@ -16,6 +16,7 @@ import {
 } from '../hooks';
 import { NotificationItem } from '../components/NotificationItem';
 import { NotificationSoundToggle } from '../components/NotificationSoundToggle';
+import { WebPushToggle } from '../components/WebPushToggle';
 
 export const NotificationsPage: React.FC = () => {
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -125,7 +126,10 @@ export const NotificationsPage: React.FC = () => {
           </button>
         </div>
 
-        <NotificationSoundToggle />
+        <div className="flex flex-wrap items-center gap-4">
+          <WebPushToggle />
+          <NotificationSoundToggle />
+        </div>
       </div>
 
       {/* Content List */}

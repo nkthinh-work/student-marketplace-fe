@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
@@ -17,7 +18,7 @@ import { SellingOrdersPage } from '@/features/orders/pages/SellingOrdersPage';
 import { OrderDetailPage } from '@/features/orders/pages/OrderDetailPage';
 import { ConversationsPage } from '@/features/conversations/pages/ConversationsPage';
 import { ChatThreadPage } from '@/features/conversations/pages/ChatThreadPage';
-import { NotificationsPage } from '@/features/notifications';
+import { NotificationsPage, WebPushPermissionBanner, setupForegroundPushListener } from '@/features/notifications';
 import { AuctionRedirectPage } from '@/features/auctions/pages/AuctionRedirectPage';
 import { AdminReportsPage } from '@/features/reports/pages/AdminReportsPage';
 import { AdminCommunityMomentsPage } from '@/features/communityMoments';
@@ -37,6 +38,23 @@ const queryClient = new QueryClient({
 
 function PrivateRealtimeBridge() {
   usePrivateRealtime();
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    setupForegroundPushListener(() => {
+      // In foreground, realtime WebSocket handles active UI and audio.
+      // FCM foreground is handled passively to prevent duplicate audio/toast.
+    })
+      .then((unsub) => {
+        unsubscribe = unsub;
+      })
+      .catch(() => {});
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   return null;
 }
 
@@ -49,6 +67,7 @@ export function App() {
               <PrivateRealtimeBridge />
               <div className="min-h-screen bg-brand-cream text-brand-text flex flex-col">
                 <Header />
+                <WebPushPermissionBanner />
                 <main className="flex-1">
                   <Routes>
                     {/* Home Page */}

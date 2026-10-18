@@ -18,11 +18,15 @@ export async function getAdminTutorials(featureKey?: string): Promise<AdminTutor
   return response.data;
 }
 
-export async function createTutorial(formData: FormData): Promise<AdminTutorial> {
+import type { AxiosProgressEvent } from 'axios';
+
+export async function createTutorial(
+  formData: FormData,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
+): Promise<AdminTutorial> {
   const response = await apiClient.post<AdminTutorial>('/api/v1/admin/tutorials', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    timeout: 180000,
+    onUploadProgress,
   });
   return response.data;
 }
@@ -40,7 +44,8 @@ export async function updateTutorialMetadata(
 
 export async function replaceTutorialVideo(
   tutorialId: number,
-  videoFile: File
+  videoFile: File,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ): Promise<AdminTutorial> {
   const formData = new FormData();
   formData.append('video', videoFile);
@@ -48,9 +53,8 @@ export async function replaceTutorialVideo(
     `/api/v1/admin/tutorials/${tutorialId}/video`,
     formData,
     {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      timeout: 180000,
+      onUploadProgress,
     }
   );
   return response.data;

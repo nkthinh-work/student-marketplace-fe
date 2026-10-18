@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { auth } from '@/lib/firebase';
 import { CURRENT_USER_KEY, MY_BANK_ACCOUNT_KEY } from '@/features/users/hooks';
 import { NOTIFICATION_QUERY_KEYS } from '@/features/notifications/hooks';
+import { unsubscribePushNotification } from '@/features/notifications/pushNotification';
 import type { AuthState } from '../types';
 
 export const AuthContext = createContext<AuthState | null>(null);
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
+      await unsubscribePushNotification().catch(() => {});
       await Promise.allSettled([
         queryClient.cancelQueries({ queryKey: CURRENT_USER_KEY }),
         queryClient.cancelQueries({ queryKey: MY_BANK_ACCOUNT_KEY }),
